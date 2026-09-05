@@ -1,0 +1,137 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("BILLING_DATABASE_URL")
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  OVERDUE
+  VOIDED
+  CREDIT_NOTE
+}
+
+enum InvoiceType {
+  ONE_TIME
+  RECURRING
+  CREDIT_NOTE
+  PRORATION
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAUSED
+  CANCELLED
+  EXPIRED
+}
+
+model Invoice {
+  id             String        @id @default(uuid())
+  companyId      String        @default("default")
+  orderId        String        // quotationId from quotation_db
+  customerId     String
+  type           InvoiceType
+  status         InvoiceStatus @default(DRAFT)
+  currency       String        @default("USD")
+  subtotal       Decimal       @db.Decimal(12, 4)
+  taxAmount      Decimal       @db.Decimal(12, 4) @default(0)
+  totalAmount    Decimal       @db.Decimal(12, 4)
+  dueDate        DateTime?
+  paidAt         DateTime?
+  voidedAt       DateTime?
+  notes          String?
+  idempotencyKey String?       @unique
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  lines          InvoiceLine[]
+  payments       Payment[]
+
+  @@index([companyId, orderId])
+  @@index([companyId, customerId])
+  @@index([status])
+}
+
+model InvoiceLine {
+  id          String  @id @default(uuid())
+  invoiceId   String
+  productId   String
+  description String
+  quantity    Int     @default(1)
+  unitPrice   Decimal @db.Decimal(12, 4)
+  discountPct Float   @default(0)
+  lineTotal   Decimal @db.Decimal(12, 4)
+  taxRate     Float   @default(0)
+  taxAmount   Decimal @db.Decimal(12, 4) @default(0)
+
+  invoice     Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+}
+
+model SubscriptionLine {
+  id                 String             @id @default(uuid())
+  companyId          String             @default("default")
+  orderId            String
+  customerId         String
+  planId             String             // logical FK to catalog_db.SubscriptionPlan
+  planName           String             // snapshot
+  interval           String             // MONTHLY | QUARTERLY | YEARLY
+  unitPrice          Decimal            @db.Decimal(12, 4)
+  quantity           Int                @default(1)
+  currency           String             @default("USD")
+  status             SubscriptionStatus @default(ACTIVE)
+  startDate          DateTime
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  nextBillingDate    DateTime
+  cancelledAt        DateTime?
+  cancellationPolicy String             @default("end_of_period") // end_of_period | immediate
+  partialRefundPct   Float              @default(0)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  billingHistory     BillingCycle[]
+
+  @@index([companyId, orderId])
+  @@index([nextBillingDate, status])
+  @@index([companyId, customerId])
+}
+
+model BillingCycle {
+  id                 String           @id @default(uuid())
+  subscriptionLineId String
+  periodStart        DateTime
+  periodEnd          DateTime
+  amount             Decimal          @db.Decimal(12, 4)
+  invoiceId          String?
+  billedAt           DateTime?
+  createdAt          DateTime         @default(now())
+
+  subscriptionLine   SubscriptionLine @relation(fields: [subscriptionLineId], references: [id], onDelete: Cascade)
+
+  @@index([subscriptionLineId])
+}
+
+model Payment {
+  id             String   @id @default(uuid())
+  companyId      String   @default("default")
+  invoiceId      String
+  amount         Decimal  @db.Decimal(12, 4)
+  currency       String   @default("USD")
+  method         String   // cash | bank_transfer | card | check
+  reference      String?  // external payment reference
+  recordedBy     String   // userId from auth_db
+  recordedAt     DateTime @default(now())
+  idempotencyKey String?  @unique
+
+  invoice        Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+}
