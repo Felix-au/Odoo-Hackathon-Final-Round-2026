@@ -70,6 +70,8 @@ export interface Quotation {
   totalAmount: string | number;
   totalCost?: string | number;
   overallMarginPct: number;
+  totalMarginPct?: number;
+  notes?: string;
   blendedRiskScore: number;
   riskScore?: number;
   riskLevel?: string;
