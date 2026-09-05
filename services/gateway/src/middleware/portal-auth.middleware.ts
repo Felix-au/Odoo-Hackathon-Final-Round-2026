@@ -76,7 +76,9 @@ export async function portalAuthMiddleware(
   let sessionData: PortalSessionData;
 
   try {
-    const raw = await redis.get(`portal:session:${token}`);
+    const raw =
+      (await redis.get(`portal_session:${token}`)) ??
+      (await redis.get(`portal:session:${token}`));
     if (!raw) {
       return reply.code(401).send({
         type: 'https://dealflow360.com/errors/portal-session-invalid',
