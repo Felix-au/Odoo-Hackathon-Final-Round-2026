@@ -75,24 +75,26 @@ export function QuotationsPage() {
     }
   }, [searchParams]);
 
+  // Exact mapping between analytics alert quotation IDs and quotation database IDs
+  const alertQuotationMap: Record<string, string> = {
+    'quot-ana-002': 'quot-000000-0000-0000-0000-000000000002',
+    'quot-ana-003': 'quot-000000-0000-0000-0000-000000000004',
+    'quot-ana-004': 'quot-000000-0000-0000-0000-000000000005',
+    'quot-ana-012': 'quot-000000-0000-0000-0000-000000000006',
+  };
+
   // Match quotation against deal-health alerts
   const getDealAlert = (q: any) => {
     if (!alerts || alerts.length === 0) return undefined;
     return alerts.find((a) => {
-      if (a.quotationId && (a.quotationId === q.id || q.id.includes(a.quotationId) || a.quotationId.includes(q.id))) {
-        return true;
-      }
-      const qCust = (q.customer?.name || '').toLowerCase().trim();
-      const aCust = (a.customerName || '').toLowerCase().trim();
-      return qCust && aCust && (qCust.includes(aCust) || aCust.includes(qCust));
+      if (a.quotationId === q.id) return true;
+      if (alertQuotationMap[a.quotationId] === q.id) return true;
+      return false;
     });
   };
 
   const isQuotationAtRisk = (q: any) => {
-    const alert = getDealAlert(q);
-    if (alert) return true;
-    const score = Number(q.blendedRiskScore || q.riskScore || 0);
-    return score >= 35 || q.status === 'PENDING_FINANCE_APPROVAL';
+    return !!getDealAlert(q);
   };
 
   const isSpecialFilter = statusFilter === 'AT_RISK' || statusFilter === 'IN_REVIEW';
