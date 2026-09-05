@@ -1,0 +1,69 @@
+// generator client {
+//   provider = "prisma-client-js"
+// }
+//
+// This comment is intentional — the generator block must be in schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("AUTH_DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  SALES_MANAGER
+  FINANCE
+  SALES_REP
+}
+
+/// Internal user accounts (Sales Rep, Manager, Finance, Admin)
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String
+  name         String
+  role         Role      @default(SALES_REP)
+  companyId    String    @default("default")
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  refreshTokens RefreshToken[]
+
+  @@index([email])
+  @@index([companyId])
+}
+
+/// Hashed refresh tokens — raw token returned only once on issue
+model RefreshToken {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String    @unique  // SHA-256 of raw token
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+  revokedAt DateTime?           // set on logout or rotation
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenHash])
+}
+
+/// Customer portal credentials — separate from Customer entity in quotation_db
+/// A customer can use magic link only (passwordHash = null) or email+password
+model CustomerPortalCredential {
+  id           String   @id @default(uuid())
+  customerId   String   @unique  // logical FK to quotation_db.Customer (no DB-level constraint)
+  email        String   @unique
+  passwordHash String?           // null = magic link only
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([email])
+  @@index([customerId])
+}
