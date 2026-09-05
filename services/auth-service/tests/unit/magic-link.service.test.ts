@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { MagicLinkService, MagicLinkError } from '../../../src/domain/services/magic-link.service';
-import type { PortalCredentialRepository } from '../../../src/db/repositories/portal-credential.repository';
-import type { EmailClient } from '../../../src/integrations/email.client';
+import { MagicLinkService, MagicLinkError } from '../../src/domain/services/magic-link.service';
+import type { PortalCredentialRepository } from '../../src/db/repositories/portal-credential.repository';
+import type { EmailClient } from '../../src/integrations/email.client';
 import type { CustomerPortalCredential } from '@prisma/client';
 
 // ─── Mock Redis ───────────────────────────────────────────────
