@@ -1,0 +1,228 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("CATALOG_DATABASE_URL")
+}
+
+enum CustomerTier {
+  BRONZE
+  SILVER
+  GOLD
+}
+
+enum BillingInterval {
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+enum ProrationMode {
+  DAILY
+  NONE
+}
+
+// ─────────────────────────────────────────────
+// Products
+// ─────────────────────────────────────────────
+
+/// Category of products — supports category-level discount ceilings (REQ-F-021)
+model ProductCategory {
+  id                 String    @id @default(uuid())
+  companyId          String    @default("default")
+  name               String
+  discountCeilingPct Float     @default(0)   // category-level discount ceiling
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  products Product[]
+
+  @@unique([companyId, name])
+  @@index([companyId])
+}
+
+/// Physical or service product with multi-currency support (REQ-F-010)
+model Product {
+  id          String   @id @default(uuid())
+  companyId   String   @default("default")
+  name        String
+  categoryId  String
+  basePrice   Decimal  @db.Decimal(12, 4)
+  unit        String   @default("unit")
+  taxRate     Float    @default(0)     // percentage e.g. 18.0
+  description String?
+  costPrice   Decimal  @db.Decimal(12, 4) @default(0)  // for margin calculations (REQ-F-052)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  category   ProductCategory  @relation(fields: [categoryId], references: [id])
+  variants   ProductVariant[]
+  planLinks  ProductPlanLink[]
+  upsellFrom UpsellRule[]     @relation("TriggerProduct")
+  upsellTo   UpsellRule[]     @relation("SuggestedProduct")
+
+  @@index([companyId])
+  @@index([categoryId])
+  @@index([companyId, categoryId])
+}
+
+/// Product attribute variants (e.g. Size: Large, Pack: 10-unit) (REQ-F-011)
+model ProductVariant {
+  id         String   @id @default(uuid())
+  productId  String
+  attribute  String   // e.g. "Size", "Pack"
+  value      String   // e.g. "Large", "10-pack"
+  extraPrice Decimal  @db.Decimal(12, 4) @default(0)
+  isActive   Boolean  @default(true)
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+}
+
+// ─────────────────────────────────────────────
+// Price Lists (REQ-F-012, REQ-F-013, REQ-BONUS-001)
+// ─────────────────────────────────────────────
+
+/// A price list applies to a specific customer tier and currency combination
+model PriceList {
+  id           String       @id @default(uuid())
+  companyId    String       @default("default")
+  name         String
+  customerTier CustomerTier
+  currency     String       @default("USD")   // ISO 4217
+  isActive     Boolean      @default(true)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  rules PriceListRule[]
+
+  @@index([companyId, customerTier])
+  @@index([companyId, currency])
+}
+
+/// Per-product rule within a price list — either fixed price or percentage discount
+model PriceListRule {
+  id          String    @id @default(uuid())
+  priceListId String
+  productId   String
+  fixedPrice  Decimal?  @db.Decimal(12, 4)  // override base price
+  discountPct Float?    // percentage discount from base price
+  minQty      Int       @default(1)          // minimum quantity for rule to apply
+
+  priceList PriceList @relation(fields: [priceListId], references: [id], onDelete: Cascade)
+
+  @@index([priceListId, productId])
+}
+
+// ─────────────────────────────────────────────
+// Discount Tiers & Approval Chains
+// ─────────────────────────────────────────────
+
+/// Discount ceiling per customer tier, optionally scoped to a category (REQ-F-020, REQ-F-021)
+model DiscountTier {
+  id           String       @id @default(uuid())
+  companyId    String       @default("default")
+  customerTier CustomerTier
+  categoryId   String?      // null = applies to all categories
+  ceilingPct   Float        // maximum allowed discount percentage
+  createdAt    DateTime     @default(now())
+
+  @@index([companyId, customerTier])
+  @@index([companyId, customerTier, categoryId])
+}
+
+/// Risk-score-based approval chain — determines which roles must approve (REQ-F-022, REQ-F-023)
+model ApprovalChain {
+  id            String   @id @default(uuid())
+  companyId     String   @default("default")
+  name          String
+  minRiskScore  Float    // inclusive lower bound
+  maxRiskScore  Float    // exclusive upper bound (use 999 for infinity)
+  requiredRoles String[] // ordered array: ["SALES_MANAGER"] or ["SALES_MANAGER", "FINANCE"]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([companyId])
+}
+
+// ─────────────────────────────────────────────
+// Warehouses (REQ-F-030, REQ-F-033)
+// ─────────────────────────────────────────────
+
+/// Warehouse definitions — actual stock levels live in fulfillment_db
+model WarehouseDefinition {
+  id                 String   @id @default(uuid())
+  companyId          String   @default("default")
+  name               String
+  location           String?
+  shippingCostWeight Float    @default(1.0)  // relative weight for split algorithm (REQ-F-033)
+  isActive           Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([companyId])
+}
+
+// ─────────────────────────────────────────────
+// Subscription Plans (REQ-F-040 through REQ-F-044)
+// ─────────────────────────────────────────────
+
+/// Recurring subscription plan — billing interval, proration, and cancellation policy
+model SubscriptionPlan {
+  id                 String          @id @default(uuid())
+  companyId          String          @default("default")
+  name               String
+  interval           BillingInterval
+  basePrice          Decimal         @db.Decimal(12, 4)
+  currency           String          @default("USD")
+  prorationMode      ProrationMode   @default(DAILY)
+  cancellationPolicy String          @default("end_of_period")  // end_of_period | immediate
+  partialRefundPct   Float           @default(0)   // % of remaining period refunded on cancel
+  isActive           Boolean         @default(true)
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  productLinks ProductPlanLink[]
+
+  @@index([companyId])
+}
+
+/// Links a product to one or more subscription plans (REQ-F-041)
+model ProductPlanLink {
+  id        String @id @default(uuid())
+  productId String
+  planId    String
+
+  product Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
+  plan    SubscriptionPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, planId])
+}
+
+// ─────────────────────────────────────────────
+// Upsell / Cross-sell Rules (REQ-F-050 through REQ-F-052)
+// ─────────────────────────────────────────────
+
+/// Rule: when product X is quoted, suggest product Y (if margin threshold met)
+model UpsellRule {
+  id                 String   @id @default(uuid())
+  companyId          String   @default("default")
+  triggerProductId   String
+  suggestedProductId String
+  minMarginPct       Float    @default(0)    // only surface if suggested product margin >= this
+  isPromoted         Boolean  @default(false) // promoted products shown first (REQ-F-051)
+  priority           Int      @default(0)    // higher = ranked higher
+  isActive           Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  triggerProduct   Product @relation("TriggerProduct", fields: [triggerProductId], references: [id])
+  suggestedProduct Product @relation("SuggestedProduct", fields: [suggestedProductId], references: [id])
+
+  @@index([companyId, triggerProductId])
+  @@index([companyId, triggerProductId, isActive])
+}
