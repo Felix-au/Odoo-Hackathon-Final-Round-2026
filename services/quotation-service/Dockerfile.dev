@@ -1,6 +1,8 @@
 # Dockerfile.dev — Quotation Service
 FROM node:20-alpine
 
+RUN apk add --no-cache openssl libc6-compat
+
 WORKDIR /app
 
 COPY package*.json ./
@@ -13,4 +15,4 @@ COPY . .
 
 EXPOSE 3003
 
-CMD ["sh", "-c", "npx prisma migrate deploy --schema=src/db/prisma/schema.prisma && npx tsx src/db/seed.ts && npm run dev"]
+CMD ["sh", "-c", "npx prisma db push --schema=src/db/prisma/schema.prisma && npx tsx src/db/seed.ts && npm run dev"]
