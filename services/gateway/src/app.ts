@@ -51,6 +51,46 @@ export async function buildApp() {
     timestamp: new Date().toISOString(),
   }));
 
+  // Service health checks routed through Gateway (Port 3000)
+  app.get('/health/:service', async (request, reply) => {
+    const { service } = request.params as { service: string };
+    const upstreamMap: Record<string, string> = {
+      gateway: 'self',
+      auth: env.AUTH_SERVICE_URL,
+      catalog: env.CATALOG_SERVICE_URL,
+      quotation: env.QUOTATION_SERVICE_URL,
+      fulfillment: env.FULFILLMENT_SERVICE_URL,
+      billing: env.BILLING_SERVICE_URL,
+      analytics: env.ANALYTICS_SERVICE_URL,
+    };
+
+    const targetUrl = upstreamMap[service];
+    if (!targetUrl) {
+      return reply.code(404).send({ error: `Service ${service} not recognized` });
+    }
+
+    if (targetUrl === 'self') {
+      return reply.code(200).send({
+        status: 'healthy',
+        service: 'gateway',
+        version: process.env['npm_package_version'] ?? '1.0.0',
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    try {
+      const resp = await fetch(`${targetUrl}/health`);
+      const data = await resp.json();
+      return reply.code(resp.status).send(data);
+    } catch (err: any) {
+      return reply.code(503).send({
+        status: 'offline',
+        service,
+        error: err?.message || 'Upstream service unreachable',
+      });
+    }
+  });
+
   // ─── Proxy Routes ────────────────────────────────────────────────────────────
   await registerProxyRoutes(app);
 
