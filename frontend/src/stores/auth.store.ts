@@ -19,14 +19,23 @@ interface AuthState {
 }
 
 export const useAuthStore = create<AuthState>((set, get) => {
-  const token = localStorage.getItem('dealflow_access_token');
+  const rawToken = localStorage.getItem('dealflow_access_token');
+  const token = rawToken && rawToken.startsWith('eyJ') ? rawToken : null;
   let initialUser: User | null = null;
-  const storedUser = localStorage.getItem('dealflow_user');
-  if (storedUser) {
-    try {
-      initialUser = JSON.parse(storedUser);
-    } catch {
-      initialUser = null;
+
+  if (rawToken && !token) {
+    // Purge legacy mock tokens
+    localStorage.removeItem('dealflow_access_token');
+    localStorage.removeItem('dealflow_refresh_token');
+    localStorage.removeItem('dealflow_user');
+  } else {
+    const storedUser = localStorage.getItem('dealflow_user');
+    if (storedUser) {
+      try {
+        initialUser = JSON.parse(storedUser);
+      } catch {
+        initialUser = null;
+      }
     }
   }
 
@@ -125,11 +134,15 @@ export const useAuthStore = create<AuthState>((set, get) => {
   },
 
   initializeFromStorage: async () => {
-    const token = localStorage.getItem('dealflow_access_token');
-    if (!token) return;
+    const rawToken = localStorage.getItem('dealflow_access_token');
+    if (!rawToken || !rawToken.startsWith('eyJ')) {
+      get().logout();
+      return;
+    }
     try {
-      const me = await authApi.getMe(token);
-      set({ user: me, isAuthenticated: true });
+      const me = await authApi.getMe(rawToken);
+      localStorage.setItem('dealflow_user', JSON.stringify(me));
+      set({ user: me, accessToken: rawToken, isAuthenticated: true });
     } catch {
       // If token expired, attempt refresh
       await get().refreshToken();

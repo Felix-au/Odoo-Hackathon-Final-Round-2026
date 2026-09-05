@@ -4,7 +4,11 @@ import { RouterProvider } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
 import { router } from './router';
+import { useAuthStore } from './stores/auth.store';
 import './index.css';
+
+// Sync and validate authentication session on app boot
+useAuthStore.getState().initializeFromStorage();
 
 const queryClient = new QueryClient({
   defaultOptions: {
