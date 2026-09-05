@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import { FileSpreadsheet, FileText, Calendar, Filter } from 'lucide-react';
 import { toast } from 'sonner';
+import { formatCurrency } from '../../lib/utils';
 
 export function ReportsPage() {
   const [activeTab, setActiveTab] = useState<'quotations' | 'products' | 'discounts' | 'subscriptions'>('quotations');
@@ -110,7 +111,7 @@ export function ReportsPage() {
       <div className="bg-[#12151C] border border-[#1E2430] rounded-2xl p-5 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-            Revenue by Top Product SKU ($)
+            Revenue by Top Product SKU (₹)
           </h2>
           <span className="text-[11px] text-emerald-400 font-mono font-semibold">+14.2% MoM</span>
         </div>
@@ -122,6 +123,7 @@ export function ReportsPage() {
               <XAxis dataKey="name" stroke="#64748B" fontSize={11} tickLine={false} />
               <YAxis stroke="#64748B" fontSize={11} tickLine={false} />
               <Tooltip
+                formatter={(val: any) => [formatCurrency(Number(val)), 'Revenue']}
                 contentStyle={{
                   backgroundColor: '#161B24',
                   border: '1px solid #283244',
@@ -154,7 +156,7 @@ export function ReportsPage() {
               <td className="py-3.5 px-5 font-bold text-white">Dave Sales</td>
               <td className="py-3.5 px-5 text-center text-slate-300">24</td>
               <td className="py-3.5 px-5 text-center text-emerald-400 font-bold">16</td>
-              <td className="py-3.5 px-5 text-right font-mono text-white">$420,000</td>
+              <td className="py-3.5 px-5 text-right font-mono text-white">{formatCurrency(420000)}</td>
               <td className="py-3.5 px-5 text-right font-mono text-emerald-400 font-semibold">66.7%</td>
               <td className="py-3.5 px-5 text-right font-mono text-slate-300">38.4%</td>
             </tr>
@@ -162,7 +164,7 @@ export function ReportsPage() {
               <td className="py-3.5 px-5 font-bold text-white">Sara Enterprise</td>
               <td className="py-3.5 px-5 text-center text-slate-300">18</td>
               <td className="py-3.5 px-5 text-center text-emerald-400 font-bold">12</td>
-              <td className="py-3.5 px-5 text-right font-mono text-white">$310,000</td>
+              <td className="py-3.5 px-5 text-right font-mono text-white">{formatCurrency(310000)}</td>
               <td className="py-3.5 px-5 text-right font-mono text-emerald-400 font-semibold">66.6%</td>
               <td className="py-3.5 px-5 text-right font-mono text-slate-300">35.2%</td>
             </tr>
@@ -170,7 +172,7 @@ export function ReportsPage() {
               <td className="py-3.5 px-5 font-bold text-white">Alex KeyAccounts</td>
               <td className="py-3.5 px-5 text-center text-slate-300">14</td>
               <td className="py-3.5 px-5 text-center text-emerald-400 font-bold">9</td>
-              <td className="py-3.5 px-5 text-right font-mono text-white">$212,000</td>
+              <td className="py-3.5 px-5 text-right font-mono text-white">{formatCurrency(212000)}</td>
               <td className="py-3.5 px-5 text-right font-mono text-emerald-400 font-semibold">64.3%</td>
               <td className="py-3.5 px-5 text-right font-mono text-slate-300">33.9%</td>
             </tr>
