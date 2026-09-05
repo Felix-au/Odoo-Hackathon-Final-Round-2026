@@ -5,13 +5,13 @@ RUN apk add --no-cache openssl
 WORKDIR /app
 
 COPY package*.json ./
-COPY prisma ./prisma/
 
 RUN npm ci
-RUN npx prisma generate
 
 COPY . .
 
+RUN npx prisma generate --schema=src/db/prisma/schema.prisma
+
 EXPOSE 3002
 
-CMD ["sh", "-c", "npx prisma migrate deploy && npx tsx src/db/seed.ts && npm run dev"]
+CMD ["sh", "-c", "npx prisma db push --schema=src/db/prisma/schema.prisma --accept-data-loss && npx tsx src/db/seed.ts && npm run dev"]
