@@ -71,4 +71,64 @@ export class FulfillmentOrderService {
     return computeOptimalSplit(request, stockByProduct);
   }
 
+  async acceptSplit(input: AcceptSplitInput): Promise<FulfillmentOrderWithSplits> {
+    return prisma.$transaction(async (tx) => {
+      // Build split records and reserve stock
+      const splitRecords = input.splits.map((s) => {
+        const isBackorder = s.quantity === 0;
+        return {
+          warehouseId: s.warehouseId,
+          warehouseName: s.warehouseName,
+          productId: s.productId,
+          variantId: s.variantId ?? null,
+          productName: s.productName,
+          quantityRequested: s.quantity,
+          quantityFulfilled: 0,
+          quantityBackordered: 0,
+          status: isBackorder ? FulfillmentStatus.BACKORDERED : FulfillmentStatus.RESERVED,
+        };
+      });
+
+      const order = await this.orderRepo.create(tx, {
+        companyId: input.companyId,
+        orderId: input.orderId,
+        customerId: input.customerId,
+        currency: input.currency,
+        isOverride: input.isOverride,
+        splits: splitRecords,
+      });
+
+      // Reserve stock for non-backorder splits
+      for (const s of input.splits) {
+        if (s.quantity > 0 && s.warehouseId !== 'BACKORDER') {
+          await this.stockRepo.incrementReserved(
+            tx,
+            input.companyId,
+            s.warehouseId,
+            s.productId,
+            s.variantId ?? null,
+            s.quantity,
+          );
+        }
+      }
+
+      // Create backorder records for zero-qty splits
+      for (const split of order.splits) {
+        if (split.status === FulfillmentStatus.BACKORDERED && split.quantityRequested > 0) {
+          await this.backorderRepo.create({
+            companyId: input.companyId,
+            fulfillmentSplitId: split.id,
+            orderId: input.orderId,
+            productId: split.productId,
+            variantId: split.variantId,
+            quantityNeeded: split.quantityRequested,
+            warehouseId: split.warehouseId === 'BACKORDER' ? '' : split.warehouseId,
+          });
+        }
+      }
+
+      return order;
+    });
+  }
+
   }
