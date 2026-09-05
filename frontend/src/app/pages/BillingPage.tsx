@@ -269,7 +269,7 @@ export function BillingPage() {
       >
         <div className="space-y-4">
           <Input
-            label="Payment Amount ($)"
+            label="Payment Amount (₹)"
             type="number"
             value={paymentAmount}
             onChange={(e) => setPaymentAmount(e.target.value)}

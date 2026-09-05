@@ -98,7 +98,7 @@ export function ReportsPage() {
                   <td className="font-bold text-xs text-slate-900">Dave Sales</td>
                   <td className="text-center text-xs">24</td>
                   <td className="text-center text-xs text-emerald-600 font-bold">16</td>
-                  <td className="text-right font-black text-xs text-slate-900">$184,200.00</td>
+                  <td className="text-right font-black text-xs text-slate-900">₹184,200.00</td>
                   <td className="text-right text-xs font-bold text-slate-800">66.7%</td>
                   <td className="text-right text-xs font-semibold text-emerald-600">38.4%</td>
                 </tr>
@@ -106,7 +106,7 @@ export function ReportsPage() {
                   <td className="font-bold text-xs text-slate-900">Eve Martinez</td>
                   <td className="text-center text-xs">18</td>
                   <td className="text-center text-xs text-emerald-600 font-bold">12</td>
-                  <td className="text-right font-black text-xs text-slate-900">$118,500.00</td>
+                  <td className="text-right font-black text-xs text-slate-900">₹118,500.00</td>
                   <td className="text-right text-xs font-bold text-slate-800">66.7%</td>
                   <td className="text-right text-xs font-semibold text-emerald-600">34.1%</td>
                 </tr>
@@ -114,7 +114,7 @@ export function ReportsPage() {
                   <td className="font-bold text-xs text-slate-900">Frank Wilson</td>
                   <td className="text-center text-xs">6</td>
                   <td className="text-center text-xs text-emerald-600 font-bold">3</td>
-                  <td className="text-right font-black text-xs text-slate-900">$39,800.00</td>
+                  <td className="text-right font-black text-xs text-slate-900">₹39,800.00</td>
                   <td className="text-right text-xs font-bold text-slate-800">50.0%</td>
                   <td className="text-right text-xs font-semibold text-emerald-600">31.2%</td>
                 </tr>
@@ -171,15 +171,15 @@ export function ReportsPage() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
                 <div className="text-xs text-slate-500 font-semibold">Monthly Recurring Revenue (MRR)</div>
-                <div className="text-xl font-black text-slate-900 mt-1">$48,200.00</div>
+                <div className="text-xl font-black text-slate-900 mt-1">₹48,200.00</div>
               </div>
               <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
                 <div className="text-xs text-slate-500 font-semibold">Annual Run Rate (ARR)</div>
-                <div className="text-xl font-black text-slate-900 mt-1">$578,400.00</div>
+                <div className="text-xl font-black text-slate-900 mt-1">₹578,400.00</div>
               </div>
               <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
                 <div className="text-xs text-slate-500 font-semibold">Average Revenue Per User (ARPU)</div>
-                <div className="text-xl font-black text-slate-900 mt-1">$240.00/seat</div>
+                <div className="text-xl font-black text-slate-900 mt-1">₹240.00/seat</div>
               </div>
             </div>
           </CardContent>
@@ -207,14 +207,14 @@ export function ReportsPage() {
                   <td className="font-bold text-xs text-slate-900">Enterprise Laptop Pro</td>
                   <td className="text-xs text-slate-500">Hardware</td>
                   <td className="text-center text-xs">84</td>
-                  <td className="text-right font-black text-xs text-slate-900">$109,116.00</td>
+                  <td className="text-right font-black text-xs text-slate-900">₹109,116.00</td>
                   <td className="text-right text-xs font-bold text-emerald-600">30.7%</td>
                 </tr>
                 <tr>
                   <td className="font-bold text-xs text-slate-900">ProSupport 24/7 SLA</td>
                   <td className="text-xs text-slate-500">Services</td>
                   <td className="text-center text-xs">38</td>
-                  <td className="text-right font-black text-xs text-slate-900">$37,962.00</td>
+                  <td className="text-right font-black text-xs text-slate-900">₹37,962.00</td>
                   <td className="text-right text-xs font-bold text-emerald-600">65.0%</td>
                 </tr>
               </tbody>

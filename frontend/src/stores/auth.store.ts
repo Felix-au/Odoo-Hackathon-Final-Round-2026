@@ -127,7 +127,9 @@ export const useAuthStore = create<AuthState>((set, get) => {
     try {
       const data = await authApi.refresh(rf);
       localStorage.setItem('dealflow_access_token', data.accessToken);
-      set({ accessToken: data.accessToken });
+      const me = await authApi.getMe(data.accessToken);
+      localStorage.setItem('dealflow_user', JSON.stringify(me));
+      set({ accessToken: data.accessToken, user: me, isAuthenticated: true });
     } catch {
       get().logout();
     }

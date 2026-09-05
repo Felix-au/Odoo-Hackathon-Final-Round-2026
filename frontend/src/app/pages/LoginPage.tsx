@@ -78,14 +78,17 @@ export function LoginPage() {
                 </div>
               )}
 
-              <Button type="submit" variant="primary" className="w-full py-2.5 mt-2" isLoading={isLoading}>
+              <Button type="submit" variant="primary" className="w-full py-2.5 mt-2 shadow-sm font-bold" isLoading={isLoading}>
                 Sign In to Workspace
               </Button>
 
-              <div className="text-center pt-2">
-                <span className="text-xs text-slate-500">Need a new organization account? </span>
-                <Link to="/signup" className="text-xs font-bold text-primary hover:underline">
-                  Sign up
+              <div className="pt-3 pb-1 text-center border-t border-slate-100">
+                <p className="text-xs text-slate-500 mb-2 font-medium">Don't have a workspace account?</p>
+                <Link
+                  to="/signup"
+                  className="inline-flex items-center justify-center w-full py-2 px-3 rounded-lg border-2 border-primary/30 text-xs font-bold text-primary bg-blue-50/50 hover:bg-blue-50 hover:border-primary transition-all"
+                >
+                  Create New Account / Sign Up →
                 </Link>
               </div>
             </form>
