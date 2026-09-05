@@ -113,7 +113,8 @@ export const useAuthStore = create<AuthState>((set, get) => {
       refreshTokenString: null,
       isAuthenticated: false,
     });
-    if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+    // Only redirect to /login if user was actively on a protected /app workspace route
+    if (typeof window !== 'undefined' && window.location.pathname.startsWith('/app')) {
       window.location.href = '/login';
     }
   },
@@ -138,7 +139,10 @@ export const useAuthStore = create<AuthState>((set, get) => {
   initializeFromStorage: async () => {
     const rawToken = localStorage.getItem('dealflow_access_token');
     if (!rawToken || !rawToken.startsWith('eyJ')) {
-      get().logout();
+      localStorage.removeItem('dealflow_access_token');
+      localStorage.removeItem('dealflow_refresh_token');
+      localStorage.removeItem('dealflow_user');
+      set({ user: null, accessToken: null, refreshTokenString: null, isAuthenticated: false });
       return;
     }
     try {
