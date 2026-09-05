@@ -1,5 +1,5 @@
 import { useLocation, Link, useSearchParams } from 'react-router-dom';
-import { MailCheck, ExternalLink, ArrowLeft } from 'lucide-react';
+import { ExternalLink, ArrowLeft } from 'lucide-react';
 import dealflowLogo from '../../assets/dealflow360_logo.jpg';
 
 export function MagicLinkSentPage() {
@@ -13,41 +13,24 @@ export function MagicLinkSentPage() {
       <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[350px] bg-white/[0.02] rounded-full blur-[120px] pointer-events-none" />
 
       <div className="w-full max-w-md flex flex-col items-center relative z-10 animate-in fade-in zoom-in-95 duration-500">
-        
-        {/* DealFlow360 Horizontal 3D Logo Emblem */}
-        <div className="mb-6 flex flex-col items-center gap-3">
-          <div className="w-20 h-20 rounded-2xl overflow-hidden shadow-2xl flex items-center justify-center p-0.5 border border-white/10 bg-black">
-            <img
-              src={dealflowLogo}
-              alt="DealFlow360 Logo"
-              className="w-full h-full object-cover rotate-90 transform scale-125"
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-black tracking-wider text-white uppercase">DealFlow360</span>
-            <span className="px-2 py-0.5 text-[10px] font-bold bg-[#141414] border border-[#242424] text-zinc-400 rounded-full">
-              Client Portal
-            </span>
-          </div>
-        </div>
-
         {/* Pure Black Card */}
         <div className="w-full bg-[#0A0A0A] border border-[#1F1F1F] rounded-2xl p-6 sm:p-8 shadow-2xl space-y-6">
           
-          {/* Header & Status Icon */}
-          <div className="text-center space-y-3">
-            <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto shadow-inner">
-              <MailCheck className="w-7 h-7" />
+          {/* Header & Logo replacing old email icon */}
+          <div className="text-center space-y-4">
+            <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-2xl flex items-center justify-center p-0.5 border border-white/10 bg-black mx-auto">
+              <img
+                src={dealflowLogo}
+                alt="DealFlow360 Logo"
+                className="w-full h-full object-cover rotate-90 transform scale-125"
+              />
             </div>
             
             <h1 className="text-2xl font-bold tracking-tight text-white">
               Check Your Inbox
             </h1>
-            <p className="text-xs text-zinc-400 leading-relaxed max-w-xs mx-auto">
-              A secure, single-use authentication link has been generated and dispatched to:
-            </p>
 
-            <div className="inline-block mt-1">
+            <div className="inline-block">
               <span className="px-3.5 py-1.5 rounded-lg bg-[#141414] border border-[#262626] text-white font-mono text-xs font-semibold tracking-wide shadow-sm">
                 {email}
               </span>
@@ -78,7 +61,7 @@ export function MagicLinkSentPage() {
             <ExternalLink className="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors" />
           </a>
 
-          {/* Direct Actions (Continue to Proposal Viewer removed) */}
+          {/* Direct Actions */}
           <div className="space-y-3 pt-2">
             <Link
               to="/portal/auth/login"

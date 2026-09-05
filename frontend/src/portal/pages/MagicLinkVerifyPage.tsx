@@ -37,27 +37,18 @@ export function MagicLinkVerifyPage() {
       <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[350px] bg-white/[0.02] rounded-full blur-[120px] pointer-events-none" />
 
       <div className="w-full max-w-md flex flex-col items-center relative z-10 animate-in fade-in zoom-in-95 duration-500">
-        
-        {/* DealFlow360 Horizontal 3D Logo Emblem */}
-        <div className="mb-6 flex flex-col items-center gap-3">
-          <div className="w-20 h-20 rounded-2xl overflow-hidden shadow-2xl flex items-center justify-center p-0.5 border border-white/10 bg-black">
+        {/* Pure Black Card */}
+        <div className="w-full bg-[#0A0A0A] border border-[#1F1F1F] rounded-2xl p-6 sm:p-8 shadow-2xl space-y-6">
+          
+          {/* Logo inside card */}
+          <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-2xl flex items-center justify-center p-0.5 border border-white/10 bg-black mx-auto">
             <img
               src={dealflowLogo}
               alt="DealFlow360 Logo"
               className="w-full h-full object-cover rotate-90 transform scale-125"
             />
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-black tracking-wider text-white uppercase">DealFlow360</span>
-            <span className="px-2 py-0.5 text-[10px] font-bold bg-[#141414] border border-[#242424] text-zinc-400 rounded-full">
-              Client Portal
-            </span>
-          </div>
-        </div>
 
-        {/* Pure Black Card */}
-        <div className="w-full bg-[#0A0A0A] border border-[#1F1F1F] rounded-2xl p-6 sm:p-8 shadow-2xl space-y-6">
-          
           {error ? (
             /* Error State */
             <div className="text-center space-y-4">
