@@ -583,22 +583,26 @@ export function DashboardPage() {
           ) : (
             /* Admin Governance & System Health */
             <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-2xl p-6 shadow-2xl">
-              <div className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
+              <div className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-3">
                 Infrastructure Health
               </div>
-              <h3 className="text-base font-bold text-white tracking-tight mb-4">
-                DealFlow360 Microservices Topology
-              </h3>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                 {[
+                  { name: 'API Gateway (BFF)', port: '3000', status: 'Healthy' },
                   { name: 'Auth Service', port: '3001', status: 'Healthy' },
                   { name: 'Catalog Service', port: '3002', status: 'Healthy' },
                   { name: 'Quotation Engine', port: '3003', status: 'Healthy' },
+                  { name: 'Fulfillment Service', port: '3004', status: 'Healthy' },
+                  { name: 'Billing Service', port: '3005', status: 'Healthy' },
                   { name: 'Analytics Service', port: '3006', status: 'Healthy' },
+                  { name: 'Mail Engine (Mailpit)', port: '1025', status: 'Healthy' },
                 ].map((svc) => (
-                  <div key={svc.name} className="p-3 rounded-xl bg-[#121212] border border-[#222222] text-center">
-                    <div className="w-2 h-2 rounded-full bg-emerald-400 mx-auto mb-2" />
-                    <div className="text-xs font-semibold text-white">{svc.name}</div>
+                  <div key={svc.name} className="p-2.5 rounded-xl bg-[#121212] border border-[#222222] text-center hover:border-[#333333] transition-all">
+                    <div className="flex items-center justify-center gap-1.5 mb-1.5">
+                      <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]" />
+                      <span className="text-[10px] font-mono text-emerald-400 font-medium">ONLINE</span>
+                    </div>
+                    <div className="text-xs font-semibold text-white truncate" title={svc.name}>{svc.name}</div>
                     <div className="text-[10px] font-mono text-zinc-500 mt-0.5">:{svc.port}</div>
                   </div>
                 ))}
