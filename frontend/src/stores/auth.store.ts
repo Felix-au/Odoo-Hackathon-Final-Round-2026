@@ -19,33 +19,26 @@ interface AuthState {
 }
 
 export const useAuthStore = create<AuthState>((set, get) => {
-  const token = localStorage.getItem('dealflow_access_token') || 'dealflow-session-token';
-  const defaultUser: User = {
-    id: 'usr-admin-01',
-    email: 'admin@dealflow360.com',
-    name: 'Administrator',
-    role: 'ADMIN',
-  };
+  const token = localStorage.getItem('dealflow_access_token');
+  let initialUser: User | null = null;
+  const storedUser = localStorage.getItem('dealflow_user');
+  if (storedUser) {
+    try {
+      initialUser = JSON.parse(storedUser);
+    } catch {
+      initialUser = null;
+    }
+  }
 
   return {
-    user: defaultUser,
+    user: initialUser,
     accessToken: token,
     refreshTokenString: localStorage.getItem('dealflow_refresh_token'),
-    isAuthenticated: true,
+    isAuthenticated: Boolean(token),
     isLoading: false,
 
   enterOfflineMode: () => {
-    set({
-      user: {
-        id: 'inspector-admin',
-        email: 'admin@dealflow360.com',
-        name: 'Workspace Inspector',
-        role: 'ADMIN',
-        createdAt: new Date().toISOString(),
-      },
-      accessToken: 'offline-inspector-token',
-      isAuthenticated: true,
-    });
+    // Deprecated — no-op for real backend integration
   },
 
   login: async (email, password) => {
@@ -54,6 +47,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
       const data = await authApi.login({ email, password });
       localStorage.setItem('dealflow_access_token', data.accessToken);
       localStorage.setItem('dealflow_refresh_token', data.refreshToken);
+      localStorage.setItem('dealflow_user', JSON.stringify(data.user));
       set({
         user: data.user,
         accessToken: data.accessToken,
@@ -103,6 +97,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
     }
     localStorage.removeItem('dealflow_access_token');
     localStorage.removeItem('dealflow_refresh_token');
+    localStorage.removeItem('dealflow_user');
     set({
       user: null,
       accessToken: null,

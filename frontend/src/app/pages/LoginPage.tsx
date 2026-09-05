@@ -73,37 +73,13 @@ export function LoginPage() {
               </div>
 
               {error && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700 font-medium space-y-2">
-                  <div>{error}</div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      enterOfflineMode();
-                      toast.info('Entered in Offline Inspection Mode');
-                      navigate('/app/dashboard');
-                    }}
-                    className="text-xs font-bold text-blue-700 underline hover:text-blue-900 block"
-                  >
-                    → Click here to Enter Dashboard in Offline Mode
-                  </button>
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700 font-medium">
+                  {error}
                 </div>
               )}
 
               <Button type="submit" variant="primary" className="w-full py-2.5 mt-2" isLoading={isLoading}>
                 Sign In to Workspace
-              </Button>
-
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => {
-                  enterOfflineMode();
-                  toast.info('Entered in Offline Inspection Mode');
-                  navigate('/app/dashboard');
-                }}
-                className="w-full py-2.5 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-300"
-              >
-                Inspect Dashboard (Offline Inspection Mode) →
               </Button>
             </form>
 

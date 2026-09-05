@@ -67,6 +67,7 @@ export async function buildApp() {
 
   // ─── Fastify App ─────────────────────────────────────────
   const app = Fastify({
+    trustProxy: true,
     logger: {
       level: env.LOG_LEVEL,
       serializers: {
@@ -100,14 +101,14 @@ export async function buildApp() {
       max: 100,
       timeWindow: '1 minute',
       redis,
-      keyGenerator: (req) => req.ip ?? 'unknown',
+      keyGenerator: (req) => (req.headers['x-forwarded-for'] as string) || req.ip || 'unknown',
     });
   } else {
     await app.register(fastifyRateLimit, {
       global: true,
       max: 100,
       timeWindow: '1 minute',
-      keyGenerator: (req) => req.ip ?? 'unknown',
+      keyGenerator: (req) => (req.headers['x-forwarded-for'] as string) || req.ip || 'unknown',
     });
   }
 

@@ -12,6 +12,16 @@ export async function buildApp() {
     trustProxy: true, // needed for accurate IP in rate limiting behind Docker network
   });
 
+  // ─── Request Normalization ──────────────────────────────────────────────────
+  app.addHook('onRequest', async (request) => {
+    if (request.headers['expect']) {
+      delete request.headers['expect'];
+    }
+    if (request.raw?.headers?.['expect']) {
+      delete request.raw.headers['expect'];
+    }
+  });
+
   // ─── CORS ────────────────────────────────────────────────────────────────────
   // Allow frontend origin + portal clients. credentials:true needed for portal_session cookie.
   await app.register(cors, {
