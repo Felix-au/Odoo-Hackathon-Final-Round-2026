@@ -64,6 +64,7 @@ export const quotationApi = {
     lineData: {
       productId: string;
       productName?: string;
+      categoryId?: string;
       categoryName?: string;
       quantity: number;
       unitPrice: number;
@@ -85,7 +86,7 @@ export const quotationApi = {
   updateLine: async (
     quotationId: string,
     lineId: string,
-    data: { quantity?: number; discountPct?: number; unitPrice?: number },
+    data: { quantity?: number; discountPct?: number; unitPrice?: number; costPrice?: number },
     token?: string
   ) => {
     const res = await quotationHttp.put(

@@ -106,19 +106,26 @@ export class QuotationService {
       throw new QuotationDomainError(400, `Cannot add lines to confirmed quotation`);
     }
 
-    // Attempt to enrich with Catalog if fields missing
+    // Attempt to enrich with Catalog if fields or costPrice missing
     let enriched = { ...lineInput };
-    if (!enriched.productName || !enriched.categoryName || !enriched.categoryId) {
+    if (!enriched.productName || !enriched.categoryName || !enriched.categoryId || !enriched.costPrice || enriched.costPrice <= 0) {
       const catalogProd = await this.catalogClient.getProduct(lineInput.productId);
       if (catalogProd) {
+        const prodCost = catalogProd.costPrice ? Number(catalogProd.costPrice) : 0;
+        const prodBase = catalogProd.basePrice ? Number(catalogProd.basePrice) : 100;
         enriched = {
           ...enriched,
           productName: enriched.productName || catalogProd.name,
           categoryId: enriched.categoryId || catalogProd.categoryId,
           categoryName: enriched.categoryName || catalogProd.category?.name || 'General',
-          unitPrice: enriched.unitPrice ?? catalogProd.basePrice,
-          costPrice: enriched.costPrice ?? catalogProd.costPrice ?? 0,
+          unitPrice: enriched.unitPrice ?? prodBase,
+          costPrice: (enriched.costPrice && enriched.costPrice > 0)
+            ? enriched.costPrice
+            : (prodCost > 0 ? prodCost : Math.round(prodBase * 0.65 * 100) / 100),
         };
+      } else if (!enriched.costPrice || enriched.costPrice <= 0) {
+        const fallbackPrice = enriched.unitPrice || 100;
+        enriched.costPrice = Math.round(fallbackPrice * 0.65 * 100) / 100;
       }
     }
 

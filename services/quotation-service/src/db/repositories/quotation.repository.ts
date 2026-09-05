@@ -415,7 +415,9 @@ export class QuotationRepository {
   async addLine(quotationId: string, input: AddLineInput): Promise<QuotationLine> {
     const qty = input.quantity ?? 1;
     const unitPrice = input.unitPrice;
-    const costPrice = input.costPrice ?? 0;
+    const costPrice = input.costPrice && input.costPrice > 0
+      ? input.costPrice
+      : (unitPrice > 0 ? Math.round(unitPrice * 0.65 * 100) / 100 : 0);
     const discountPct = input.discountPct ?? 0;
     const lineTotal = Math.round(qty * unitPrice * (1 - discountPct / 100) * 10000) / 10000;
     const totalCost = qty * costPrice;
@@ -459,7 +461,12 @@ export class QuotationRepository {
 
     const qty = input.quantity !== undefined ? input.quantity : existing.quantity;
     const unitPrice = input.unitPrice !== undefined ? input.unitPrice : Number(existing.unitPrice);
-    const costPrice = input.costPrice !== undefined ? input.costPrice : Number(existing.costPrice);
+    let costPrice = input.costPrice !== undefined && input.costPrice > 0
+      ? input.costPrice
+      : Number(existing.costPrice);
+    if (!costPrice || costPrice <= 0) {
+      costPrice = unitPrice > 0 ? Math.round(unitPrice * 0.65 * 100) / 100 : 0;
+    }
     const discountPct = input.discountPct !== undefined ? input.discountPct : existing.discountPct;
     const taxAmount = input.taxAmount !== undefined ? input.taxAmount : Number(existing.taxAmount);
 
@@ -510,7 +517,12 @@ export class QuotationRepository {
 
     for (const l of lines) {
       const lineTotal = Number(l.lineTotal);
-      const cost = Number(l.costPrice) * l.quantity;
+      let unitCost = Number(l.costPrice);
+      if (!unitCost || unitCost <= 0) {
+        const uPrice = Number(l.unitPrice);
+        unitCost = uPrice > 0 ? Math.round(uPrice * 0.65 * 100) / 100 : 0;
+      }
+      const cost = unitCost * l.quantity;
       totalAmount += lineTotal;
       totalCost += cost;
     }

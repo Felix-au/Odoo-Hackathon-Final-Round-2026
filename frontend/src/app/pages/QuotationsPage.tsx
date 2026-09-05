@@ -302,7 +302,7 @@ export function QuotationsPage() {
 
                           <div className="flex items-center justify-between pt-2 border-t border-[#1F1F1F] text-[11px]">
                             <span className="text-zinc-500 font-medium">
-                              Margin: <span className="text-zinc-300 font-mono">{Math.round(q.overallMarginPct || 32)}%</span>
+                              Margin: <span className="text-zinc-300 font-mono">{Math.round(Number((q as any).totalMarginPct ?? q.overallMarginPct ?? 32))}%</span>
                             </span>
                             <span
                               className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold border inline-flex items-center gap-1 ${
@@ -370,7 +370,7 @@ export function QuotationsPage() {
                         {formatCurrency(quote.totalAmount)}
                       </td>
                       <td className="py-4 px-5 text-zinc-300 font-mono">
-                        {Math.round(quote.overallMarginPct || 32)}%
+                        {Math.round(Number((quote as any).totalMarginPct ?? quote.overallMarginPct ?? 32))}%
                       </td>
                       <td className="py-4 px-5">
                         {alert || risk >= 35 ? (

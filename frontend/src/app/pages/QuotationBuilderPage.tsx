@@ -179,18 +179,51 @@ export function QuotationBuilderPage() {
   const riskScore = quote?.blendedRiskScore ?? quote?.riskScore ?? 0;
   const statusKey = quote?.status || 'DRAFT';
   const statusConf = STATUS_CONFIG[statusKey] || STATUS_CONFIG.DRAFT;
-  const marginPct = Math.round(Number((quote as any)?.totalMarginPct || quote?.overallMarginPct || 32));
+
+  // Dynamic cost & margin calculation based on live inline edits
+  const totalCost = useMemo(() => {
+    return lines.reduce((acc: number, l: any) => {
+      const edit = inlineEdits[l.id];
+      const qty = edit ? edit.quantity : Number(l.quantity) || 1;
+      const unitPrice = edit ? edit.unitPrice : Number(l.unitPrice) || 0;
+      const catalogItem = catalogProducts.find((p) => p.id === l.productId);
+      const unitCost = Number(l.costPrice) > 0
+        ? Number(l.costPrice)
+        : (catalogItem && Number(catalogItem.costPrice) > 0
+            ? Number(catalogItem.costPrice)
+            : (unitPrice > 0 ? Math.round(unitPrice * 0.65 * 100) / 100 : 0));
+      return acc + qty * unitCost;
+    }, 0);
+  }, [lines, inlineEdits, catalogProducts]);
+
+  const marginPct = useMemo(() => {
+    if (netAfterDiscount <= 0) return 0;
+    if (lines.length === 0) {
+      return Math.round(Number((quote as any)?.totalMarginPct || quote?.overallMarginPct || 0));
+    }
+    const computed = ((netAfterDiscount - totalCost) / netAfterDiscount) * 100;
+    return Math.max(0, Math.min(100, Math.round(computed)));
+  }, [netAfterDiscount, totalCost, lines.length, quote]);
 
   // Save single line item edit
   const handleSaveLine = async (lineId: string) => {
     const edit = inlineEdits[lineId];
     if (!edit) return;
+    const l = lines.find((item: any) => item.id === lineId);
+    const catalogItem = catalogProducts.find((p) => p.id === l?.productId);
+    const costPrice = Number(l?.costPrice) > 0
+      ? Number(l?.costPrice)
+      : (catalogItem && Number(catalogItem.costPrice) > 0
+          ? Number(catalogItem.costPrice)
+          : (edit.unitPrice > 0 ? Math.round(edit.unitPrice * 0.65 * 100) / 100 : undefined));
+
     try {
       await updateLine({
         lineId,
         quantity: edit.quantity,
         unitPrice: edit.unitPrice,
         discountPct: edit.discountPct,
+        costPrice,
       });
       setInlineEdits((prev) => ({
         ...prev,
@@ -228,13 +261,19 @@ export function QuotationBuilderPage() {
       return;
     }
 
+    const productCost = Number(product.costPrice) > 0
+      ? Number(product.costPrice)
+      : Math.round(Number(product.basePrice || 100) * 0.65 * 100) / 100;
+
     try {
       await addLine({
         productId: product.id,
         productName: product.name,
         categoryName: product.category?.name || 'Hardware',
+        categoryId: product.categoryId || product.category?.id,
         quantity: Number(addQuantity) || 1,
         unitPrice: addUnitPrice !== null ? Number(addUnitPrice) : Number(product.basePrice || 100),
+        costPrice: productCost,
         discountPct: Number(addDiscount) || 0,
         isRecurring: product.isRecurring,
       });
@@ -744,14 +783,28 @@ export function QuotationBuilderPage() {
             <div className="pt-3 border-t border-[#1F1F1F] space-y-2">
               <div className="flex items-center justify-between text-xs">
                 <span className="text-zinc-400 font-medium">Estimated Margin</span>
-                <span className="font-mono font-bold text-emerald-400">
+                <span
+                  className={`font-mono font-bold ${
+                    marginPct >= 30
+                      ? 'text-emerald-400'
+                      : marginPct >= 15
+                      ? 'text-amber-400'
+                      : 'text-rose-400'
+                  }`}
+                >
                   {marginPct}%
                 </span>
               </div>
               <div className="w-full bg-[#141414] rounded-full h-2 border border-[#222222] overflow-hidden">
                 <div
-                  className="bg-emerald-500 h-full rounded-full transition-all duration-500"
-                  style={{ width: `${Math.min(100, marginPct)}%` }}
+                  className={`h-full rounded-full transition-all duration-500 ${
+                    marginPct >= 30
+                      ? 'bg-emerald-500'
+                      : marginPct >= 15
+                      ? 'bg-amber-500'
+                      : 'bg-rose-500'
+                  }`}
+                  style={{ width: `${Math.min(100, Math.max(0, marginPct))}%` }}
                 />
               </div>
             </div>

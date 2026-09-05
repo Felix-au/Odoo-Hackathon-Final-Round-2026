@@ -28,7 +28,7 @@ const AddLineSchema = z.object({
   categoryName: z.string().optional().default(''),
   quantity: z.number().int().min(1).default(1),
   unitPrice: z.number().min(0).default(0),
-  costPrice: z.number().min(0).optional().default(0),
+  costPrice: z.number().min(0).optional(),
   discountPct: z.number().min(0).max(100).default(0),
   taxAmount: z.number().min(0).optional().default(0),
   isRecurring: z.boolean().optional().default(false),

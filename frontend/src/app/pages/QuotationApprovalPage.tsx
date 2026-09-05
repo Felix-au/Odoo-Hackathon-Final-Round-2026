@@ -160,7 +160,7 @@ export function QuotationApprovalPage() {
         <div className="bg-[#121214] border border-[#27272A] rounded-2xl p-4">
           <span className="text-[11px] font-semibold uppercase text-zinc-400">Blended Margin</span>
           <div className="text-2xl font-bold text-emerald-400 mt-1 font-mono">
-            {Math.round(quotation.overallMarginPct || 37)}%
+            {Math.round(Number((quotation as any).totalMarginPct ?? quotation.overallMarginPct ?? 37))}%
           </div>
           <span className="text-xs text-zinc-500 font-mono">Cost: {formatCurrency(quotation.totalCost || 3800)}</span>
         </div>

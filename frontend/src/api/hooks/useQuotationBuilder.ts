@@ -40,6 +40,7 @@ export function useQuotationBuilder(id: string) {
     mutationFn: async (productData: {
       productId: string;
       productName: string;
+      categoryId?: string;
       categoryName?: string;
       quantity: number;
       unitPrice: number;
@@ -61,7 +62,13 @@ export function useQuotationBuilder(id: string) {
   });
 
   const updateLineMutation = useMutation({
-    mutationFn: async (params: { lineId: string; quantity?: number; discountPct?: number; unitPrice?: number }) => {
+    mutationFn: async (params: {
+      lineId: string;
+      quantity?: number;
+      discountPct?: number;
+      unitPrice?: number;
+      costPrice?: number;
+    }) => {
       return quotationApi.updateLine(id, params.lineId, params, token);
     },
     onSuccess: () => {
