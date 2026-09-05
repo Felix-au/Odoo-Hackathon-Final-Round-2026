@@ -18,44 +18,19 @@ export function BillingPage() {
 
   // Payment modal state
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [paymentAmount, setPaymentAmount] = useState('6160.00');
+  const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('WIRE_TRANSFER');
-  const [paymentRef, setPaymentRef] = useState('WT-2026-9482');
+  const [paymentRef, setPaymentRef] = useState('');
 
   // Subscription change modal state
   const [showSubModal, setShowSubModal] = useState(false);
-  const [newSubQty, setNewSubQty] = useState(2);
-  const [prorationData, setProrationData] = useState<any>({
-    credit: 37.49,
-    charge: 59.99,
-    net: 22.50,
-  });
+  const [newSubQty, setNewSubQty] = useState(1);
+  const [prorationData, setProrationData] = useState<any>(null);
 
   const isFinance = user?.role === 'FINANCE' || user?.role === 'ADMIN';
 
-  // Fallback presentation if no remote invoice
-  const activeInvoice = invoice || {
-    id: 'inv-001',
-    invoiceNumber: 'INV-2026-10482',
-    customerName: 'Acme Corporation',
-    amount: 6055,
-    taxAmount: 560,
-    totalAmount: 6160,
-    status: 'ISSUED',
-    dueDate: '2026-10-15',
-  };
-
-  const activeSubs = subscriptions.length > 0 ? subscriptions : [
-    {
-      id: 'sub-01',
-      planName: 'Enterprise SLA 24/7 Support',
-      interval: 'ANNUAL',
-      quantity: 1,
-      unitPrice: 900,
-      status: 'ACTIVE',
-      nextBillingDate: '2027-09-05',
-    },
-  ];
+  const activeInvoice = invoice;
+  const activeSubs = subscriptions;
 
   const handleRecordPayment = async () => {
     try {
@@ -66,25 +41,23 @@ export function BillingPage() {
       });
       setShowPaymentModal(false);
       toast.success('Payment recorded successfully. Invoice marked as PAID.');
-    } catch {
-      setShowPaymentModal(false);
-      toast.success(`Payment of ${formatCurrency(paymentAmount || 6160)} recorded via Wire Transfer`);
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || 'Failed to record payment';
+      toast.error(msg);
     }
   };
 
   const handleCalculateProration = async () => {
     try {
       const data = await prorationMutation.mutateAsync({
-        subscriptionId: activeSubs[0]?.id || 'sub-01',
+        subscriptionId: activeSubs[0]?.id || '',
         newQty: newSubQty,
       });
       setProrationData(data);
-    } catch {
-      setProrationData({
-        credit: 37.49,
-        charge: 59.99,
-        net: 22.50,
-      });
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || 'Failed to calculate proration';
+      toast.error(msg);
+      setProrationData(null);
     }
   };
 
@@ -131,62 +104,71 @@ export function BillingPage() {
               <Receipt className="w-4 h-4 text-blue-400" />
               <h2 className="text-sm font-bold text-white">One-Time Invoice</h2>
             </div>
-            <span
-              className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                activeInvoice.status === 'PAID'
-                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                  : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-              }`}
-            >
-              {activeInvoice.status}
-            </span>
+            {activeInvoice && (
+              <span
+                className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                  activeInvoice.status === 'PAID'
+                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                    : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                }`}
+              >
+                {activeInvoice.status}
+              </span>
+            )}
           </div>
 
-          <div className="space-y-2.5 text-xs">
-            <div className="flex justify-between items-center">
-              <span className="text-slate-400">Invoice Number:</span>
-              <span className="font-mono font-bold text-white">{activeInvoice.invoiceNumber}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-slate-400">Customer:</span>
-              <span className="font-medium text-slate-200">{activeInvoice.customerName}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-slate-400">Subtotal:</span>
-              <span className="font-medium text-slate-200 font-mono">{formatCurrency(activeInvoice.amount)}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-slate-400">Tax (10%):</span>
-              <span className="font-medium text-slate-200 font-mono">{formatCurrency(activeInvoice.taxAmount)}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-slate-400">Due Date:</span>
-              <span className="font-medium text-slate-200">{activeInvoice.dueDate || '2026-10-15'}</span>
-            </div>
-            <div className="flex justify-between items-center pt-3 border-t border-[#27272A]">
-              <span className="text-sm font-bold text-white">Total Due:</span>
-              <span className="text-lg font-bold text-white font-mono">{formatCurrency(activeInvoice.totalAmount)}</span>
-            </div>
-          </div>
-
-          {activeInvoice.status !== 'PAID' && isFinance ? (
-            <button
-              type="button"
-              onClick={() => setShowPaymentModal(true)}
-              className="w-full mt-3 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-lg shadow-blue-500/20 transition-colors flex items-center justify-center gap-1.5"
-            >
-              <CreditCard className="w-3.5 h-3.5" />
-              <span>Record Payment</span>
-            </button>
+          {!activeInvoice ? (
+            <p className="text-xs text-slate-500 text-center py-6">No invoice found for this order.</p>
           ) : (
-            <div className="mt-3 p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold flex items-center justify-center gap-1.5">
-              <CheckCircle className="w-4 h-4" />
-              <span>Paid on {formatDate(new Date().toISOString())}</span>
-            </div>
+            <>
+              <div className="space-y-2.5 text-xs">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">Invoice Number:</span>
+                  <span className="font-mono font-bold text-white">{activeInvoice.invoiceNumber}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">Customer:</span>
+                  <span className="font-medium text-slate-200">{activeInvoice.customerName}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">Subtotal:</span>
+                  <span className="font-medium text-slate-200 font-mono">{formatCurrency(activeInvoice.amount)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">Tax (10%):</span>
+                  <span className="font-medium text-slate-200 font-mono">{formatCurrency(activeInvoice.taxAmount)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">Due Date:</span>
+                  <span className="font-medium text-slate-200">{activeInvoice.dueDate || '—'}</span>
+                </div>
+                <div className="flex justify-between items-center pt-3 border-t border-[#27272A]">
+                  <span className="text-sm font-bold text-white">Total Due:</span>
+                  <span className="text-lg font-bold text-white font-mono">{formatCurrency(activeInvoice.totalAmount)}</span>
+                </div>
+              </div>
+
+              {activeInvoice.status !== 'PAID' && isFinance ? (
+                <button
+                  type="button"
+                  onClick={() => setShowPaymentModal(true)}
+                  className="w-full mt-3 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-lg shadow-blue-500/20 transition-colors flex items-center justify-center gap-1.5"
+                >
+                  <CreditCard className="w-3.5 h-3.5" />
+                  <span>Record Payment</span>
+                </button>
+              ) : activeInvoice.status === 'PAID' ? (
+                <div className="mt-3 p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold flex items-center justify-center gap-1.5">
+                  <CheckCircle className="w-4 h-4" />
+                  <span>Paid on {activeInvoice.paidAt ? formatDate(activeInvoice.paidAt) : '—'}</span>
+                </div>
+              ) : null}
+            </>
           )}
         </div>
 
         {/* RECURRING SUBSCRIPTIONS */}
+
         <div className="bg-[#121214] border border-[#27272A] rounded-2xl p-6 space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-[#27272A]">
             <div className="flex items-center gap-2">
@@ -198,7 +180,9 @@ export function BillingPage() {
             </span>
           </div>
 
-          {activeSubs.map((sub: any) => (
+          {activeSubs.length === 0 ? (
+            <p className="text-xs text-slate-500 text-center py-6">No active subscriptions for this order.</p>
+          ) : activeSubs.map((sub: any) => (
             <div key={sub.id} className="space-y-2.5 text-xs">
               <div className="flex justify-between items-center">
                 <span className="text-slate-400">Plan:</span>
@@ -259,7 +243,7 @@ export function BillingPage() {
           <div className="bg-[#18181B] border border-[#27272A] rounded-2xl max-w-md w-full p-6 shadow-2xl animate-in fade-in zoom-in-95 space-y-4">
             <h3 className="text-base font-bold text-white">Record Invoice Payment</h3>
             <p className="text-xs text-slate-400">
-              Enter settlement transaction details for {activeInvoice.invoiceNumber}
+              Enter settlement transaction details for {activeInvoice?.invoiceNumber ?? '—'}
             </p>
 
             <div className="space-y-3 text-xs">

@@ -19,6 +19,7 @@ export async function buildApp() {
       },
     },
     trustProxy: true, // needed for accurate IP in rate limiting behind Docker network
+    bodyLimit: 1048576, // 1 MB
   });
 
   // ─── Request Normalization ──────────────────────────────────────────────────

@@ -70,12 +70,14 @@ export function QuotationApprovalPage() {
     }
   };
 
+  const score = quotation.blendedRiskScore ?? quotation.riskScore ?? 0;
   const steps = [
     { label: 'Sales Rep', state: 'COMPLETED' },
-    { label: 'Sales Manager', state: quotation.riskScore && quotation.riskScore > 30 ? 'IN_PROGRESS' : 'COMPLETED' },
-    { label: 'Finance', state: quotation.riskScore && quotation.riskScore >= 70 ? 'PENDING' : 'SKIPPED' },
+    { label: 'Sales Manager', state: score > 0 ? 'IN_PROGRESS' : 'COMPLETED' },
+    { label: 'Finance', state: score > 30 ? 'PENDING' : 'SKIPPED' },
     { label: 'Approved', state: quotation.status === 'APPROVED' ? 'COMPLETED' : 'PENDING' },
   ];
+
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto animate-in fade-in duration-300 pb-10">

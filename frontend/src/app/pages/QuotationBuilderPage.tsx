@@ -26,36 +26,9 @@ export function QuotationBuilderPage() {
   const [localQty, setLocalQty] = useState<number>(1);
   const [localDiscount, setLocalDiscount] = useState<number>(0);
 
-  // Working lines
+  // Working lines — sourced entirely from the backend quotation
   const lines = useMemo(() => {
-    if (quote?.lines && quote.lines.length > 0) {
-      return quote.lines;
-    }
-    // Visual baseline matching Screenshot 2
-    return [
-      {
-        id: 'line-01',
-        productId: 'prod-er500',
-        productName: 'Enterprise Router',
-        categoryName: 'Hardware · ER-500',
-        quantity: 10,
-        unitPrice: 500,
-        discountPct: 8,
-        lineTotal: 4600,
-        isRecurring: false,
-      },
-      {
-        id: 'line-02',
-        productId: 'prod-supp',
-        productName: 'Support Plan',
-        categoryName: 'Recurring · annual renewal',
-        quantity: 1,
-        unitPrice: 900,
-        discountPct: 5,
-        lineTotal: 855,
-        isRecurring: true,
-      },
-    ];
+    return quote?.lines ?? [];
   }, [quote]);
 
   // Derived financial summary
@@ -65,8 +38,9 @@ export function QuotationBuilderPage() {
   const tax = Math.round(netAfterDiscount * 0.1);
   const total = netAfterDiscount + tax;
 
-  const riskScore = quote?.riskScore ?? 82;
-  const violationsCount = 3;
+  const riskScore = quote?.blendedRiskScore ?? quote?.riskScore ?? 0;
+  const riskLevel = quote?.riskLevel ?? (riskScore > 70 ? 'HIGH' : riskScore > 30 ? 'MEDIUM' : 'LOW');
+  const violationsCount = (quote as any)?.violations?.length ?? 0;
 
   const handleUpdateLine = async (lineId: string, quantity: number, discountPct: number) => {
     try {
@@ -182,6 +156,12 @@ export function QuotationBuilderPage() {
 
             {/* Line Items List */}
             <div className="divide-y divide-[#1E1E22]">
+              {lines.length === 0 && (
+                <div className="px-6 py-10 text-center">
+                  <p className="text-sm text-zinc-500">No line items yet.</p>
+                  <p className="text-xs text-zinc-600 mt-1">Click <span className="text-blue-400 font-medium">Add product</span> below to start building this quotation.</p>
+                </div>
+              )}
               {lines.map((line: any) => {
                 const isEditing = editingLineId === line.id;
                 const lineTotalCalculated = line.lineTotal || (line.unitPrice * line.quantity * (1 - (line.discountPct || 0) / 100));
@@ -315,40 +295,28 @@ export function QuotationBuilderPage() {
 
             {/* Risk Score Highlight */}
             <div className="flex items-center gap-3.5">
-              <div className="text-4xl font-extrabold text-[#F97316] tracking-tight">
-                {riskScore}
+              <div className={`text-4xl font-extrabold tracking-tight ${
+                riskLevel === 'HIGH' ? 'text-[#F97316]' : riskLevel === 'MEDIUM' ? 'text-yellow-400' : 'text-emerald-400'
+              }`}>
+                {riskScore > 0 ? riskScore.toFixed(0) : '—'}
               </div>
               <div>
                 <div className="text-sm font-bold text-white">
-                  High risk
+                  {riskScore > 0 ? `${riskLevel.charAt(0) + riskLevel.slice(1).toLowerCase()} risk` : 'No lines added'}
                 </div>
                 <div className="text-xs text-zinc-400 mt-0.5">
-                  Finance approval required
+                  {riskLevel === 'HIGH' ? 'Finance approval required' : riskLevel === 'MEDIUM' ? 'Manager approval required' : 'No approval required'}
                 </div>
               </div>
             </div>
 
             {/* Violations Detection */}
-            <div className="text-xs font-semibold text-[#FB923C] flex items-center gap-1.5 pt-1">
-              <AlertTriangle className="w-3.5 h-3.5" />
-              <span>{violationsCount} pricing violations detected</span>
-            </div>
-
-            {/* Violations Breakdown List */}
-            <div className="space-y-2 pt-1 text-xs">
-              <div className="flex items-center justify-between text-zinc-300">
-                <span>Hardware discount</span>
-                <span className="font-mono text-[#FB923C] font-semibold">+32</span>
+            {violationsCount > 0 && (
+              <div className="text-xs font-semibold text-[#FB923C] flex items-center gap-1.5 pt-1">
+                <AlertTriangle className="w-3.5 h-3.5" />
+                <span>{violationsCount} pricing violation{violationsCount !== 1 ? 's' : ''} detected</span>
               </div>
-              <div className="flex items-center justify-between text-zinc-300">
-                <span>Software discount</span>
-                <span className="font-mono text-[#FB923C] font-semibold">+18</span>
-              </div>
-              <div className="flex items-center justify-between text-zinc-300">
-                <span>Enterprise tier</span>
-                <span className="font-mono text-[#FB923C] font-semibold">+21</span>
-              </div>
-            </div>
+            )}
           </div>
 
           {/* SUMMARY CARD (Screenshot 2) */}

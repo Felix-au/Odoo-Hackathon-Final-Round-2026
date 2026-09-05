@@ -48,7 +48,8 @@ export async function jwtAuthMiddleware(
   const token = authHeader.replace('Bearer ', '');
 
   try {
-    const payload = jwt.verify(token, env.JWT_SECRET) as JwtPayload;
+    const secret = env.JWT_SECRET || process.env.JWT_SECRET || '';
+    const payload = jwt.verify(token, secret) as JwtPayload;
     request.user = {
       id: payload.sub,
       email: payload.email,

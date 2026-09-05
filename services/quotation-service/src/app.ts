@@ -100,6 +100,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   const app = Fastify({
     logger: { level: env.LOG_LEVEL },
     genReqId: () => crypto.randomUUID(),
+    bodyLimit: 1048576, // 1 MB
   });
 
   await app.register(fastifyCors, {

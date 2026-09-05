@@ -21,27 +21,39 @@ export function useFulfillmentSplit(orderId: string) {
   });
 }
 
-export function useAcceptSplit(orderId: string) {
+export function useAcceptSplit(orderId: string, currentSplits?: SplitRecommendation | null) {
   const token = useAuthStore((s) => s.accessToken) || undefined;
 
   return {
     mutateAsync: async (isOverride: boolean = false) => {
       if (!token) throw new Error('Authentication required');
+      const splits = currentSplits?.splits?.length
+        ? currentSplits.splits.flatMap((w) =>
+            w.items.map((item) => ({
+              warehouseId: w.warehouseId,
+              warehouseName: w.warehouseName,
+              productId: item.productId,
+              productName: item.productName,
+              quantity: item.quantity,
+            }))
+          )
+        : [
+            {
+              warehouseId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+              warehouseName: 'Main Warehouse',
+              productId: '11111111-1111-1111-1111-111111111111',
+              productName: 'Enterprise Laptop Pro',
+              quantity: 2,
+            },
+          ];
+
       return await fulfillmentApi.acceptSplit({
         orderId,
         companyId: 'default',
         customerId: 'cust-000000-0000-0000-0000-000000000001',
         currency: 'USD',
         isOverride,
-        splits: [
-          {
-            warehouseId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-            warehouseName: 'Main Warehouse',
-            productId: '11111111-1111-1111-1111-111111111111',
-            productName: 'Enterprise Laptop Pro',
-            quantity: 2,
-          },
-        ],
+        splits,
       }, token);
     },
     isPending: false,

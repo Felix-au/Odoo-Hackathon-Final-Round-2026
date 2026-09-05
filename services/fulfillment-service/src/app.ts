@@ -12,7 +12,7 @@ import { stockRoutes } from './api/routes/stock.routes';
 import { fulfillmentOrderRoutes } from './api/routes/fulfillment-order.routes';
 
 export async function buildApp() {
-  const app = fastify({ logger: { level: env.LOG_LEVEL } });
+  const app = fastify({ logger: { level: env.LOG_LEVEL }, bodyLimit: 1048576 });
 
   // ─── Redis ────────────────────────────────────────────────────
   let redis: Redis | null = null;
