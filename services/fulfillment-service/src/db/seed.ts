@@ -12,73 +12,86 @@ async function seed() {
   const PROD_1 = '11111111-1111-1111-1111-111111111111';
   const PROD_2 = '22222222-2222-2222-2222-222222222222';
 
-  // Warehouse A: Main Warehouse
-  await prisma.warehouseStock.upsert({
-    where: {
-      companyId_warehouseId_productId_variantId: {
-        companyId: COMPANY_ID, warehouseId: WH_A, productId: PROD_1, variantId: null,
+  async function upsertStock(data: {
+    companyId: string;
+    warehouseId: string;
+    warehouseName: string;
+    productId: string;
+    variantId?: string | null;
+    quantityOnHand: number;
+    reorderPoint?: number;
+    reorderQty?: number;
+  }) {
+    const existing = await prisma.warehouseStock.findFirst({
+      where: {
+        companyId: data.companyId,
+        warehouseId: data.warehouseId,
+        productId: data.productId,
+        variantId: data.variantId ?? null,
       },
-    },
-    create: {
-      companyId: COMPANY_ID,
-      warehouseId: WH_A,
-      warehouseName: 'Main Warehouse',
-      productId: PROD_1,
-      quantityOnHand: 50,
-      reorderPoint: 10,
-      reorderQty: 50,
-    },
-    update: { quantityOnHand: 50 },
+    });
+
+    if (existing) {
+      await prisma.warehouseStock.update({
+        where: { id: existing.id },
+        data: {
+          warehouseName: data.warehouseName,
+          quantityOnHand: data.quantityOnHand,
+          ...(data.reorderPoint !== undefined ? { reorderPoint: data.reorderPoint } : {}),
+          ...(data.reorderQty !== undefined ? { reorderQty: data.reorderQty } : {}),
+        },
+      });
+    } else {
+      await prisma.warehouseStock.create({
+        data: {
+          companyId: data.companyId,
+          warehouseId: data.warehouseId,
+          warehouseName: data.warehouseName,
+          productId: data.productId,
+          variantId: data.variantId ?? null,
+          quantityOnHand: data.quantityOnHand,
+          reorderPoint: data.reorderPoint ?? 10,
+          reorderQty: data.reorderQty ?? 50,
+        },
+      });
+    }
+  }
+
+  // Warehouse A: Main Warehouse
+  await upsertStock({
+    companyId: COMPANY_ID,
+    warehouseId: WH_A,
+    warehouseName: 'Main Warehouse',
+    productId: PROD_1,
+    quantityOnHand: 50,
+    reorderPoint: 10,
+    reorderQty: 50,
   });
 
-  await prisma.warehouseStock.upsert({
-    where: {
-      companyId_warehouseId_productId_variantId: {
-        companyId: COMPANY_ID, warehouseId: WH_A, productId: PROD_2, variantId: null,
-      },
-    },
-    create: {
-      companyId: COMPANY_ID,
-      warehouseId: WH_A,
-      warehouseName: 'Main Warehouse',
-      productId: PROD_2,
-      quantityOnHand: 30,
-    },
-    update: { quantityOnHand: 30 },
+  await upsertStock({
+    companyId: COMPANY_ID,
+    warehouseId: WH_A,
+    warehouseName: 'Main Warehouse',
+    productId: PROD_2,
+    quantityOnHand: 30,
   });
 
   // Warehouse B: East Depot
-  await prisma.warehouseStock.upsert({
-    where: {
-      companyId_warehouseId_productId_variantId: {
-        companyId: COMPANY_ID, warehouseId: WH_B, productId: PROD_1, variantId: null,
-      },
-    },
-    create: {
-      companyId: COMPANY_ID,
-      warehouseId: WH_B,
-      warehouseName: 'East Depot',
-      productId: PROD_1,
-      quantityOnHand: 20,
-    },
-    update: { quantityOnHand: 20 },
+  await upsertStock({
+    companyId: COMPANY_ID,
+    warehouseId: WH_B,
+    warehouseName: 'East Depot',
+    productId: PROD_1,
+    quantityOnHand: 20,
   });
 
   // Warehouse C: West Depot
-  await prisma.warehouseStock.upsert({
-    where: {
-      companyId_warehouseId_productId_variantId: {
-        companyId: COMPANY_ID, warehouseId: WH_C, productId: PROD_2, variantId: null,
-      },
-    },
-    create: {
-      companyId: COMPANY_ID,
-      warehouseId: WH_C,
-      warehouseName: 'West Depot',
-      productId: PROD_2,
-      quantityOnHand: 15,
-    },
-    update: { quantityOnHand: 15 },
+  await upsertStock({
+    companyId: COMPANY_ID,
+    warehouseId: WH_C,
+    warehouseName: 'West Depot',
+    productId: PROD_2,
+    quantityOnHand: 15,
   });
 
   console.log('✅ Fulfillment seed complete');

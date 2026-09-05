@@ -123,17 +123,29 @@ export class WarehouseStockRepository {
   }
 
   async upsert(input: UpsertStockInput): Promise<WarehouseStock> {
-    const key = {
-      companyId_warehouseId_productId_variantId: {
+    const existing = await this.db.warehouseStock.findFirst({
+      where: {
         companyId: input.companyId,
         warehouseId: input.warehouseId,
         productId: input.productId,
         variantId: input.variantId ?? null,
       },
-    };
-    return this.db.warehouseStock.upsert({
-      where: key,
-      create: {
+    });
+
+    if (existing) {
+      return this.db.warehouseStock.update({
+        where: { id: existing.id },
+        data: {
+          warehouseName: input.warehouseName,
+          quantityOnHand: input.quantityOnHand,
+          ...(input.reorderPoint !== undefined ? { reorderPoint: input.reorderPoint } : {}),
+          ...(input.reorderQty !== undefined ? { reorderQty: input.reorderQty } : {}),
+        },
+      });
+    }
+
+    return this.db.warehouseStock.create({
+      data: {
         companyId: input.companyId,
         warehouseId: input.warehouseId,
         warehouseName: input.warehouseName,
@@ -143,24 +155,16 @@ export class WarehouseStockRepository {
         reorderPoint: input.reorderPoint ?? 10,
         reorderQty: input.reorderQty ?? 50,
       },
-      update: {
-        warehouseName: input.warehouseName,
-        quantityOnHand: input.quantityOnHand,
-        ...(input.reorderPoint !== undefined ? { reorderPoint: input.reorderPoint } : {}),
-        ...(input.reorderQty !== undefined ? { reorderQty: input.reorderQty } : {}),
-      },
     });
   }
 
   async adjust(input: AdjustStockInput): Promise<WarehouseStock> {
-    const existing = await this.db.warehouseStock.findUnique({
+    const existing = await this.db.warehouseStock.findFirst({
       where: {
-        companyId_warehouseId_productId_variantId: {
-          companyId: input.companyId,
-          warehouseId: input.warehouseId,
-          productId: input.productId,
-          variantId: input.variantId ?? null,
-        },
+        companyId: input.companyId,
+        warehouseId: input.warehouseId,
+        productId: input.productId,
+        variantId: input.variantId ?? null,
       },
     });
     if (!existing) throw new Error(`Stock record not found for product ${input.productId} in warehouse ${input.warehouseId}`);
