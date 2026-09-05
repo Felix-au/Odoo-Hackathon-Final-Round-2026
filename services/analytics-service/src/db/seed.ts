@@ -300,7 +300,59 @@ export async function seed() {
     },
   });
 
-  console.log('✅ Seeded config, 11 quotation snapshots across all 5 stages, and 3 deal alerts');
+  // 4. Subscriptions (Real Recurring Revenue MRR)
+  await prisma.subscriptionSnapshot.upsert({
+    where: { id: 'sub-001' },
+    update: {},
+    create: {
+      id: 'sub-001',
+      companyId: 'default',
+      orderId: 'ord-001',
+      customerId: 'cust-001',
+      planName: 'Enterprise SLA & Infrastructure Support',
+      interval: 'MONTHLY',
+      quantity: 1,
+      unitPrice: new Prisma.Decimal(42000),
+      status: 'ACTIVE',
+      nextBillingDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000), // Next renewal in 5 days
+    },
+  });
+
+  await prisma.subscriptionSnapshot.upsert({
+    where: { id: 'sub-002' },
+    update: {},
+    create: {
+      id: 'sub-002',
+      companyId: 'default',
+      orderId: 'ord-002',
+      customerId: 'cust-002',
+      planName: 'Cloud Workstations Maintenance Tier',
+      interval: 'MONTHLY',
+      quantity: 1,
+      unitPrice: new Prisma.Decimal(20000),
+      status: 'ACTIVE',
+      nextBillingDate: new Date(Date.now() + 12 * 24 * 60 * 60 * 1000),
+    },
+  });
+
+  await prisma.subscriptionSnapshot.upsert({
+    where: { id: 'sub-003' },
+    update: {},
+    create: {
+      id: 'sub-003',
+      companyId: 'default',
+      orderId: 'ord-003',
+      customerId: 'cust-003',
+      planName: 'Managed Security & Compliance Package',
+      interval: 'QUARTERLY',
+      quantity: 1,
+      unitPrice: new Prisma.Decimal(30000), // 30000/3 = 10000 MRR
+      status: 'ACTIVE',
+      nextBillingDate: new Date(Date.now() + 19 * 24 * 60 * 60 * 1000),
+    },
+  });
+
+  console.log('✅ Seeded config, 11 quotations, 3 deal alerts, and 3 active subscriptions');
 }
 
 if (process.env.NODE_ENV !== 'test') {

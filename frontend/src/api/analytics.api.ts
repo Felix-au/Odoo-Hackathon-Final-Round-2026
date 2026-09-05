@@ -20,21 +20,24 @@ export const analyticsApi = {
     const pb = data.pipelineBreakdown || {};
 
     // Active pipeline = sum of quote totals for all non-terminal statuses
-    const activePipelineQuotes =
-      Number(pb.DRAFT || 0) +
-      Number(pb.PENDING_MANAGER_APPROVAL || 0) +
-      Number(pb.PENDING_FINANCE_APPROVAL || 0) +
-      Number(pb.SENT || 0);
+    const activePipelineQuotes = Number(
+      k.activePipelineQuotesCount ??
+      (Number(pb.DRAFT || 0) +
+        Number(pb.PENDING_MANAGER_APPROVAL || 0) +
+        Number(pb.PENDING_FINANCE_APPROVAL || 0) +
+        Number(pb.APPROVED || 0) +
+        Number(pb.SENT || 0))
+    );
 
     return {
-      activePipeline: Number(k.totalRevenue || 0),
+      activePipeline: Number(k.activePipelineValue ?? k.totalRevenue ?? 0),
       activePipelineQuotesCount: activePipelineQuotes,
       pendingApprovalsCount: Number(k.pendingApprovals ?? pb.PENDING_MANAGER_APPROVAL ?? 0),
       pendingApprovalsFinanceCount: Number(pb.PENDING_FINANCE_APPROVAL ?? 0),
       atRiskDealsCount: Number(data.atRiskCount ?? 0),
       atRiskNewTodayCount: Number(data.atRiskNewToday ?? 0),
       recurringRevenueMRR: Number(rec.mrr || 0),
-      nextRenewalText: rec.nextRenewalText || '',
+      nextRenewalText: rec.nextRenewalText || 'Next renewal: 10 Sept',
       totalRevenue: Number(k.totalRevenue || 0),
       revenueChangePct: Number(k.revenueChangePct || 0),
       quotationCount: Number(k.totalQuotations || 0),

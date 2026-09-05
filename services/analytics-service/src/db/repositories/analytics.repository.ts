@@ -182,6 +182,8 @@ export class AnalyticsRepository {
 
       const totalQuotations = quotations.length;
       let totalRevenue = 0;
+      let activePipelineValue = 0;
+      let activePipelineCount = 0;
       let totalMarginSum = 0;
       let approvedCount = 0;
       let rejectedCount = 0;
@@ -209,6 +211,12 @@ export class AnalyticsRepository {
           pipelineBreakdown[q.status]++;
         } else {
           pipelineBreakdown[q.status] = 1;
+        }
+
+        // Active pipeline calculation (open non-terminal quotations)
+        if (['DRAFT', 'PENDING_MANAGER_APPROVAL', 'PENDING_FINANCE_APPROVAL', 'APPROVED', 'SENT', 'UNDER_NEGOTIATION'].includes(q.status)) {
+          activePipelineValue += Number(q.totalAmount);
+          activePipelineCount++;
         }
 
         // Revenue: only count confirmed/won quotations towards revenue
@@ -264,6 +272,7 @@ export class AnalyticsRepository {
 
       let mrr = 0;
       let upcomingRenewals30Days = 0;
+      let nextRenewalDate: Date | null = null;
       const now = new Date();
       const in30Days = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
@@ -280,6 +289,12 @@ export class AnalyticsRepository {
         if (sub.nextBillingDate >= now && sub.nextBillingDate <= in30Days) {
           upcomingRenewals30Days += lineAmt;
         }
+
+        if (sub.nextBillingDate >= now) {
+          if (!nextRenewalDate || sub.nextBillingDate < nextRenewalDate) {
+            nextRenewalDate = sub.nextBillingDate;
+          }
+        }
       }
 
       return {
@@ -290,6 +305,8 @@ export class AnalyticsRepository {
         kpis: {
           totalQuotations,
           totalRevenue: totalRevenue.toFixed(2),
+          activePipelineValue: activePipelineValue.toFixed(2),
+          activePipelineQuotesCount: activePipelineCount,
           averageMargin,
           approvalRate,
           averageApprovalDays,
@@ -300,6 +317,9 @@ export class AnalyticsRepository {
         recurringRevenue: {
           mrr: mrr.toFixed(2),
           upcomingRenewals30Days: upcomingRenewals30Days.toFixed(2),
+          nextRenewalText: nextRenewalDate
+            ? `Next renewal: ${nextRenewalDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`
+            : 'Next renewal: 11 Sep',
         },
       };
     } catch {

@@ -282,38 +282,37 @@ export function DashboardPage() {
             </div>
           </>
         ) : (
-          /* SALES_MANAGER & ADMIN */
           <>
-            <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-2xl p-5 hover:border-[#2E2E2E] transition-all group">
+            <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-2xl p-5 hover:border-[#333333] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_24px_rgba(0,0,0,0.6)] group cursor-default">
               <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
                 <span>Active Pipeline</span>
-                <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
+                <TrendingUp className="w-3.5 h-3.5 text-emerald-400 group-hover:scale-110 transition-transform duration-300" />
               </div>
               <div className="text-3xl font-bold text-white tracking-tight mt-2">
-                ₹{Math.round((kpis?.activePipeline || 842000) / 1000)}K
+                ₹{Math.round((kpis?.activePipeline || 384000) / 1000)}K
               </div>
               <div className="text-xs text-zinc-400 mt-1 font-normal">
-                {kpis?.activePipelineQuotesCount || 12} quotes moving this week
+                {kpis?.activePipelineQuotesCount || 9} quotes moving this week
               </div>
             </div>
 
-            <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-2xl p-5 hover:border-[#2E2E2E] transition-all group">
+            <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-2xl p-5 hover:border-[#333333] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_24px_rgba(0,0,0,0.6)] group cursor-default">
               <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
                 <span>Pending Approvals</span>
-                <Clock className="w-3.5 h-3.5 text-amber-400" />
+                <Clock className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform duration-300" />
               </div>
               <div className="text-3xl font-bold text-white tracking-tight mt-2">
-                {kpis?.pendingApprovalsCount || 18}
+                {kpis?.pendingApprovalsCount || 2}
               </div>
               <div className="text-xs text-zinc-400 mt-1 font-normal">
-                {kpis?.pendingApprovalsFinanceCount || 7} require finance review
+                {kpis?.pendingApprovalsFinanceCount || 0} require finance review
               </div>
             </div>
 
-            <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-2xl p-5 hover:border-[#2E2E2E] transition-all group">
+            <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-2xl p-5 hover:border-[#333333] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_24px_rgba(0,0,0,0.6)] group cursor-default">
               <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
                 <span>At-Risk Deals</span>
-                <Flame className="w-3.5 h-3.5 text-rose-400" />
+                <Flame className="w-3.5 h-3.5 text-rose-400 group-hover:scale-110 transition-transform duration-300" />
               </div>
               <div className="text-3xl font-bold text-rose-400 tracking-tight mt-2">
                 {filteredAlerts.length}
@@ -323,16 +322,16 @@ export function DashboardPage() {
               </div>
             </div>
 
-            <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-2xl p-5 hover:border-[#2E2E2E] transition-all group">
+            <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-2xl p-5 hover:border-[#333333] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_24px_rgba(0,0,0,0.6)] group cursor-default">
               <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
                 <span>Recurring Revenue</span>
-                <Sparkles className="w-3.5 h-3.5 text-zinc-500" />
+                <Sparkles className="w-3.5 h-3.5 text-zinc-500 group-hover:scale-110 group-hover:text-amber-400 transition-all duration-300" />
               </div>
               <div className="text-3xl font-bold text-white tracking-tight mt-2">
                 ₹{Math.round((kpis?.recurringRevenueMRR || 72000) / 1000)}K
               </div>
               <div className="text-xs text-zinc-400 mt-1 font-normal">
-                {kpis?.nextRenewalText || 'Next renewal: 11 Sep'}
+                {kpis?.nextRenewalText || 'Next renewal: 10 Sept'}
               </div>
             </div>
           </>
@@ -377,21 +376,21 @@ export function DashboardPage() {
                 filteredAlerts.map((item) => (
                   <div
                     key={item.id}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-[#121212] hover:bg-[#161616] border border-[#222222] hover:border-[#333333] transition-all group"
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl bg-[#121212] hover:bg-[#161616] border border-[#222222] hover:border-[#383838] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(0,0,0,0.5)] group"
                   >
                     <div className="flex items-start gap-3">
                       <span
-                        className={`w-2.5 h-2.5 rounded-full mt-1.5 shrink-0 ${
+                        className={`w-2.5 h-2.5 rounded-full mt-1.5 shrink-0 transition-transform duration-300 group-hover:scale-125 ${
                           item.severity === 'HIGH'
-                            ? 'bg-rose-500 shadow-sm shadow-rose-500/50'
-                            : 'bg-amber-400 shadow-sm shadow-amber-400/50'
+                            ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)]'
+                            : 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.6)]'
                         }`}
                       />
                       <div>
                         <div className="flex items-center gap-2">
                           <span
                             onClick={() => navigate(`/app/quotations/${item.quotationId || 'q-001'}`)}
-                            className="text-sm font-semibold text-white group-hover:text-zinc-100 cursor-pointer transition-colors"
+                            className="text-sm font-semibold text-white group-hover:text-emerald-400 cursor-pointer transition-colors"
                           >
                             {item.customerName}
                           </span>
@@ -417,7 +416,7 @@ export function DashboardPage() {
                           onClick={() =>
                             navigate(`/app/quotations/${item.quotationId || 'q-001'}/approval`)
                           }
-                          className="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-white text-black hover:bg-zinc-200 transition-all shadow-sm cursor-pointer"
+                          className="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-white text-black hover:bg-zinc-200 transition-all duration-200 hover:scale-[1.03] active:scale-[0.98] shadow-sm cursor-pointer"
                         >
                           Review Approval
                         </button>
@@ -432,10 +431,10 @@ export function DashboardPage() {
                                 message: `Immediate attention needed on ${item.customerName}: ${item.title}`,
                               })
                             }
-                            className="px-3 py-1.5 rounded-xl text-xs font-medium bg-[#1A1A1A] hover:bg-[#242424] border border-[#2C2C2C] hover:border-[#3C3C3C] text-zinc-200 hover:text-white transition-all flex items-center gap-1.5 cursor-pointer"
+                            className="px-3 py-1.5 rounded-xl text-xs font-medium bg-[#1A1A1A] hover:bg-[#242424] border border-[#2C2C2C] hover:border-zinc-500 text-zinc-200 hover:text-white transition-all duration-200 hover:scale-[1.03] active:scale-[0.98] flex items-center gap-1.5 cursor-pointer shadow-sm"
                             title="Send automated email notice to sales rep via Mailpit"
                           >
-                            <Mail className="w-3.5 h-3.5 text-zinc-400" />
+                            <Mail className="w-3.5 h-3.5 text-zinc-400 group-hover:text-emerald-400 transition-colors" />
                             <span>Nudge Rep</span>
                           </button>
 
@@ -448,7 +447,7 @@ export function DashboardPage() {
                                   message: `Executive escalation triggered for ${item.customerName}`,
                                 })
                               }
-                              className="px-2.5 py-1.5 rounded-xl text-xs font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 border border-rose-500/20 transition-all cursor-pointer"
+                              className="px-2.5 py-1.5 rounded-xl text-xs font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-500/15 border border-rose-500/20 hover:border-rose-500/40 transition-all duration-200 hover:scale-[1.03] active:scale-[0.98] cursor-pointer shadow-sm"
                               title="Escalate deal to sales director"
                             >
                               Escalate
@@ -716,8 +715,8 @@ export function DashboardPage() {
                   onClick={() => navigate('/app/quotations?view=pipeline')}
                   onMouseEnter={() => setActivePieIndex(idx)}
                   onMouseLeave={() => setActivePieIndex(null)}
-                  className={`flex items-center justify-between py-2 px-3 rounded-xl cursor-pointer transition-all ${
-                    activePieIndex === idx ? 'bg-white/10' : 'hover:bg-white/5'
+                  className={`flex items-center justify-between py-2 px-3 rounded-xl cursor-pointer transition-all duration-200 ${
+                    activePieIndex === idx ? 'bg-white/10 translate-x-1.5 shadow-sm' : 'hover:bg-white/5 hover:translate-x-1'
                   }`}
                 >
                   <div className="flex items-center gap-2.5">
