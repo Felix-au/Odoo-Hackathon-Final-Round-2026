@@ -450,8 +450,8 @@ export function DashboardPage() {
                         </button>
                       ) : (
                         <>
-                          {/* Nudge Button (Hidden for Sales Reps, visible to Managers and Admin) */}
-                          {role !== 'SALES_REP' && (
+                          {/* Nudge Button (Visible to Managers and Admin) */}
+                          {(role === 'SALES_MANAGER' || role === 'ADMIN') && (
                             <button
                               type="button"
                               onClick={(e) => {
@@ -469,20 +469,21 @@ export function DashboardPage() {
                             </button>
                           )}
 
-                          {(role === 'SALES_MANAGER' || role === 'ADMIN') && (
+                          {/* Escalate Button (Belongs exclusively to CFO / Finance escalating to Sales Manager, plus Admin) */}
+                          {(role === 'FINANCE' || role === 'ADMIN') && (
                             <button
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 escalate({
                                   alertId: item.id,
-                                  message: `Executive escalation triggered for ${item.customerName}`,
+                                  message: `Finance / CFO escalation on ${item.customerName}: urgent margin review required by Sales Manager`,
                                 });
                               }}
                               className="px-2.5 py-1.5 rounded-xl text-xs font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-500/15 border border-rose-500/20 hover:border-rose-500/40 transition-all duration-200 hover:scale-[1.03] active:scale-[0.98] cursor-pointer shadow-sm"
-                              title="Escalate deal to sales director"
+                              title="Escalate deal to sales manager"
                             >
-                              Escalate
+                              Escalate to Manager
                             </button>
                           )}
                         </>

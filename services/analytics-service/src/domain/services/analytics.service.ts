@@ -195,8 +195,9 @@ export class AnalyticsService {
       where: { id: alert.quotationId },
     });
 
-    const targetEmail = quotation ? `${quotation.repName.toLowerCase().replace(/\s+/g, '.')}@dealflow360.dev` : 'rep@dealflow360.dev';
-    const sentTo = [targetEmail];
+    const repEmail = quotation ? `${quotation.repName.toLowerCase().replace(/\s+/g, '.')}@dealflow360.dev` : 'rep@dealflow360.dev';
+    const managerEmail = 'atharva.manager@dealflow360.com';
+    const sentTo = type === 'ESCALATION' ? [managerEmail] : [repEmail];
 
     // 1. Record NudgeAction
     const nudge = await this.dealHealthRepo.createNudge({

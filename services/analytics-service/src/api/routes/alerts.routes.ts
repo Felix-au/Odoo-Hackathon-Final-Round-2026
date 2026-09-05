@@ -42,10 +42,10 @@ export function alertsRoutes(analyticsService: AnalyticsService): FastifyPluginA
       },
     );
 
-    // POST /analytics/alerts/:id/escalate
+    // POST /analytics/alerts/:id/escalate (CFO / Finance escalates to Manager, or Admin)
     fastify.post(
       '/:id/escalate',
-      { preHandler: [requireRole('ADMIN', 'SALES_MANAGER')] },
+      { preHandler: [requireRole('ADMIN', 'FINANCE')] },
       async (request, reply) => {
         const { id } = request.params as { id: string };
         const parsed = nudgeSchema.safeParse(request.body);
