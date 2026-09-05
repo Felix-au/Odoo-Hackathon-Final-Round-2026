@@ -94,10 +94,45 @@ export function useQuotationBuilder(id: string) {
     onSuccess: (data) => {
       toast.success('Quotation submitted for review/approval');
       queryClient.invalidateQueries({ queryKey: ['quotation', id] });
+      queryClient.invalidateQueries({ queryKey: ['quotations'] });
       return data;
     },
-    onError: () => {
-      toast.error('Submission failed');
+    onError: (err: any) => {
+      const msg = err.response?.data?.detail || err.message || 'Submission failed';
+      toast.error(msg);
+    },
+  });
+
+  const sendQuotationMutation = useMutation({
+    mutationFn: async () => {
+      return quotationApi.sendQuotation(id, token);
+    },
+    onSuccess: (data) => {
+      toast.success('Quotation successfully dispatched to customer portal');
+      queryClient.invalidateQueries({ queryKey: ['quotation', id] });
+      queryClient.invalidateQueries({ queryKey: ['quotations'] });
+      queryClient.invalidateQueries({ queryKey: ['deal-health-alerts'] });
+      return data;
+    },
+    onError: (err: any) => {
+      const msg = err.response?.data?.detail || err.message || 'Failed to send quotation to customer';
+      toast.error(msg);
+    },
+  });
+
+  const updateMetadataMutation = useMutation({
+    mutationFn: async (data: { notes?: string; currency?: string; validUntil?: string; customerId?: string; version?: number }) => {
+      return quotationApi.updateQuotationMetadata(id, data, token);
+    },
+    onSuccess: (data) => {
+      toast.success('Quotation details saved');
+      queryClient.invalidateQueries({ queryKey: ['quotation', id] });
+      queryClient.invalidateQueries({ queryKey: ['quotations'] });
+      return data;
+    },
+    onError: (err: any) => {
+      const msg = err.response?.data?.detail || err.message || 'Failed to update quotation details';
+      toast.error(msg);
     },
   });
 
@@ -106,10 +141,14 @@ export function useQuotationBuilder(id: string) {
     updateLine: updateLineMutation.mutateAsync,
     removeLine: removeLineMutation.mutateAsync,
     submitQuotation: submitQuotationMutation.mutateAsync,
+    sendQuotation: sendQuotationMutation.mutateAsync,
+    updateMetadata: updateMetadataMutation.mutateAsync,
     isUpdating:
       addLineMutation.isPending ||
       updateLineMutation.isPending ||
       removeLineMutation.isPending ||
-      submitQuotationMutation.isPending,
+      submitQuotationMutation.isPending ||
+      sendQuotationMutation.isPending ||
+      updateMetadataMutation.isPending,
   };
 }

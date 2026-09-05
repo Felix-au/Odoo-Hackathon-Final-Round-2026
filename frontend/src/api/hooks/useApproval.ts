@@ -55,11 +55,32 @@ export function useApprovalActions(quotationId: string) {
     },
   });
 
+  const sendQuotationMutation = useMutation({
+    mutationFn: async () => {
+      if (!token) throw new Error('Authentication required');
+      return await quotationApi.sendQuotation(quotationId, token);
+    },
+    onSuccess: () => {
+      toast.success('Quotation sent to customer portal');
+      queryClient.invalidateQueries({ queryKey: ['quotation', quotationId] });
+      queryClient.invalidateQueries({ queryKey: ['quotations'] });
+      queryClient.invalidateQueries({ queryKey: ['deal-health-alerts'] });
+    },
+    onError: (err: any) => {
+      const msg = err.response?.data?.detail || err.message || 'Failed to send quotation';
+      toast.error(msg);
+    },
+  });
+
   return {
     approve: approveMutation.mutateAsync,
     reject: rejectMutation.mutateAsync,
     returnForRevision: returnForRevisionMutation.mutateAsync,
+    sendQuotation: sendQuotationMutation.mutateAsync,
     isProcessing:
-      approveMutation.isPending || rejectMutation.isPending || returnForRevisionMutation.isPending,
+      approveMutation.isPending ||
+      rejectMutation.isPending ||
+      returnForRevisionMutation.isPending ||
+      sendQuotationMutation.isPending,
   };
 }

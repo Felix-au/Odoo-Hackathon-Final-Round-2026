@@ -140,6 +140,28 @@ export const quotationApi = {
     return res.data;
   },
 
+  sendQuotation: async (quotationId: string, token?: string) => {
+    const res = await quotationHttp.post(
+      `/quotations/${quotationId}/send`,
+      {},
+      { headers: token ? { Authorization: `Bearer ${token}` } : undefined }
+    );
+    return res.data;
+  },
+
+  updateQuotationMetadata: async (
+    quotationId: string,
+    data: { notes?: string; currency?: string; validUntil?: string; customerId?: string; version?: number },
+    token?: string
+  ) => {
+    const res = await quotationHttp.put(
+      `/quotations/${quotationId}`,
+      data,
+      { headers: token ? { Authorization: `Bearer ${token}` } : undefined }
+    );
+    return res.data;
+  },
+
   getUpsellSuggestions: async (quotationId: string, token?: string): Promise<UpsellSuggestion[]> => {
     const res = await quotationHttp.get(
       `/quotations/${quotationId}/upsell-suggestions`,

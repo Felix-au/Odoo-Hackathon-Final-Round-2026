@@ -4,8 +4,8 @@ import { useQuotation } from '../../api/hooks/useQuotationBuilder';
 import { useApprovalActions } from '../../api/hooks/useApproval';
 import { useAuthStore } from '../../stores/auth.store';
 import { LoadingSpinner } from '../../components/feedback/LoadingSpinner';
-import { formatCurrency } from '../../lib/utils';
-import { AlertTriangle, ArrowLeft } from 'lucide-react';
+import { formatCurrency, formatQuotationNumber } from '../../lib/utils';
+import { AlertTriangle, ArrowLeft, Send, CheckCircle2, ArrowUpRight } from 'lucide-react';
 import { toast } from 'sonner';
 
 export function QuotationApprovalPage() {
@@ -13,7 +13,7 @@ export function QuotationApprovalPage() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const { data: quotation, isLoading } = useQuotation(id);
-  const { approve, reject, returnForRevision, isProcessing } = useApprovalActions(id);
+  const { approve, reject, returnForRevision, sendQuotation, isProcessing } = useApprovalActions(id);
 
   const [activeDialog, setActiveDialog] = useState<'APPROVE' | 'REJECT' | 'RETURN' | null>(null);
   const [reasonText, setReasonText] = useState('');
@@ -33,7 +33,7 @@ export function QuotationApprovalPage() {
         <button
           type="button"
           onClick={() => navigate('/app/quotations')}
-          className="mt-3 px-4 py-2 rounded-xl text-xs font-semibold bg-blue-600 text-white"
+          className="mt-3 px-4 py-2 rounded-xl text-xs font-semibold bg-white text-black hover:bg-zinc-200"
         >
           Return to Quotations
         </button>
@@ -42,9 +42,10 @@ export function QuotationApprovalPage() {
   }
 
   const canAct =
-    user?.role === 'ADMIN' ||
-    user?.role === 'SALES_MANAGER' ||
-    user?.role === 'FINANCE';
+    (user?.role === 'ADMIN' || user?.role === 'SALES_MANAGER' || user?.role === 'FINANCE') &&
+    quotation.status !== 'APPROVED' &&
+    quotation.status !== 'SENT' &&
+    quotation.status !== 'CONFIRMED';
 
   const handleActionSubmit = async () => {
     try {
@@ -100,7 +101,7 @@ export function QuotationApprovalPage() {
             Quotation Approval Workflow
           </h1>
           <p className="text-xs text-zinc-400 mt-0.5">
-            Quote #{quotation.quotationNumber} • {quotation.customer?.name || 'Acme Corporation'}
+            Quote #{formatQuotationNumber(quotation)} • {quotation.customer?.name || 'Acme Corporation'}
           </p>
         </div>
 
@@ -208,7 +209,7 @@ export function QuotationApprovalPage() {
       </div>
 
       {/* Authorized Action Controls */}
-      {canAct && quotation.status !== 'APPROVED' ? (
+      {canAct ? (
         <div className="p-5 bg-[#121214] border border-[#27272A] rounded-2xl flex flex-wrap items-center justify-between gap-4">
           <div>
             <div className="text-xs font-bold text-white">Reviewer Action Required</div>
@@ -221,27 +222,78 @@ export function QuotationApprovalPage() {
             <button
               type="button"
               onClick={() => setActiveDialog('RETURN')}
-              className="px-4 py-2 rounded-xl text-xs font-semibold bg-[#1F1F23] hover:bg-[#27272A] text-amber-300 border border-amber-500/20 transition-colors"
+              className="px-4 py-2 rounded-xl text-xs font-semibold bg-[#1F1F23] hover:bg-[#27272A] text-amber-300 border border-amber-500/20 transition-colors cursor-pointer"
             >
               Return for Revision
             </button>
             <button
               type="button"
               onClick={() => setActiveDialog('REJECT')}
-              className="px-4 py-2 rounded-xl text-xs font-semibold bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 transition-colors"
+              className="px-4 py-2 rounded-xl text-xs font-semibold bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 transition-colors cursor-pointer"
             >
               Reject
             </button>
             <button
               type="button"
               onClick={() => setActiveDialog('APPROVE')}
-              className="px-5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/20 transition-colors"
+              className="px-5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/20 transition-colors cursor-pointer"
             >
               Approve Quotation
             </button>
           </div>
         </div>
       ) : null}
+
+      {/* Approved Action Bar — Send to Customer */}
+      {quotation.status === 'APPROVED' && (
+        <div className="p-6 bg-[#0E1712] border border-emerald-500/30 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
+              <CheckCircle2 className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-sm font-bold text-white">Quotation Approved</div>
+              <div className="text-xs text-zinc-400 mt-0.5">
+                All tier governance thresholds and approvals are met. Dispatch this quotation directly to {quotation.customer?.name || 'the customer'}.
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            disabled={isProcessing}
+            onClick={() => sendQuotation()}
+            className="w-full sm:w-auto px-6 py-2.5 rounded-xl text-xs font-bold bg-white text-black hover:bg-zinc-200 shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2"
+          >
+            <Send className="w-4 h-4 text-black" />
+            <span>Send to Customer</span>
+          </button>
+        </div>
+      )}
+
+      {/* Sent State Banner */}
+      {quotation.status === 'SENT' && (
+        <div className="p-6 bg-[#121214] border border-purple-500/30 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 shrink-0">
+              <Send className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-sm font-bold text-white">Quotation Dispatched to Customer</div>
+              <div className="text-xs text-zinc-400 mt-0.5">
+                Available in the customer negotiation portal. Awaiting client review and final signature.
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate(`/portal/quotations/${id}`)}
+            className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-semibold bg-[#1C1C20] hover:bg-[#26262B] text-white border border-[#2E2E33] transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+          >
+            <span>Preview Client Portal</span>
+            <ArrowUpRight className="w-3.5 h-3.5 text-zinc-400" />
+          </button>
+        </div>
+      )}
 
       {/* Reason Dialog Modal */}
       {activeDialog && (
