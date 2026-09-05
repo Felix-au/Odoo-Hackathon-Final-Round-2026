@@ -67,6 +67,7 @@ export async function buildApp() {
     status: 'healthy',
     service: 'gateway',
     version: process.env['npm_package_version'] ?? '1.0.0',
+    check: 'pass',
     timestamp: new Date().toISOString(),
   }));
 
