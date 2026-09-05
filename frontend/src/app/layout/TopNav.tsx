@@ -102,56 +102,66 @@ export function TopNav() {
             <NavLink to="/app/quotations" className={getNavLinkClass('/app/quotations', false)}>
               Quotations
             </NavLink>
-            <NavLink to="/app/reports" className={getNavLinkClass('/app/reports', false)}>
-              Reports
-            </NavLink>
 
-            {/* Operations Dropdown */}
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowOpsMenu(!showOpsMenu);
-                  setShowAdminMenu(false);
-                  setShowUserMenu(false);
-                  setShowNotifications(false);
-                }}
-                className={cn(
-                  'flex items-center gap-1 text-xs font-semibold px-3.5 py-1.5 rounded-lg transition-all duration-150',
-                  location.pathname.startsWith('/app/fulfillment') ||
-                    location.pathname.startsWith('/app/billing')
-                    ? 'text-white bg-white/10 shadow-sm'
-                    : 'text-zinc-400 hover:text-white hover:bg-white/5'
+            {/* Reports — Executive margin & audit analytics for ADMIN, SALES_MANAGER, FINANCE */}
+            {user?.role !== 'SALES_REP' && (
+              <NavLink to="/app/reports" className={getNavLinkClass('/app/reports', false)}>
+                Reports
+              </NavLink>
+            )}
+
+            {/* Operations Dropdown — Fulfillment & Billing for ADMIN, SALES_MANAGER, FINANCE */}
+            {user?.role !== 'SALES_REP' && (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowOpsMenu(!showOpsMenu);
+                    setShowAdminMenu(false);
+                    setShowUserMenu(false);
+                    setShowNotifications(false);
+                  }}
+                  className={cn(
+                    'flex items-center gap-1 text-xs font-semibold px-3.5 py-1.5 rounded-lg transition-all duration-150',
+                    location.pathname.startsWith('/app/fulfillment') ||
+                      location.pathname.startsWith('/app/billing')
+                      ? 'text-white bg-white/10 shadow-sm'
+                      : 'text-zinc-400 hover:text-white hover:bg-white/5'
+                  )}
+                >
+                  <span>Operations</span>
+                  <ChevronDown className="w-3 h-3 text-zinc-500" />
+                </button>
+
+                {showOpsMenu && (
+                  <div className="absolute left-0 mt-2 w-48 bg-[#0A0A0A] border border-[#1F1F1F] rounded-xl shadow-2xl py-1.5 z-50 animate-in fade-in zoom-in-95">
+                    {(user?.role === 'ADMIN' || user?.role === 'SALES_MANAGER') && (
+                      <NavLink
+                        to="/app/fulfillment"
+                        onClick={() => setShowOpsMenu(false)}
+                        className="flex items-center gap-2.5 px-3.5 py-2 text-xs text-zinc-300 hover:bg-white/5 hover:text-white"
+                      >
+                        <Truck className="w-4 h-4 text-zinc-400" />
+                        <span>Fulfillment & Allocation</span>
+                      </NavLink>
+                    )}
+                    {(user?.role === 'ADMIN' || user?.role === 'FINANCE') && (
+                      <NavLink
+                        to="/app/billing"
+                        onClick={() => setShowOpsMenu(false)}
+                        className="flex items-center gap-2.5 px-3.5 py-2 text-xs text-zinc-300 hover:bg-white/5 hover:text-white"
+                      >
+                        <Receipt className="w-4 h-4 text-zinc-400" />
+                        <span>Billing & Subscriptions</span>
+                      </NavLink>
+                    )}
+                  </div>
                 )}
-              >
-                <span>Operations</span>
-                <ChevronDown className="w-3 h-3 text-zinc-500" />
-              </button>
+              </div>
+            )}
 
-              {showOpsMenu && (
-                <div className="absolute left-0 mt-2 w-48 bg-[#0A0A0A] border border-[#1F1F1F] rounded-xl shadow-2xl py-1.5 z-50 animate-in fade-in zoom-in-95">
-                  <NavLink
-                    to="/app/fulfillment"
-                    onClick={() => setShowOpsMenu(false)}
-                    className="flex items-center gap-2.5 px-3.5 py-2 text-xs text-zinc-300 hover:bg-white/5 hover:text-white"
-                  >
-                    <Truck className="w-4 h-4 text-zinc-400" />
-                    <span>Fulfillment & Allocation</span>
-                  </NavLink>
-                  <NavLink
-                    to="/app/billing"
-                    onClick={() => setShowOpsMenu(false)}
-                    className="flex items-center gap-2.5 px-3.5 py-2 text-xs text-zinc-300 hover:bg-white/5 hover:text-white"
-                  >
-                    <Receipt className="w-4 h-4 text-zinc-400" />
-                    <span>Billing & Subscriptions</span>
-                  </NavLink>
-                </div>
-              )}
-            </div>
-
-            {/* Admin Dropdown */}
-            {(user?.role === 'ADMIN' || user?.role === 'SALES_MANAGER') && (
+            {/* Admin Dropdown — Strictly only visible to ADMIN role */}
+            {user?.role === 'ADMIN' && (
               <div className="relative">
                 <button
                   type="button"

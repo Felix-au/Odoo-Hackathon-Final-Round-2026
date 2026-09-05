@@ -26,12 +26,12 @@ export function InternalAuthGuard() {
 
 export function AdminRoleGuard() {
   const { user } = useAuthStore();
-  if (user?.role !== 'ADMIN' && user?.role !== 'SALES_MANAGER') {
+  if (user?.role !== 'ADMIN') {
     return (
       <div className="p-8 text-center bg-[#121214] rounded-2xl border border-red-500/20 max-w-lg mx-auto mt-10">
         <h2 className="text-base font-bold text-red-400">403 — Unauthorized Access</h2>
         <p className="text-xs text-slate-400 mt-1">
-          This administration section requires ADMIN or SALES_MANAGER privileges.
+          This administration section requires ADMIN privileges.
         </p>
       </div>
     );
