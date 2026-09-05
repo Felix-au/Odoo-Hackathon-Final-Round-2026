@@ -1,5 +1,5 @@
-import type { ApprovalChainRepository } from '../db/repositories/approval-chain.repository';
-import type { CatalogCache } from '../cache/catalog-cache';
+import type { ApprovalChainRepository } from '../../db/repositories/approval-chain.repository';
+import type { CatalogCache } from '../../cache/catalog-cache';
 
 export class ApprovalChainService {
   constructor(
@@ -18,9 +18,9 @@ export class ApprovalChainService {
   }
 
   /** Resolve which approval chain applies for a given risk score (CHECK-CAT-003) */
-  async resolveForScore(companyId: string, riskScore: number) {
+  async resolveForScore(companyId: string, riskScore: number): Promise<any> {
     const cacheKey = this.cache.approvalChainKey(companyId, riskScore);
-    const cached = await this.cache.get<object | null>(cacheKey);
+    const cached = await this.cache.get<any>(cacheKey);
     if (cached !== undefined && cached !== null) return cached;
 
     const chain = await this.approvalChainRepo.resolveForScore(companyId, riskScore);

@@ -161,7 +161,7 @@ export class QuotationService {
       categoryCeilings: ceilingsResponse.categoryCeilings || {},
     };
 
-    const riskInputs: LineRiskInput[] = quotation.lines.map((l) => ({
+    const riskInputs: LineRiskInput[] = quotation.lines.map((l: any) => ({
       lineId: l.id,
       categoryId: l.categoryId,
       discountPct: l.discountPct,
@@ -562,7 +562,7 @@ export class QuotationService {
       const ceilingsResponse = await this.catalogClient.getDiscountCeilings(quotation.companyId);
       const tierCeiling = ceilingsResponse.tierCeilings[quotation.customer.tier.toUpperCase()] ?? 15;
 
-      const riskInputs: LineRiskInput[] = quotation.lines.map((l) => ({
+      const riskInputs: LineRiskInput[] = quotation.lines.map((l: any) => ({
         lineId: l.id,
         categoryId: l.categoryId,
         discountPct: Math.max(l.discountPct, input.proposedDiscount!),
@@ -630,7 +630,7 @@ export class QuotationService {
 
   async getUpsellSuggestions(id: string) {
     const quotation = await this.getQuotation(id);
-    const productIds = quotation.lines.map((l) => l.productId);
+    const productIds = quotation.lines.map((l: any) => l.productId);
     return this.catalogClient.getUpsellSuggestions(productIds, quotation.totalMarginPct);
   }
 

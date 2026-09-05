@@ -1,5 +1,5 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
-import type { Role } from '@prisma/client';
+import type { Role } from './jwt-auth.middleware';
 
 export function requireRole(...allowedRoles: Role[]) {
   return async function roleGuard(

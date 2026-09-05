@@ -1,6 +1,6 @@
-import type { PriceListRepository } from '../db/repositories/price-list.repository';
-import type { ProductRepository } from '../db/repositories/product.repository';
-import type { CatalogCache } from '../cache/catalog-cache';
+import type { PriceListRepository } from '../../db/repositories/price-list.repository';
+import type { ProductRepository } from '../../db/repositories/product.repository';
+import type { CatalogCache } from '../../cache/catalog-cache';
 import type { CustomerTier } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 
@@ -31,9 +31,9 @@ export class PriceListService {
    * Resolve the effective price for a product given tier + currency.
    * Precedence: fixedPrice rule > discountPct rule > base price
    */
-  async resolvePrice(companyId: string, productId: string, tier: CustomerTier, currency: string, quantity: number = 1) {
+  async resolvePrice(companyId: string, productId: string, tier: CustomerTier, currency: string, quantity: number = 1): Promise<any> {
     const cacheKey = this.cache.priceResolveKey(companyId, productId, tier, currency);
-    const cached = await this.cache.get<object>(cacheKey);
+    const cached = await this.cache.get<any>(cacheKey);
     if (cached) return cached;
 
     const product = await this.productRepo.findById(productId);
@@ -48,9 +48,9 @@ export class PriceListService {
 
     if (priceList) {
       // Find rule with highest minQty <= quantity
-      const applicableRules = priceList.rules
-        .filter((r) => r.productId === productId && r.minQty <= quantity)
-        .sort((a, b) => b.minQty - a.minQty);
+      const applicableRules = (priceList.rules as any[])
+        .filter((r: any) => r.productId === productId && r.minQty <= quantity)
+        .sort((a: any, b: any) => b.minQty - a.minQty);
 
       if (applicableRules.length > 0) {
         const rule = applicableRules[0];

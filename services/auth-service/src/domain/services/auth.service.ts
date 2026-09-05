@@ -3,8 +3,8 @@ import jwt from 'jsonwebtoken';
 import { randomUUID } from 'crypto';
 import type { User, Role } from '@prisma/client';
 import { env } from '../../config/env';
-import type { UserRepository } from '../repositories/user.repository';
-import type { RefreshTokenRepository } from '../repositories/refresh-token.repository';
+import type { UserRepository } from '../../db/repositories/user.repository';
+import type { RefreshTokenRepository } from '../../db/repositories/refresh-token.repository';
 
 export class AuthError extends Error {
   constructor(

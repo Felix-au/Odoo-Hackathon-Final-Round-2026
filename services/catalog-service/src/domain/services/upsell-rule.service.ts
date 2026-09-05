@@ -1,5 +1,5 @@
-import type { UpsellRuleRepository } from '../db/repositories/upsell-rule.repository';
-import type { CatalogCache } from '../cache/catalog-cache';
+import type { UpsellRuleRepository } from '../../db/repositories/upsell-rule.repository';
+import type { CatalogCache } from '../../cache/catalog-cache';
 
 export class UpsellRuleService {
   constructor(
@@ -25,10 +25,10 @@ export class UpsellRuleService {
 
     // Filter by minMarginPct if caller supplies current margin context
     const filtered = currentMarginPct !== undefined
-      ? rules.filter((r) => r.minMarginPct <= currentMarginPct)
-      : rules;
+      ? (rules as any[]).filter((r: any) => r.minMarginPct <= currentMarginPct)
+      : (rules as any[]);
 
-    const suggestions = filtered.map((rule) => ({
+    const suggestions = filtered.map((rule: any) => ({
       ruleId: rule.id,
       triggerProductId: rule.triggerProductId,
       suggestedProduct: {

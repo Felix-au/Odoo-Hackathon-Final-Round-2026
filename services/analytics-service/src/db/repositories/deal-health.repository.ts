@@ -57,7 +57,6 @@ export class DealHealthRepository {
         stallDaysThreshold: 7,
         anomalyStdDevFactor: 2.0,
         deliverySlippageDays: 3,
-        createdAt: new Date(),
         updatedAt: new Date(),
       };
     }
@@ -93,7 +92,6 @@ export class DealHealthRepository {
         stallDaysThreshold: data.stallDaysThreshold ?? 7,
         anomalyStdDevFactor: data.anomalyStdDevFactor ?? 2.0,
         deliverySlippageDays: data.deliverySlippageDays ?? 3,
-        createdAt: new Date(),
         updatedAt: new Date(),
       };
     }

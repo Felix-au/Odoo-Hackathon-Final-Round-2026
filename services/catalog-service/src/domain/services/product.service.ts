@@ -1,5 +1,5 @@
-import type { ProductRepository, ProductFilters } from '../db/repositories/product.repository';
-import type { CatalogCache } from '../cache/catalog-cache';
+import type { ProductRepository, ProductFilters } from '../../db/repositories/product.repository';
+import type { CatalogCache } from '../../cache/catalog-cache';
 
 export class ProductService {
   constructor(

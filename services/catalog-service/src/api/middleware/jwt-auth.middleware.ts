@@ -1,7 +1,8 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import jwt from 'jsonwebtoken';
 import { env } from '../../config/env';
-import type { Role } from '@prisma/client';
+
+export type Role = 'ADMIN' | 'SALES_MANAGER' | 'SALES_REP' | 'FINANCE' | 'PORTAL_USER';
 
 export interface JwtPayload {
   sub: string;

@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto';
 import type Redis from 'ioredis';
 import { env } from '../../config/env';
-import type { PortalCredentialRepository } from '../repositories/portal-credential.repository';
+import type { PortalCredentialRepository } from '../../db/repositories/portal-credential.repository';
 import type { EmailClient } from '../../integrations/email.client';
 
 export class MagicLinkError extends Error {

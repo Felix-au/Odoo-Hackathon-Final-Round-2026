@@ -1,5 +1,5 @@
-import type { DiscountTierRepository } from '../db/repositories/discount-tier.repository';
-import type { CatalogCache } from '../cache/catalog-cache';
+import type { DiscountTierRepository } from '../../db/repositories/discount-tier.repository';
+import type { CatalogCache } from '../../cache/catalog-cache';
 import type { CustomerTier } from '@prisma/client';
 
 export class DiscountTierService {
