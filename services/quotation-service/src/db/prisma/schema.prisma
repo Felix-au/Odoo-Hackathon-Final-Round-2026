@@ -1,0 +1,139 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("QUOTATION_DATABASE_URL")
+}
+
+enum QuotationStatus {
+  DRAFT
+  PENDING_MANAGER_APPROVAL
+  PENDING_FINANCE_APPROVAL
+  APPROVED
+  SENT
+  UNDER_NEGOTIATION
+  CONFIRMED
+  REJECTED
+  LOST
+}
+
+enum ApprovalAction {
+  APPROVE
+  REJECT
+  RETURN_FOR_REVISION
+}
+
+enum NegotiationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+model Customer {
+  id              String    @id @default(uuid())
+  companyId       String    @default("default")
+  name            String
+  email           String
+  tier            String    @default("BRONZE")
+  currency        String    @default("USD")
+  hasPortalAccess Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  quotations Quotation[]
+
+  @@unique([companyId, email])
+  @@index([companyId])
+}
+
+model Quotation {
+  id               String          @id @default(uuid())
+  companyId        String          @default("default")
+  customerId       String
+  repId            String
+  status           QuotationStatus @default(DRAFT)
+  blendedRiskScore Float           @default(0)
+  totalAmount      Decimal         @db.Decimal(12, 4) @default(0)
+  totalMarginPct   Float           @default(0)
+  currency         String          @default("USD")
+  notes            String?
+  validUntil       DateTime?
+  version          Int             @default(1)
+  lastActivityAt   DateTime        @default(now())
+  confirmedAt      DateTime?
+  idempotencyKey   String?         @unique
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  customer     Customer             @relation(fields: [customerId], references: [id])
+  lines        QuotationLine[]
+  approvalLogs ApprovalLog[]
+  negotiations CustomerNegotiation[]
+
+  @@index([companyId, status])
+  @@index([companyId, repId])
+  @@index([companyId, customerId])
+  @@index([lastActivityAt])
+}
+
+model QuotationLine {
+  id           String    @id @default(uuid())
+  quotationId  String
+  productId    String
+  variantId    String?
+  productName  String
+  categoryId   String
+  categoryName String
+  quantity     Int       @default(1)
+  unitPrice    Decimal   @db.Decimal(12, 4)
+  costPrice    Decimal   @db.Decimal(12, 4) @default(0)
+  discountPct  Float     @default(0)
+  lineTotal    Decimal   @db.Decimal(12, 4)
+  taxAmount    Decimal   @db.Decimal(12, 4) @default(0)
+  marginPct    Float     @default(0)
+  isRecurring  Boolean   @default(false)
+  planId       String?
+  planInterval String?
+  sortOrder    Int       @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  quotation Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+
+  @@index([quotationId])
+}
+
+model ApprovalLog {
+  id           String         @id @default(uuid())
+  quotationId  String
+  approverId   String
+  approverName String
+  approverRole String
+  action       ApprovalAction
+  reason       String?
+  riskScore    Float
+  createdAt    DateTime       @default(now())
+
+  quotation Quotation    @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+
+  @@index([quotationId])
+  @@index([approverId])
+}
+
+model CustomerNegotiation {
+  id               String            @id @default(uuid())
+  quotationId      String
+  customerId       String
+  message          String?
+  proposedDiscount Float?
+  lineComments     Json?
+  status           NegotiationStatus @default(PENDING)
+  createdAt        DateTime          @default(now())
+  resolvedAt       DateTime?
+
+  quotation Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+
+  @@index([quotationId])
+}
