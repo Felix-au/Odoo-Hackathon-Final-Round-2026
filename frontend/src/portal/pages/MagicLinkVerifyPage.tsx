@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { usePortalAuthStore } from '../../stores/portal-auth.store';
 import { AlertCircle, ArrowRight, KeyRound, Loader2 } from 'lucide-react';
@@ -8,24 +8,39 @@ export function MagicLinkVerifyPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { verifyMagicLink } = usePortalAuthStore();
-  const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState<'verifying' | 'success' | 'error'>('verifying');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const token = searchParams.get('token');
+  const hasExecutedRef = useRef(false);
 
   useEffect(() => {
+    if (hasExecutedRef.current) return;
+    hasExecutedRef.current = true;
+
     async function verify() {
       if (!token) {
-        setError('Missing magic link token parameter.');
+        setStatus('error');
+        setErrorMessage('Missing magic link token parameter.');
         return;
       }
       try {
+        setStatus('verifying');
         await verifyMagicLink(token);
+        setStatus('success');
         // Small delay for smooth visual transition
         setTimeout(() => {
           navigate('/portal/quotations/q-001', { replace: true });
-        }, 400);
+        }, 500);
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : 'This link is invalid or has expired.');
+        // If user already has a valid session token, seamlessly redirect
+        const storedToken = localStorage.getItem('portal_session_token');
+        if (storedToken) {
+          navigate('/portal/quotations/q-001', { replace: true });
+          return;
+        }
+        setStatus('error');
+        setErrorMessage(err instanceof Error ? err.message : 'This link is invalid or has expired.');
       }
     }
     verify();
@@ -49,7 +64,7 @@ export function MagicLinkVerifyPage() {
             />
           </div>
 
-          {error ? (
+          {status === 'error' ? (
             /* Error State */
             <div className="text-center space-y-4">
               <div className="w-14 h-14 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center mx-auto shadow-inner">
@@ -61,7 +76,7 @@ export function MagicLinkVerifyPage() {
                   Verification Link Invalid
                 </h2>
                 <p className="text-xs text-zinc-400 leading-relaxed max-w-xs mx-auto">
-                  {error}
+                  {errorMessage}
                 </p>
               </div>
 

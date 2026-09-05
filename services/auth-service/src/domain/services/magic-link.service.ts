@@ -19,6 +19,7 @@ interface MagicLinkData {
   customerId: string;
   email: string;
   used: boolean;
+  usedAt?: number;
 }
 
 const MAGIC_LINK_PREFIX = 'magic_link:';
@@ -77,11 +78,16 @@ export class MagicLinkService {
     const data = JSON.parse(raw) as MagicLinkData;
 
     if (data.used) {
+      // 15-second grace window to support StrictMode / client prefetch without prematurely failing
+      if (data.usedAt && Date.now() - data.usedAt < 15000) {
+        return { customerId: data.customerId, email: data.email };
+      }
       throw new MagicLinkError('TOKEN_ALREADY_USED', 'Magic link token has already been used', 401);
     }
 
     // Mark as used — atomic operation (set used flag, keep same TTL for audit)
     data.used = true;
+    data.usedAt = Date.now();
     await this.redis.set(key, JSON.stringify(data), 'KEEPTTL');
 
     return { customerId: data.customerId, email: data.email };
