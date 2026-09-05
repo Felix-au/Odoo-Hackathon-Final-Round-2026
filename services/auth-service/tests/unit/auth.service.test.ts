@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { AuthService, AuthError } from '../../../src/domain/services/auth.service';
-import type { UserRepository } from '../../../src/db/repositories/user.repository';
-import type { RefreshTokenRepository } from '../../../src/db/repositories/refresh-token.repository';
+import { AuthService, AuthError } from '../../src/domain/services/auth.service';
+import type { UserRepository } from '../../src/db/repositories/user.repository';
+import type { RefreshTokenRepository } from '../../src/db/repositories/refresh-token.repository';
 import type { User, RefreshToken } from '@prisma/client';
 
 // ─── Mock Factories ───────────────────────────────────────────

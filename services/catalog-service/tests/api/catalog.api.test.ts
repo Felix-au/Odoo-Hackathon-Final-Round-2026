@@ -20,11 +20,32 @@ vi.mock('ioredis', () => {
     ping: vi.fn().mockResolvedValue('PONG'),
     on: vi.fn(),
     disconnect: vi.fn(),
+    // Required by @fastify/rate-limit RedisStore
+    defineCommand: vi.fn(),
+    sendCommand: vi.fn().mockResolvedValue(null),
+    // Required by @fastify/rate-limit internal checks
+    options: { enableAutoPipelining: false },
   }));
   return { default: MockRedis };
 });
 
-const mockPrisma = {
+
+// Declared as `const` + explicit `$transaction` assignment below to avoid TS7022/TS7024
+// caused by the circular self-reference inside the object literal initializer.
+const mockPrisma: Record<string, unknown> & {
+  product: { findMany: ReturnType<typeof vi.fn>; findUnique: ReturnType<typeof vi.fn>; create: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn>; count: ReturnType<typeof vi.fn> };
+  productCategory: { findMany: ReturnType<typeof vi.fn>; findUnique: ReturnType<typeof vi.fn>; create: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn>; delete: ReturnType<typeof vi.fn> };
+  priceList: { findMany: ReturnType<typeof vi.fn>; findFirst: ReturnType<typeof vi.fn>; create: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn> };
+  discountTier: { findMany: ReturnType<typeof vi.fn>; create: ReturnType<typeof vi.fn>; delete: ReturnType<typeof vi.fn> };
+  approvalChain: { findMany: ReturnType<typeof vi.fn>; findFirst: ReturnType<typeof vi.fn>; create: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn>; delete: ReturnType<typeof vi.fn> };
+  warehouseDefinition: { findMany: ReturnType<typeof vi.fn>; findUnique: ReturnType<typeof vi.fn>; create: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn>; delete: ReturnType<typeof vi.fn> };
+  subscriptionPlan: { findMany: ReturnType<typeof vi.fn>; findUnique: ReturnType<typeof vi.fn>; create: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn> };
+  upsellRule: { findMany: ReturnType<typeof vi.fn>; create: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn>; delete: ReturnType<typeof vi.fn> };
+  productVariant: { createMany: ReturnType<typeof vi.fn>; create: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn>; delete: ReturnType<typeof vi.fn> };
+  $queryRaw: ReturnType<typeof vi.fn>;
+  $disconnect: ReturnType<typeof vi.fn>;
+  $transaction: ReturnType<typeof vi.fn>;
+} = {
   product: {
     findMany: vi.fn().mockResolvedValue([]),
     findUnique: vi.fn().mockResolvedValue(null),
@@ -84,8 +105,16 @@ const mockPrisma = {
   },
   $queryRaw: vi.fn().mockResolvedValue([{ '?column?': 1 }]),
   $disconnect: vi.fn(),
-  $transaction: vi.fn((fn: unknown) => typeof fn === 'function' ? fn(mockPrisma) : fn),
+  // Assigned separately (after declaration) to avoid circular self-reference that
+  // triggers TS7022 ("implicitly has type 'any'") and TS7024 ("return type 'any'").
+  $transaction: vi.fn(),
 };
+
+// Wire up $transaction post-declaration so mockPrisma is fully typed before reference.
+mockPrisma.$transaction = vi.fn((fn: unknown): unknown =>
+  typeof fn === 'function' ? (fn as (p: typeof mockPrisma) => unknown)(mockPrisma) : fn,
+);
+
 
 vi.mock('@prisma/client', () => ({
   PrismaClient: vi.fn().mockImplementation(() => mockPrisma),
@@ -95,6 +124,7 @@ vi.mock('@prisma/client', () => ({
 
 const TEST_JWT_SECRET = 'test-secret-32-chars-xxxxxxxxxxxx';
 
+process.env['NODE_ENV'] = 'test';
 process.env['CATALOG_DATABASE_URL'] = 'postgresql://test:test@localhost:5432/test';
 process.env['REDIS_URL'] = 'redis://localhost:6379';
 process.env['JWT_SECRET'] = TEST_JWT_SECRET;
@@ -185,7 +215,7 @@ describe('Role Enforcement', () => {
       method: 'POST',
       url: '/catalog/products',
       headers: { authorization: `Bearer ${makeToken('ADMIN')}` },
-      payload: { name: 'Widget A', categoryId: 'cat-1', basePrice: 199 },
+      payload: { name: 'Widget A', categoryId: '00000000-0000-0000-0000-000000000001', basePrice: 199 },
     });
     expect(res.statusCode).toBe(201);
     expect(res.json().name).toBe('Widget A');
