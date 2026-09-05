@@ -3,6 +3,15 @@ import { appRoutes } from './app/routes';
 import { portalRoutes } from './portal/routes';
 import { LoginPage } from './app/pages/LoginPage';
 import { SignupPage } from './app/pages/SignupPage';
+import { useAuthStore } from './stores/auth.store';
+
+export function GuestGuard({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated } = useAuthStore();
+  if (isAuthenticated) {
+    return <Navigate to="/app/dashboard" replace />;
+  }
+  return <>{children}</>;
+}
 
 export const router = createBrowserRouter([
   // Root Redirect to Workspace Dashboard
@@ -14,11 +23,19 @@ export const router = createBrowserRouter([
   // Internal Authentication (no shell)
   {
     path: '/login',
-    element: <LoginPage />,
+    element: (
+      <GuestGuard>
+        <LoginPage />
+      </GuestGuard>
+    ),
   },
   {
     path: '/signup',
-    element: <SignupPage />,
+    element: (
+      <GuestGuard>
+        <SignupPage />
+      </GuestGuard>
+    ),
   },
 
   // Internal Workspace Tree (/app/*)
@@ -31,7 +48,7 @@ export const router = createBrowserRouter([
   {
     path: '*',
     element: (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center bg-[#0B0D11]">
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center bg-[#09090B]">
         <h1 className="text-4xl font-black text-white">404</h1>
         <p className="text-sm text-slate-400 mt-1 mb-4">Page not found</p>
         <a
