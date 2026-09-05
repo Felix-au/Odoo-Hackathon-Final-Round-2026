@@ -22,8 +22,8 @@ export function WarehousesPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {warehouses.map((wh) => (
-          <div key={wh.id} className="bg-[#12151C] border border-[#1E2430] rounded-2xl p-5 space-y-3 shadow-sm">
-            <div className="flex items-center justify-between pb-2 border-b border-[#1E2430]">
+          <div key={wh.id} className="bg-[#121214] border border-[#27272A] rounded-2xl p-5 space-y-3 shadow-sm">
+            <div className="flex items-center justify-between pb-2 border-b border-[#27272A]">
               <div className="flex items-center gap-2">
                 <Truck className="w-4 h-4 text-blue-400" />
                 <span className="text-xs font-bold text-white">{wh.code}</span>

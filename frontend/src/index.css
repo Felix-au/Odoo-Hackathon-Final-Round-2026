@@ -4,13 +4,13 @@
 
 @layer base {
   :root {
-    --bg-workspace: #0B0D11;
-    --surface-workspace: #12151C;
-    --surface-elevated: #181D26;
-    --border-subtle: #222834;
-    --text-primary: #F8FAFC;
-    --text-secondary: #94A3B8;
-    --text-muted: #64748B;
+    --bg-workspace: #09090B;
+    --surface-workspace: #121214;
+    --surface-elevated: #18181B;
+    --border-subtle: #27272A;
+    --text-primary: #FAFAFA;
+    --text-secondary: #A1A1AA;
+    --text-muted: #71717A;
     --accent-blue: #3B82F6;
   }
 
@@ -26,35 +26,35 @@
 @layer components {
   /* Floating pill navigation */
   .floating-navbar {
-    background-color: rgba(18, 21, 28, 0.85);
+    background-color: rgba(18, 18, 20, 0.85);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border: 1px solid #222834;
+    border: 1px solid #27272A;
   }
 
   /* Internal Workspace Cards */
   .dark-card {
-    background-color: #12151C;
-    border: 1px solid #1E2430;
+    background-color: #121214;
+    border: 1px solid #27272A;
     border-radius: 1rem;
   }
 
   .dark-card-elevated {
-    background-color: #181D26;
-    border: 1px solid #252D3D;
+    background-color: #18181B;
+    border: 1px solid #2E2E33;
     border-radius: 1rem;
   }
 
   .dark-card-highlight {
-    background-color: #101319;
-    border: 1px solid #1E3A8A;
+    background-color: #0D0D0F;
+    border: 1px solid #3B82F6;
     border-radius: 1rem;
   }
 
   /* White Column Header from Screenshot 2 */
   .builder-header-bar {
     background-color: #FFFFFF;
-    color: #0F172A;
+    color: #09090B;
     font-weight: 700;
     font-size: 0.75rem;
     letter-spacing: 0.05em;
@@ -87,11 +87,10 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #2D3748;
+  background: #27272A;
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #4A5568;
+  background: #3F3F46;
 }
-

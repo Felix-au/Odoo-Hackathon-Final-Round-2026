@@ -18,8 +18,8 @@ export function SignupPage() {
     setError(null);
     try {
       await signup({ email, password, name, role });
-      toast.success('Account created successfully! Welcome to DealFlow360.');
-      navigate('/app/dashboard');
+      toast.success('Account created successfully! Please sign in with your credentials.');
+      navigate('/login');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to create account';
       setError(msg);
@@ -28,7 +28,7 @@ export function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-[#0B0D11] p-4 text-slate-100 animate-in fade-in duration-300">
+    <div className="min-h-screen w-full flex items-center justify-center bg-[#09090B] p-4 text-slate-100 animate-in fade-in duration-300">
       <div className="w-full max-w-md">
         {/* Brand Header */}
         <div className="text-center mb-6">
@@ -36,14 +36,14 @@ export function SignupPage() {
             ◈
           </div>
           <h1 className="text-2xl font-bold text-white tracking-tight">Create Workspace Account</h1>
-          <p className="text-xs text-slate-400 mt-1 font-medium">Join the DealFlow360 platform</p>
+          <p className="text-xs text-zinc-400 mt-1 font-medium">Join the DealFlow360 platform</p>
         </div>
 
         {/* Signup Card */}
-        <div className="bg-[#12151C] border border-[#1E2430] rounded-2xl p-6 shadow-2xl space-y-4">
+        <div className="bg-[#121214] border border-[#27272A] rounded-2xl p-6 shadow-2xl space-y-4">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
+              <label className="block text-xs font-semibold text-zinc-300 mb-1">
                 Full Name
               </label>
               <input
@@ -52,12 +52,12 @@ export function SignupPage() {
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. John Doe"
                 required
-                className="w-full bg-[#101319] border border-[#222834] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
+                className="w-full bg-[#0D0D0F] border border-[#27272A] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500 transition-colors"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
+              <label className="block text-xs font-semibold text-zinc-300 mb-1">
                 Business Email
               </label>
               <input
@@ -66,12 +66,12 @@ export function SignupPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="name@dealflow360.com"
                 required
-                className="w-full bg-[#101319] border border-[#222834] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
+                className="w-full bg-[#0D0D0F] border border-[#27272A] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500 transition-colors"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
+              <label className="block text-xs font-semibold text-zinc-300 mb-1">
                 Password
               </label>
               <input
@@ -80,21 +80,21 @@ export function SignupPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
-                className="w-full bg-[#101319] border border-[#222834] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
+                className="w-full bg-[#0D0D0F] border border-[#27272A] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500 transition-colors"
               />
-              <p className="text-[11px] text-slate-400 mt-1">
+              <p className="text-[11px] text-zinc-400 mt-1">
                 Requirement: Min 8 chars, 1 uppercase, 1 number, and 1 special char (<code className="font-mono text-blue-400">!@#$%^&*</code>)
               </p>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
+              <label className="block text-xs font-semibold text-zinc-300 mb-1">
                 Account Role
               </label>
               <select
                 value={role}
                 onChange={(e) => setRole(e.target.value as Role)}
-                className="w-full bg-[#101319] border border-[#222834] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
+                className="w-full bg-[#0D0D0F] border border-[#27272A] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500 transition-colors"
               >
                 <option value={ROLES.SALES_REP}>Sales Representative (Standard)</option>
                 <option value={ROLES.SALES_MANAGER}>Sales Manager (Approver)</option>
@@ -117,8 +117,8 @@ export function SignupPage() {
               {isLoading ? 'Creating Account...' : 'Register Workspace Account'}
             </button>
 
-            <div className="pt-2 text-center border-t border-[#1E2430]">
-              <span className="text-xs text-slate-400">Already registered? </span>
+            <div className="pt-2 text-center border-t border-[#27272A]">
+              <span className="text-xs text-zinc-400">Already registered? </span>
               <Link to="/login" className="text-xs font-bold text-blue-400 hover:text-blue-300 underline">
                 Sign in
               </Link>

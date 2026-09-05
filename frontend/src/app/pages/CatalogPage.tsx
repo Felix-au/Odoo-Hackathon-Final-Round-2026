@@ -70,7 +70,7 @@ export function CatalogPage() {
             type="button"
             onClick={() => refetch()}
             disabled={isLoading}
-            className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#1C222E] hover:bg-[#252E3E] text-slate-200 border border-[#2A3445] transition-colors flex items-center gap-1.5"
+            className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#1F1F23] hover:bg-[#27272A] text-slate-200 border border-[#27272A] transition-colors flex items-center gap-1.5"
           >
             <RefreshCw className={`w-3.5 h-3.5 text-blue-400 ${isLoading ? 'animate-spin' : ''}`} />
             <span>Refresh</span>
@@ -88,14 +88,14 @@ export function CatalogPage() {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="p-3 bg-[#12151C] rounded-2xl border border-[#1E2430] flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+      <div className="p-3 bg-[#121214] rounded-2xl border border-[#27272A] flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
         <div className="relative flex-1 max-w-sm">
           <Search className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search catalog by product name..."
-            className="w-full pl-9 pr-3 py-1.5 text-xs bg-[#101319] border border-[#1E2430] rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+            className="w-full pl-9 pr-3 py-1.5 text-xs bg-[#0D0D0F] border border-[#27272A] rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
           />
         </div>
 
@@ -105,7 +105,7 @@ export function CatalogPage() {
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="text-xs font-semibold bg-[#101319] border border-[#283244] rounded-xl px-3 py-1.5 text-slate-200 focus:outline-none focus:border-blue-500"
+            className="text-xs font-semibold bg-[#0D0D0F] border border-[#27272A] rounded-xl px-3 py-1.5 text-slate-200 focus:outline-none focus:border-blue-500"
           >
             <option value="ALL">All Categories ({categories.length})</option>
             {categories.map((c: any) => (
@@ -123,7 +123,7 @@ export function CatalogPage() {
           <LoadingSpinner label="Loading products from Catalog database..." />
         </div>
       ) : isError ? (
-        <div className="p-8 bg-[#12151C] rounded-2xl border border-red-500/30 text-center space-y-3">
+        <div className="p-8 bg-[#121214] rounded-2xl border border-red-500/30 text-center space-y-3">
           <AlertCircle className="w-8 h-8 text-red-400 mx-auto" />
           <h3 className="text-base font-bold text-white">Unable to Connect to Catalog Service</h3>
           <p className="text-xs text-slate-400 max-w-md mx-auto">
@@ -132,18 +132,18 @@ export function CatalogPage() {
           <button
             type="button"
             onClick={() => refetch()}
-            className="px-4 py-2 rounded-xl text-xs font-semibold bg-[#1C222E] hover:bg-[#252E3E] text-slate-200 border border-[#2A3445]"
+            className="px-4 py-2 rounded-xl text-xs font-semibold bg-[#1F1F23] hover:bg-[#27272A] text-slate-200 border border-[#27272A]"
           >
             Retry Connection
           </button>
         </div>
       ) : filteredProducts.length === 0 ? (
-        <div className="py-16 text-center text-xs text-slate-500 bg-[#12151C] rounded-2xl border border-[#1E2430]">
+        <div className="py-16 text-center text-xs text-slate-500 bg-[#121214] rounded-2xl border border-[#27272A]">
           {search ? 'No products match your search query.' : 'The product catalog database contains no items yet.'}
         </div>
       ) : (
-        <div className="bg-[#12151C] border border-[#1E2430] rounded-2xl overflow-hidden shadow-sm">
-          <div className="py-3.5 px-5 bg-[#101319] border-b border-[#1E2430] flex items-center justify-between">
+        <div className="bg-[#121214] border border-[#27272A] rounded-2xl overflow-hidden shadow-sm">
+          <div className="py-3.5 px-5 bg-[#0D0D0F] border-b border-[#27272A] flex items-center justify-between">
             <div className="text-xs font-bold text-white flex items-center gap-2">
               <Package className="w-4 h-4 text-slate-400" />
               <span>Active Catalog Inventory ({filteredProducts.length} items)</span>
@@ -152,7 +152,7 @@ export function CatalogPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
-                <tr className="bg-[#101319] border-b border-[#1E2430] text-slate-400 uppercase font-semibold text-[11px]">
+                <tr className="bg-[#0D0D0F] border-b border-[#27272A] text-slate-400 uppercase font-semibold text-[11px]">
                   <th className="py-3 px-5">Product SKU</th>
                   <th className="py-3 px-5">Category</th>
                   <th className="py-3 px-5 text-right">Base Price</th>
@@ -162,7 +162,7 @@ export function CatalogPage() {
                   <th className="py-3 px-5 text-center">Unit</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#1A202C]">
+              <tbody className="divide-y divide-[#1E1E22]">
                 {filteredProducts.map((p: any) => {
                   const base = Number(p.basePrice) || 0;
                   const cost = Number(p.costPrice) || 0;
@@ -181,7 +181,7 @@ export function CatalogPage() {
                         )}
                       </td>
                       <td className="py-3.5 px-5 text-slate-300">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#1C222E] text-slate-300 border border-[#2A3445]">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#1F1F23] text-slate-300 border border-[#27272A]">
                           {p.category?.name || 'General'}
                         </span>
                       </td>
@@ -212,7 +212,7 @@ export function CatalogPage() {
       {/* Create Product Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#161B24] border border-[#283244] rounded-2xl max-w-md w-full p-6 shadow-2xl animate-in fade-in zoom-in-95 space-y-4">
+          <div className="bg-[#18181B] border border-[#27272A] rounded-2xl max-w-md w-full p-6 shadow-2xl animate-in fade-in zoom-in-95 space-y-4">
             <h3 className="text-base font-bold text-white">Create Real Catalog Product</h3>
             <p className="text-xs text-slate-400">
               Persists directly to the Catalog service PostgreSQL database
@@ -225,7 +225,7 @@ export function CatalogPage() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. Enterprise Storage Array 40TB"
-                  className="w-full bg-[#101319] border border-[#283244] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                  className="w-full bg-[#0D0D0F] border border-[#27272A] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-blue-500"
                   required
                 />
               </div>
@@ -235,7 +235,7 @@ export function CatalogPage() {
                 <select
                   value={categoryId}
                   onChange={(e) => setCategoryId(e.target.value)}
-                  className="w-full bg-[#101319] border border-[#283244] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                  className="w-full bg-[#0D0D0F] border border-[#27272A] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-blue-500"
                 >
                   <option value="">Select Category</option>
                   {categories.map((c: any) => (
@@ -255,7 +255,7 @@ export function CatalogPage() {
                     value={basePrice}
                     onChange={(e) => setBasePrice(e.target.value)}
                     placeholder="0.00"
-                    className="w-full bg-[#101319] border border-[#283244] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                    className="w-full bg-[#0D0D0F] border border-[#27272A] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-blue-500"
                     required
                   />
                 </div>
@@ -267,7 +267,7 @@ export function CatalogPage() {
                     value={costPrice}
                     onChange={(e) => setCostPrice(e.target.value)}
                     placeholder="0.00"
-                    className="w-full bg-[#101319] border border-[#283244] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                    className="w-full bg-[#0D0D0F] border border-[#27272A] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-blue-500"
                   />
                 </div>
               </div>
@@ -281,7 +281,7 @@ export function CatalogPage() {
                     value={taxRate}
                     onChange={(e) => setTaxRate(e.target.value)}
                     placeholder="18"
-                    className="w-full bg-[#101319] border border-[#283244] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                    className="w-full bg-[#0D0D0F] border border-[#27272A] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-blue-500"
                   />
                 </div>
                 <div>
@@ -289,7 +289,7 @@ export function CatalogPage() {
                   <select
                     value={unit}
                     onChange={(e) => setUnit(e.target.value)}
-                    className="w-full bg-[#101319] border border-[#283244] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                    className="w-full bg-[#0D0D0F] border border-[#27272A] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-blue-500"
                   >
                     <option value="UNIT">UNIT</option>
                     <option value="HOUR">HOUR</option>
@@ -306,7 +306,7 @@ export function CatalogPage() {
                   onChange={(e) => setDescription(e.target.value)}
                   rows={2}
                   placeholder="Hardware specs or service description..."
-                  className="w-full bg-[#101319] border border-[#283244] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                  className="w-full bg-[#0D0D0F] border border-[#27272A] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-blue-500"
                 />
               </div>
 

@@ -29,8 +29,8 @@ export function AnalyticsPage() {
         </div>
       ) : !kpis && stages.length === 0 ? (
         /* Graceful Empty State */
-        <div className="bg-[#12151C] border border-[#1E2430] rounded-2xl p-10 text-center space-y-4">
-          <div className="w-12 h-12 rounded-2xl bg-[#1C222E] border border-[#283244] flex items-center justify-center mx-auto text-blue-400">
+        <div className="bg-[#121214] border border-[#27272A] rounded-2xl p-10 text-center space-y-4">
+          <div className="w-12 h-12 rounded-2xl bg-[#1F1F23] border border-[#27272A] flex items-center justify-center mx-auto text-blue-400">
             <BarChart3 className="w-6 h-6" />
           </div>
           <h3 className="text-sm font-bold text-white">No Analytics Data Available</h3>
@@ -53,7 +53,7 @@ export function AnalyticsPage() {
         <div className="space-y-6">
           {kpis && (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="p-5 bg-[#12151C] border border-[#1E2430] rounded-2xl transition-all hover:border-[#2A3445]">
+              <div className="p-5 bg-[#121214] border border-[#27272A] rounded-2xl transition-all hover:border-[#3F3F46]">
                 <div className="flex items-center justify-between text-xs text-slate-400 font-medium">
                   <span>Total Revenue</span>
                   <DollarSign className="w-4 h-4 text-emerald-400" />
@@ -64,7 +64,7 @@ export function AnalyticsPage() {
                 <div className="text-[11px] text-slate-500 mt-1">Confirmed deals aggregate</div>
               </div>
 
-              <div className="p-5 bg-[#12151C] border border-[#1E2430] rounded-2xl transition-all hover:border-[#2A3445]">
+              <div className="p-5 bg-[#121214] border border-[#27272A] rounded-2xl transition-all hover:border-[#3F3F46]">
                 <div className="flex items-center justify-between text-xs text-slate-400 font-medium">
                   <span>Quotation Count</span>
                   <TrendingUp className="w-4 h-4 text-blue-400" />
@@ -75,7 +75,7 @@ export function AnalyticsPage() {
                 <div className="text-[11px] text-slate-500 mt-1">Total active and closed quotes</div>
               </div>
 
-              <div className="p-5 bg-[#12151C] border border-[#1E2430] rounded-2xl transition-all hover:border-[#2A3445]">
+              <div className="p-5 bg-[#121214] border border-[#27272A] rounded-2xl transition-all hover:border-[#3F3F46]">
                 <div className="flex items-center justify-between text-xs text-slate-400 font-medium">
                   <span>Average Margin Floor</span>
                   <BarChart3 className="w-4 h-4 text-purple-400" />
@@ -89,19 +89,19 @@ export function AnalyticsPage() {
           )}
 
           {stages.length > 0 && (
-            <div className="bg-[#12151C] border border-[#1E2430] rounded-2xl overflow-hidden shadow-sm">
-              <div className="py-3 px-5 bg-[#101319] border-b border-[#1E2430]">
+            <div className="bg-[#121214] border border-[#27272A] rounded-2xl overflow-hidden shadow-sm">
+              <div className="py-3 px-5 bg-[#0D0D0F] border-b border-[#27272A]">
                 <h2 className="text-xs font-bold text-slate-300 uppercase tracking-wider">Pipeline Stages & Volume</h2>
               </div>
               <table className="w-full text-left text-xs">
                 <thead>
-                  <tr className="border-b border-[#1E2430] text-slate-400 font-semibold text-[11px]">
+                  <tr className="border-b border-[#27272A] text-slate-400 font-semibold text-[11px]">
                     <th className="py-3 px-5">Stage</th>
                     <th className="py-3 px-5 text-center">Count</th>
                     <th className="py-3 px-5 text-right">Total Value</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#1A212D]">
+                <tbody className="divide-y divide-[#1E1E22]">
                   {stages.map((st) => (
                     <tr key={st.status} className="hover:bg-white/[0.02] transition-colors">
                       <td className="py-3 px-5 font-bold text-white">{st.label}</td>
@@ -115,21 +115,21 @@ export function AnalyticsPage() {
           )}
 
           {alerts.length > 0 && (
-            <div className="bg-[#12151C] border border-[#1E2430] rounded-2xl overflow-hidden shadow-sm">
-              <div className="py-3 px-5 bg-[#101319] border-b border-[#1E2430] flex items-center gap-2">
+            <div className="bg-[#121214] border border-[#27272A] rounded-2xl overflow-hidden shadow-sm">
+              <div className="py-3 px-5 bg-[#0D0D0F] border-b border-[#27272A] flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 text-amber-400" />
                 <h2 className="text-xs font-bold text-slate-300 uppercase tracking-wider">Deal Health Exceptions ({alerts.length})</h2>
               </div>
               <table className="w-full text-left text-xs">
                 <thead>
-                  <tr className="border-b border-[#1E2430] text-slate-400 font-semibold text-[11px]">
+                  <tr className="border-b border-[#27272A] text-slate-400 font-semibold text-[11px]">
                     <th className="py-3 px-5">Customer</th>
                     <th className="py-3 px-5">Alert Title</th>
                     <th className="py-3 px-5 text-center">Severity</th>
                     <th className="py-3 px-5 text-right">Description</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#1A212D]">
+                <tbody className="divide-y divide-[#1E1E22]">
                   {alerts.map((al) => (
                     <tr key={al.id} className="hover:bg-white/[0.02] transition-colors">
                       <td className="py-3 px-5 font-bold text-white">{al.customerName}</td>

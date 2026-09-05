@@ -61,14 +61,14 @@ export function ReportsPage() {
       </div>
 
       {/* Filter Bar */}
-      <div className="p-3.5 bg-[#12151C] border border-[#1E2430] rounded-2xl flex flex-wrap items-center gap-4 text-xs">
+      <div className="p-3.5 bg-[#121214] border border-[#27272A] rounded-2xl flex flex-wrap items-center gap-4 text-xs">
         <div className="flex items-center gap-2 text-slate-300">
           <Calendar className="w-3.5 h-3.5 text-slate-500" />
           <span className="text-slate-400 font-medium">Period:</span>
           <select
             value={period}
             onChange={(e) => setPeriod(e.target.value)}
-            className="bg-[#101319] border border-[#1E2430] rounded-xl px-2.5 py-1 text-white focus:outline-none focus:border-blue-500"
+            className="bg-[#0D0D0F] border border-[#27272A] rounded-xl px-2.5 py-1 text-white focus:outline-none focus:border-blue-500"
           >
             <option value="TODAY">Today</option>
             <option value="THIS_WEEK">This Week</option>
@@ -80,7 +80,7 @@ export function ReportsPage() {
         <div className="flex items-center gap-2 text-slate-300">
           <Filter className="w-3.5 h-3.5 text-slate-500" />
           <span className="text-slate-400 font-medium">Category:</span>
-          <select className="bg-[#101319] border border-[#1E2430] rounded-xl px-2.5 py-1 text-white focus:outline-none focus:border-blue-500">
+          <select className="bg-[#0D0D0F] border border-[#27272A] rounded-xl px-2.5 py-1 text-white focus:outline-none focus:border-blue-500">
             <option>All Product Categories</option>
             <option>Hardware</option>
             <option>Services</option>
@@ -90,7 +90,7 @@ export function ReportsPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-2 border-b border-[#1E2430] pb-2">
+      <div className="flex items-center gap-2 border-b border-[#27272A] pb-2">
         {REPORT_TABS.map((tab) => (
           <button
             key={tab.id}
@@ -108,7 +108,7 @@ export function ReportsPage() {
       </div>
 
       {/* Visual Chart Card */}
-      <div className="bg-[#12151C] border border-[#1E2430] rounded-2xl p-5 space-y-4">
+      <div className="bg-[#121214] border border-[#27272A] rounded-2xl p-5 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">
             Revenue by Top Product SKU (₹)
@@ -119,14 +119,14 @@ export function ReportsPage() {
         <div className="h-64 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1E2430" vertical={false} />
-              <XAxis dataKey="name" stroke="#64748B" fontSize={11} tickLine={false} />
-              <YAxis stroke="#64748B" fontSize={11} tickLine={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#27272A" vertical={false} />
+              <XAxis dataKey="name" stroke="#71717A" fontSize={11} tickLine={false} />
+              <YAxis stroke="#71717A" fontSize={11} tickLine={false} />
               <Tooltip
                 formatter={(val: any) => [formatCurrency(Number(val)), 'Revenue']}
                 contentStyle={{
-                  backgroundColor: '#161B24',
-                  border: '1px solid #283244',
+                  backgroundColor: '#18181B',
+                  border: '1px solid #27272A',
                   borderRadius: '0.75rem',
                   color: '#FFFFFF',
                   fontSize: '0.75rem',
@@ -139,10 +139,10 @@ export function ReportsPage() {
       </div>
 
       {/* Audit Table Card */}
-      <div className="bg-[#12151C] border border-[#1E2430] rounded-2xl overflow-hidden shadow-sm">
+      <div className="bg-[#121214] border border-[#27272A] rounded-2xl overflow-hidden shadow-sm">
         <table className="w-full text-left text-xs">
           <thead>
-            <tr className="bg-[#101319] border-b border-[#1E2430] text-slate-400 uppercase font-semibold text-[11px]">
+            <tr className="bg-[#0D0D0F] border-b border-[#27272A] text-slate-400 uppercase font-semibold text-[11px]">
               <th className="py-3 px-5">Representative / Deal</th>
               <th className="py-3 px-5 text-center">Quotes Created</th>
               <th className="py-3 px-5 text-center">Confirmed</th>
@@ -151,7 +151,7 @@ export function ReportsPage() {
               <th className="py-3 px-5 text-right">Avg Margin</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#1A212D]">
+          <tbody className="divide-y divide-[#1E1E22]">
             <tr>
               <td className="py-3.5 px-5 font-bold text-white">Dave Sales</td>
               <td className="py-3.5 px-5 text-center text-slate-300">24</td>

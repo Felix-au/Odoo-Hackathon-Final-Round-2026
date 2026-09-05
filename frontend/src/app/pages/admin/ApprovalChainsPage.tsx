@@ -67,8 +67,8 @@ export function ApprovalChainsPage() {
           {chains.map((chain: any) => {
             const hasRoles = Array.isArray(chain.requiredRoles) && chain.requiredRoles.length > 0;
             return (
-              <div key={chain.id} className="bg-[#12151C] border border-[#1E2430] rounded-2xl p-6 shadow-sm space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#1E2430]">
+              <div key={chain.id} className="bg-[#121214] border border-[#27272A] rounded-2xl p-6 shadow-sm space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#27272A]">
                   <div className="flex items-center gap-2.5">
                     <Shield className="w-5 h-5 text-blue-400" />
                     <span className="text-sm font-bold text-white">{chain.name}</span>
@@ -109,7 +109,7 @@ export function ApprovalChainsPage() {
                   <button
                     type="button"
                     onClick={() => toast.info(`Viewing threshold rules for ${chain.name}`)}
-                    className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#1C222E] hover:bg-[#252E3E] text-slate-300 border border-[#2A3445] transition-colors shrink-0 self-start sm:self-auto"
+                    className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#1F1F23] hover:bg-[#27272A] text-slate-300 border border-[#27272A] transition-colors shrink-0 self-start sm:self-auto"
                   >
                     Configure Thresholds
                   </button>

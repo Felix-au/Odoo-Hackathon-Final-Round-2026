@@ -125,8 +125,8 @@ export function BillingPage() {
       {/* Main Grid: ONE-TIME INVOICE vs RECURRING SUBSCRIPTION */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* ONE-TIME INVOICE */}
-        <div className="bg-[#12151C] border border-[#1E2430] rounded-2xl p-6 space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-[#1E2430]">
+        <div className="bg-[#121214] border border-[#27272A] rounded-2xl p-6 space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-[#27272A]">
             <div className="flex items-center gap-2">
               <Receipt className="w-4 h-4 text-blue-400" />
               <h2 className="text-sm font-bold text-white">One-Time Invoice</h2>
@@ -163,7 +163,7 @@ export function BillingPage() {
               <span className="text-slate-400">Due Date:</span>
               <span className="font-medium text-slate-200">{activeInvoice.dueDate || '2026-10-15'}</span>
             </div>
-            <div className="flex justify-between items-center pt-3 border-t border-[#1E2430]">
+            <div className="flex justify-between items-center pt-3 border-t border-[#27272A]">
               <span className="text-sm font-bold text-white">Total Due:</span>
               <span className="text-lg font-bold text-white font-mono">{formatCurrency(activeInvoice.totalAmount)}</span>
             </div>
@@ -187,8 +187,8 @@ export function BillingPage() {
         </div>
 
         {/* RECURRING SUBSCRIPTIONS */}
-        <div className="bg-[#12151C] border border-[#1E2430] rounded-2xl p-6 space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-[#1E2430]">
+        <div className="bg-[#121214] border border-[#27272A] rounded-2xl p-6 space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-[#27272A]">
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4 text-emerald-400" />
               <h2 className="text-sm font-bold text-white">Recurring Subscriptions</h2>
@@ -220,7 +220,7 @@ export function BillingPage() {
                 <span className="text-slate-400">Next Charges Date:</span>
                 <span className="font-medium text-slate-200">{sub.nextBillingDate}</span>
               </div>
-              <div className="flex justify-between items-center pt-3 border-t border-[#1E2430]">
+              <div className="flex justify-between items-center pt-3 border-t border-[#27272A]">
                 <span className="text-sm font-bold text-white">Recurring Total:</span>
                 <span className="text-lg font-bold text-emerald-400 font-mono">
                   {formatCurrency(sub.unitPrice * sub.quantity)} / yr
@@ -235,7 +235,7 @@ export function BillingPage() {
                       setShowSubModal(true);
                       handleCalculateProration();
                     }}
-                    className="flex-1 py-2 rounded-xl bg-[#1C222E] hover:bg-[#252E3E] text-slate-200 text-xs font-semibold border border-[#2A3445] transition-colors"
+                    className="flex-1 py-2 rounded-xl bg-[#1F1F23] hover:bg-[#27272A] text-slate-200 text-xs font-semibold border border-[#27272A] transition-colors"
                   >
                     Change Quantity
                   </button>
@@ -256,7 +256,7 @@ export function BillingPage() {
       {/* Record Payment Modal */}
       {showPaymentModal && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#161B24] border border-[#283244] rounded-2xl max-w-md w-full p-6 shadow-2xl animate-in fade-in zoom-in-95 space-y-4">
+          <div className="bg-[#18181B] border border-[#27272A] rounded-2xl max-w-md w-full p-6 shadow-2xl animate-in fade-in zoom-in-95 space-y-4">
             <h3 className="text-base font-bold text-white">Record Invoice Payment</h3>
             <p className="text-xs text-slate-400">
               Enter settlement transaction details for {activeInvoice.invoiceNumber}
@@ -269,7 +269,7 @@ export function BillingPage() {
                   type="text"
                   value={paymentAmount}
                   onChange={(e) => setPaymentAmount(e.target.value)}
-                  className="w-full bg-[#101319] border border-[#283244] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                  className="w-full bg-[#0D0D0F] border border-[#27272A] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-blue-500"
                 />
               </div>
 
@@ -278,7 +278,7 @@ export function BillingPage() {
                 <select
                   value={paymentMethod}
                   onChange={(e) => setPaymentMethod(e.target.value)}
-                  className="w-full bg-[#101319] border border-[#283244] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                  className="w-full bg-[#0D0D0F] border border-[#27272A] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-blue-500"
                 >
                   <option value="WIRE_TRANSFER">Wire Transfer</option>
                   <option value="ACH">ACH Direct Debit</option>
@@ -292,7 +292,7 @@ export function BillingPage() {
                   type="text"
                   value={paymentRef}
                   onChange={(e) => setPaymentRef(e.target.value)}
-                  className="w-full bg-[#101319] border border-[#283244] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                  className="w-full bg-[#0D0D0F] border border-[#27272A] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-blue-500"
                 />
               </div>
             </div>
@@ -320,7 +320,7 @@ export function BillingPage() {
       {/* Proration Preview Modal (Section 15: SHOW PRORATION PREVIEW) */}
       {showSubModal && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#161B24] border border-[#283244] rounded-2xl max-w-md w-full p-6 shadow-2xl animate-in fade-in zoom-in-95 space-y-4">
+          <div className="bg-[#18181B] border border-[#27272A] rounded-2xl max-w-md w-full p-6 shadow-2xl animate-in fade-in zoom-in-95 space-y-4">
             <h3 className="text-base font-bold text-white">Modify Subscription Seats</h3>
             <p className="text-xs text-slate-400">
               Live proration preview calculated for immediate billing impact
@@ -334,12 +334,12 @@ export function BillingPage() {
                   min="1"
                   value={newSubQty}
                   onChange={(e) => setNewSubQty(Number(e.target.value))}
-                  className="w-full bg-[#101319] border border-[#283244] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                  className="w-full bg-[#0D0D0F] border border-[#27272A] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-blue-500"
                 />
               </div>
 
               {/* Exact Proration Calculation Preview from Section 15 */}
-              <div className="p-4 rounded-xl bg-[#101319] border border-[#283244] space-y-2">
+              <div className="p-4 rounded-xl bg-[#0D0D0F] border border-[#27272A] space-y-2">
                 <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
                   Proration Preview
                 </div>
@@ -355,7 +355,7 @@ export function BillingPage() {
                     {formatCurrency(prorationData?.charge ?? 59.99)}
                   </span>
                 </div>
-                <div className="border-t border-[#222834] pt-2 flex justify-between items-center text-xs font-bold">
+                <div className="border-t border-[#27272A] pt-2 flex justify-between items-center text-xs font-bold">
                   <span className="text-white">Net Due Immediately:</span>
                   <span className="font-mono text-blue-400 text-sm">
                     +{formatCurrency(prorationData?.net ?? 22.50)}

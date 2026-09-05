@@ -56,14 +56,14 @@ export function ProductsPage() {
         </button>
       </div>
 
-      <div className="p-3 bg-[#12151C] rounded-2xl border border-[#1E2430] flex items-center gap-3">
+      <div className="p-3 bg-[#121214] rounded-2xl border border-[#27272A] flex items-center gap-3">
         <div className="relative flex-1 max-w-sm">
           <Search className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search catalog by name..."
-            className="w-full pl-9 pr-3 py-1.5 text-xs bg-[#101319] border border-[#1E2430] rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+            className="w-full pl-9 pr-3 py-1.5 text-xs bg-[#0D0D0F] border border-[#27272A] rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
           />
         </div>
       </div>
@@ -73,14 +73,14 @@ export function ProductsPage() {
           <LoadingSpinner label="Loading product catalog..." />
         </div>
       ) : (
-        <div className="bg-[#12151C] border border-[#1E2430] rounded-2xl overflow-hidden shadow-sm">
-          <div className="py-3.5 px-5 bg-[#101319] border-b border-[#1E2430] flex items-center justify-between">
+        <div className="bg-[#121214] border border-[#27272A] rounded-2xl overflow-hidden shadow-sm">
+          <div className="py-3.5 px-5 bg-[#0D0D0F] border-b border-[#27272A] flex items-center justify-between">
             <span className="text-xs font-bold text-white">Master Product Inventory ({products.length})</span>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
-                <tr className="bg-[#101319] border-b border-[#1E2430] text-slate-400 uppercase font-semibold text-[11px]">
+                <tr className="bg-[#0D0D0F] border-b border-[#27272A] text-slate-400 uppercase font-semibold text-[11px]">
                   <th className="py-3 px-5">Product Name</th>
                   <th className="py-3 px-5">Category</th>
                   <th className="py-3 px-5 text-right">Base Price</th>
@@ -89,7 +89,7 @@ export function ProductsPage() {
                   <th className="py-3 px-5 text-center">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#1A202C]">
+              <tbody className="divide-y divide-[#1E1E22]">
                 {products.map((p: any) => {
                   const base = Number(p.basePrice);
                   const cost = Number(p.costPrice);
@@ -104,7 +104,7 @@ export function ProductsPage() {
                         {p.description && <div className="text-[10px] text-slate-400 font-normal mt-0.5">{p.description}</div>}
                       </td>
                       <td className="py-3.5 px-5 text-slate-300">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#1C222E] text-slate-300 border border-[#2A3445]">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#1F1F23] text-slate-300 border border-[#27272A]">
                           {p.category?.name || 'Hardware'}
                         </span>
                       </td>
@@ -128,7 +128,7 @@ export function ProductsPage() {
       {/* Create Product Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#161B24] border border-[#283244] rounded-2xl max-w-md w-full p-6 shadow-2xl animate-in fade-in zoom-in-95 space-y-4">
+          <div className="bg-[#18181B] border border-[#27272A] rounded-2xl max-w-md w-full p-6 shadow-2xl animate-in fade-in zoom-in-95 space-y-4">
             <h3 className="text-base font-bold text-white">Create New Catalog Product</h3>
             <p className="text-xs text-slate-400">Add a hardware SKU, service plan, or recurring subscription</p>
 
@@ -139,7 +139,7 @@ export function ProductsPage() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. Enterprise Storage Array 40TB"
-                  className="w-full bg-[#101319] border border-[#283244] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                  className="w-full bg-[#0D0D0F] border border-[#27272A] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-blue-500"
                   required
                 />
               </div>
@@ -149,7 +149,7 @@ export function ProductsPage() {
                 <select
                   value={categoryId}
                   onChange={(e) => setCategoryId(e.target.value)}
-                  className="w-full bg-[#101319] border border-[#283244] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                  className="w-full bg-[#0D0D0F] border border-[#27272A] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-blue-500"
                 >
                   {categories.map((c: any) => (
                     <option key={c.id} value={c.id}>
@@ -167,7 +167,7 @@ export function ProductsPage() {
                     step="0.01"
                     value={basePrice}
                     onChange={(e) => setBasePrice(e.target.value)}
-                    className="w-full bg-[#101319] border border-[#283244] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                    className="w-full bg-[#0D0D0F] border border-[#27272A] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-blue-500"
                     required
                   />
                 </div>
@@ -178,7 +178,7 @@ export function ProductsPage() {
                     step="0.01"
                     value={costPrice}
                     onChange={(e) => setCostPrice(e.target.value)}
-                    className="w-full bg-[#101319] border border-[#283244] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                    className="w-full bg-[#0D0D0F] border border-[#27272A] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-blue-500"
                     required
                   />
                 </div>

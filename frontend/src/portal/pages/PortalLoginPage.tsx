@@ -112,7 +112,7 @@ export function PortalLoginPage() {
           )}
 
           {/* Quick Demo Test Credential */}
-          <div className="mt-6 pt-4 border-t border-slate-100 text-center">
+          <div className="mt-6 pt-4 border-t border-slate-100 text-center space-y-3">
             <button
               type="button"
               onClick={() => {
@@ -120,14 +120,28 @@ export function PortalLoginPage() {
                 setPassword('CustomerP@ss123');
                 setActiveTab('PASSWORD');
               }}
-              className="text-[11px] text-primary hover:underline font-semibold inline-flex items-center gap-1"
+              className="text-[11px] text-blue-600 hover:underline font-semibold inline-flex items-center gap-1"
             >
               <Sparkles className="w-3 h-3" />
               Use Seeded Demo Customer (Acme Corp)
             </button>
+
+            <div className="flex items-center justify-between text-xs text-slate-500 pt-2 border-t border-slate-100">
+              <span>New customer?</span>
+              <a href="/portal/auth/signup" className="font-semibold text-blue-600 hover:text-blue-500">
+                Register for Portal →
+              </a>
+            </div>
           </div>
         </CardContent>
       </Card>
+
+      <div className="mt-6 text-center text-xs text-slate-400">
+        <span>Are you an internal sales or operations member? </span>
+        <a href="/login" className="font-semibold text-slate-700 hover:text-slate-900 underline">
+          Workspace Login
+        </a>
+      </div>
     </div>
   );
 }

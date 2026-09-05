@@ -57,13 +57,13 @@ export function DiscountTiersPage() {
       ) : (
         <>
           {/* Customer Tier Ceilings Matrix */}
-          <div className="bg-[#12151C] border border-[#1E2430] rounded-2xl p-6 space-y-4">
-            <div className="flex items-center gap-2 pb-3 border-b border-[#1E2430]">
+          <div className="bg-[#121214] border border-[#27272A] rounded-2xl p-6 space-y-4">
+            <div className="flex items-center gap-2 pb-3 border-b border-[#27272A]">
               <Sliders className="w-4 h-4 text-blue-400" />
               <h2 className="text-xs font-bold uppercase tracking-wider text-white">Customer Account Tier Caps</h2>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="p-4 rounded-xl border border-[#283244] bg-[#161B24] space-y-2">
+              <div className="p-4 rounded-xl border border-[#27272A] bg-[#18181B] space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-600/20 text-amber-500 border border-amber-500/30">
                     BRONZE TIER
@@ -78,14 +78,14 @@ export function DiscountTiersPage() {
                       type="number"
                       value={tierCeilings.BRONZE}
                       onChange={(e) => setTierCeilings({ ...tierCeilings, BRONZE: parseFloat(e.target.value) || 0 })}
-                      className="w-16 p-1 text-center font-bold text-xs rounded-lg border border-[#283244] bg-[#101319] text-white focus:outline-none focus:border-blue-500"
+                      className="w-16 p-1 text-center font-bold text-xs rounded-lg border border-[#27272A] bg-[#0D0D0F] text-white focus:outline-none focus:border-blue-500"
                     />
                     <span className="text-xs text-slate-400">%</span>
                   </div>
                 </div>
               </div>
 
-              <div className="p-4 rounded-xl border border-[#283244] bg-[#161B24] space-y-2">
+              <div className="p-4 rounded-xl border border-[#27272A] bg-[#18181B] space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-600/30 text-slate-300 border border-slate-500/40">
                     SILVER TIER
@@ -100,14 +100,14 @@ export function DiscountTiersPage() {
                       type="number"
                       value={tierCeilings.SILVER}
                       onChange={(e) => setTierCeilings({ ...tierCeilings, SILVER: parseFloat(e.target.value) || 0 })}
-                      className="w-16 p-1 text-center font-bold text-xs rounded-lg border border-[#283244] bg-[#101319] text-white focus:outline-none focus:border-blue-500"
+                      className="w-16 p-1 text-center font-bold text-xs rounded-lg border border-[#27272A] bg-[#0D0D0F] text-white focus:outline-none focus:border-blue-500"
                     />
                     <span className="text-xs text-slate-400">%</span>
                   </div>
                 </div>
               </div>
 
-              <div className="p-4 rounded-xl border border-[#283244] bg-[#161B24] space-y-2">
+              <div className="p-4 rounded-xl border border-[#27272A] bg-[#18181B] space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
                     GOLD TIER
@@ -122,7 +122,7 @@ export function DiscountTiersPage() {
                       type="number"
                       value={tierCeilings.GOLD}
                       onChange={(e) => setTierCeilings({ ...tierCeilings, GOLD: parseFloat(e.target.value) || 0 })}
-                      className="w-16 p-1 text-center font-bold text-xs rounded-lg border border-[#283244] bg-[#101319] text-white focus:outline-none focus:border-blue-500"
+                      className="w-16 p-1 text-center font-bold text-xs rounded-lg border border-[#27272A] bg-[#0D0D0F] text-white focus:outline-none focus:border-blue-500"
                     />
                     <span className="text-xs text-slate-400">%</span>
                   </div>
@@ -132,19 +132,19 @@ export function DiscountTiersPage() {
           </div>
 
           {/* Category Ceilings */}
-          <div className="bg-[#12151C] border border-[#1E2430] rounded-2xl overflow-hidden shadow-sm">
-            <div className="py-3.5 px-5 bg-[#101319] border-b border-[#1E2430] flex items-center justify-between">
+          <div className="bg-[#121214] border border-[#27272A] rounded-2xl overflow-hidden shadow-sm">
+            <div className="py-3.5 px-5 bg-[#0D0D0F] border-b border-[#27272A] flex items-center justify-between">
               <span className="text-xs font-bold text-white">Product Category Ceilings (Hard Guardrails)</span>
             </div>
             <table className="w-full text-left text-xs">
               <thead>
-                <tr className="bg-[#101319] border-b border-[#1E2430] text-slate-400 uppercase font-semibold text-[11px]">
+                <tr className="bg-[#0D0D0F] border-b border-[#27272A] text-slate-400 uppercase font-semibold text-[11px]">
                   <th className="py-3 px-5">Category Name</th>
                   <th className="py-3 px-5 text-center">Gross Margin Target</th>
                   <th className="py-3 px-5 text-center">Maximum Permitted Discount</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#1A202C]">
+              <tbody className="divide-y divide-[#1E1E22]">
                 {Object.entries(categoryCeilings).map(([cat, val]) => (
                   <tr key={cat} className="hover:bg-white/[0.02] transition-colors">
                     <td className="py-3.5 px-5 font-bold text-white">{cat}</td>
@@ -157,7 +157,7 @@ export function DiscountTiersPage() {
                           onChange={(e) =>
                             setCategoryCeilings({ ...categoryCeilings, [cat]: parseFloat(e.target.value) || 0 })
                           }
-                          className="w-16 p-1 text-center font-bold text-xs rounded-lg border border-[#283244] bg-[#101319] text-white focus:outline-none focus:border-blue-500"
+                          className="w-16 p-1 text-center font-bold text-xs rounded-lg border border-[#27272A] bg-[#0D0D0F] text-white focus:outline-none focus:border-blue-500"
                         />
                         <span className="text-xs text-slate-400">%</span>
                       </div>

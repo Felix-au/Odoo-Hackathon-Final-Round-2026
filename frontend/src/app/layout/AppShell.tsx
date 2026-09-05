@@ -3,7 +3,7 @@ import { TopNav } from './TopNav';
 
 export function AppShell() {
   return (
-    <div className="min-h-screen bg-[#0B0D11] text-slate-100 flex flex-col antialiased selection:bg-blue-600 selection:text-white">
+    <div className="min-h-screen bg-[#09090B] text-slate-100 flex flex-col antialiased selection:bg-blue-600 selection:text-white">
       {/* Floating Sticky TopNav */}
       <TopNav />
 

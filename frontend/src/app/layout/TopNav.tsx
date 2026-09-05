@@ -73,7 +73,7 @@ export function TopNav() {
     <div className="sticky top-3 z-40 w-full max-w-7xl mx-auto px-4 sm:px-6 mb-6">
       <header
         ref={menuRef}
-        className="h-14 bg-[#12151C]/90 backdrop-blur-md border border-[#222834] rounded-2xl px-5 flex items-center justify-between shadow-xl"
+        className="h-14 bg-[#121214]/90 backdrop-blur-md border border-[#27272A] rounded-2xl px-5 flex items-center justify-between shadow-xl"
       >
         {/* Brand / Logo */}
         <div className="flex items-center gap-6">
@@ -135,7 +135,7 @@ export function TopNav() {
               </button>
 
               {showOpsMenu && (
-                <div className="absolute left-0 mt-2 w-48 bg-[#161B24] border border-[#262E3D] rounded-xl shadow-2xl py-1.5 z-50 animate-in fade-in zoom-in-95">
+                <div className="absolute left-0 mt-2 w-48 bg-[#18181B] border border-[#2E2E33] rounded-xl shadow-2xl py-1.5 z-50 animate-in fade-in zoom-in-95">
                   <NavLink
                     to="/app/fulfillment"
                     onClick={() => setShowOpsMenu(false)}
@@ -179,7 +179,7 @@ export function TopNav() {
                 </button>
 
                 {showAdminMenu && (
-                  <div className="absolute left-0 mt-2 w-52 bg-[#161B24] border border-[#262E3D] rounded-xl shadow-2xl py-1.5 z-50 animate-in fade-in zoom-in-95">
+                  <div className="absolute left-0 mt-2 w-52 bg-[#18181B] border border-[#2E2E33] rounded-xl shadow-2xl py-1.5 z-50 animate-in fade-in zoom-in-95">
                     <NavLink
                       to="/app/admin/products"
                       onClick={() => setShowAdminMenu(false)}
@@ -235,12 +235,12 @@ export function TopNav() {
               aria-label="Notifications"
             >
               <Bell className="w-4 h-4" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-blue-500 ring-2 ring-[#12151C]" />
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-blue-500 ring-2 ring-[#121214]" />
             </button>
 
             {showNotifications && (
-              <div className="absolute right-0 mt-2 w-80 bg-[#161B24] border border-[#262E3D] rounded-xl shadow-2xl p-4 z-50 animate-in fade-in zoom-in-95">
-                <div className="flex items-center justify-between pb-2 mb-2 border-b border-[#262E3D]">
+              <div className="absolute right-0 mt-2 w-80 bg-[#18181B] border border-[#2E2E33] rounded-xl shadow-2xl p-4 z-50 animate-in fade-in zoom-in-95">
+                <div className="flex items-center justify-between pb-2 mb-2 border-b border-[#2E2E33]">
                   <span className="text-xs font-bold text-white uppercase tracking-wider">
                     Notifications
                   </span>
@@ -278,8 +278,8 @@ export function TopNav() {
             </button>
 
             {showUserMenu && (
-              <div className="absolute right-0 mt-2 w-56 bg-[#161B24] border border-[#262E3D] rounded-xl shadow-2xl py-2 z-50 animate-in fade-in zoom-in-95">
-                <div className="px-4 py-2 border-b border-[#262E3D]">
+              <div className="absolute right-0 mt-2 w-56 bg-[#18181B] border border-[#2E2E33] rounded-xl shadow-2xl py-2 z-50 animate-in fade-in zoom-in-95">
+                <div className="px-4 py-2 border-b border-[#2E2E33]">
                   <p className="text-xs font-semibold text-white truncate">
                     {user?.name || (user?.email ? user.email.split('@')[0] : 'Account')}
                   </p>
@@ -302,7 +302,7 @@ export function TopNav() {
                   </NavLink>
                 </div>
 
-                <div className="pt-1 border-t border-[#262E3D]">
+                <div className="pt-1 border-t border-[#2E2E33]">
                   <button
                     type="button"
                     onClick={handleLogout}

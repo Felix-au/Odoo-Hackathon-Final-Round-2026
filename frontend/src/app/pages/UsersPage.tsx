@@ -55,7 +55,7 @@ export function UsersPage() {
           type="button"
           onClick={() => refetch()}
           disabled={isLoading}
-          className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#1C222E] hover:bg-[#252E3E] text-slate-200 border border-[#2A3445] transition-colors flex items-center gap-1.5 self-start sm:self-auto"
+          className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#1F1F23] hover:bg-[#27272A] text-slate-200 border border-[#27272A] transition-colors flex items-center gap-1.5 self-start sm:self-auto"
         >
           <RefreshCw className={`w-3.5 h-3.5 text-blue-400 ${isLoading ? 'animate-spin' : ''}`} />
           <span>Refresh Users</span>
@@ -63,7 +63,7 @@ export function UsersPage() {
       </div>
 
       {/* Service Endpoint Notice */}
-      <div className="p-4 bg-[#12151C] rounded-2xl border border-[#1E2430] flex flex-wrap items-center justify-between gap-3 text-xs text-slate-300 shadow-sm">
+      <div className="p-4 bg-[#121214] rounded-2xl border border-[#27272A] flex flex-wrap items-center justify-between gap-3 text-xs text-slate-300 shadow-sm">
         <div className="flex items-center gap-2.5">
           <Shield className="w-4 h-4 text-blue-400 shrink-0" />
           <span>
@@ -81,7 +81,7 @@ export function UsersPage() {
           <LoadingSpinner label="Loading users from Auth Service database..." />
         </div>
       ) : isError ? (
-        <div className="p-8 bg-[#12151C] rounded-2xl border border-amber-500/30 text-center space-y-3">
+        <div className="p-8 bg-[#121214] rounded-2xl border border-amber-500/30 text-center space-y-3">
           <AlertCircle className="w-8 h-8 text-amber-400 mx-auto" />
           <h3 className="text-base font-bold text-white">
             {error?.message?.includes('403')
@@ -112,19 +112,19 @@ export function UsersPage() {
             <button
               type="button"
               onClick={() => refetch()}
-              className="px-4 py-2 rounded-xl text-xs font-semibold bg-[#1C222E] hover:bg-[#252E3E] text-slate-300 border border-[#2A3445]"
+              className="px-4 py-2 rounded-xl text-xs font-semibold bg-[#1F1F23] hover:bg-[#27272A] text-slate-300 border border-[#27272A]"
             >
               Retry
             </button>
           </div>
         </div>
       ) : users.length === 0 ? (
-        <div className="py-16 text-center text-xs text-slate-500 bg-[#12151C] rounded-2xl border border-[#1E2430]">
+        <div className="py-16 text-center text-xs text-slate-500 bg-[#121214] rounded-2xl border border-[#27272A]">
           No user accounts registered in database.
         </div>
       ) : (
-        <div className="bg-[#12151C] border border-[#1E2430] rounded-2xl overflow-hidden shadow-sm">
-          <div className="py-3.5 px-5 bg-[#101319] border-b border-[#1E2430] flex items-center justify-between">
+        <div className="bg-[#121214] border border-[#27272A] rounded-2xl overflow-hidden shadow-sm">
+          <div className="py-3.5 px-5 bg-[#0D0D0F] border-b border-[#27272A] flex items-center justify-between">
             <div className="text-xs font-bold text-white flex items-center gap-2">
               <Users className="w-4 h-4 text-slate-400" />
               <span>Registered Accounts ({users.length})</span>
@@ -133,7 +133,7 @@ export function UsersPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
-                <tr className="bg-[#101319] border-b border-[#1E2430] text-slate-400 uppercase font-semibold text-[11px]">
+                <tr className="bg-[#0D0D0F] border-b border-[#27272A] text-slate-400 uppercase font-semibold text-[11px]">
                   <th className="py-3 px-5">User Identity</th>
                   <th className="py-3 px-5">Email</th>
                   <th className="py-3 px-5">Current Role</th>
@@ -141,7 +141,7 @@ export function UsersPage() {
                   {currentUser?.role === 'ADMIN' && <th className="py-3 px-5 text-right">Change Role</th>}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#1A202C]">
+              <tbody className="divide-y divide-[#1E1E22]">
                 {users.map((u) => {
                   const isSelf = u.id === currentUser?.id;
                   return (
@@ -174,7 +174,7 @@ export function UsersPage() {
                             value={u.role}
                             disabled={isSelf || updateRoleMutation.isPending}
                             onChange={(e) => handleRoleChange(u.id, e.target.value as Role)}
-                            className="text-xs font-semibold bg-[#101319] border border-[#283244] rounded-lg px-2.5 py-1 text-slate-200 focus:outline-none focus:border-blue-500 disabled:opacity-50"
+                            className="text-xs font-semibold bg-[#0D0D0F] border border-[#27272A] rounded-lg px-2.5 py-1 text-slate-200 focus:outline-none focus:border-blue-500 disabled:opacity-50"
                           >
                             <option value={ROLES.SALES_REP}>SALES_REP</option>
                             <option value={ROLES.SALES_MANAGER}>SALES_MANAGER</option>
