@@ -1,5 +1,5 @@
 import { useLocation, Link, useSearchParams } from 'react-router-dom';
-import { ExternalLink, ArrowLeft } from 'lucide-react';
+import { Mail, ArrowLeft } from 'lucide-react';
 import dealflowLogo from '../../assets/dealflow360_logo.jpg';
 
 export function MagicLinkSentPage() {
@@ -37,28 +37,15 @@ export function MagicLinkSentPage() {
             </div>
           </div>
 
-          {/* Dev / Mailpit Quick Access Tile */}
+          {/* Open Inbox Button */}
           <a
             href="http://localhost:8025"
             target="_blank"
             rel="noreferrer"
-            className="flex items-center justify-between p-4 bg-[#121212] hover:bg-[#181818] border border-[#262626] hover:border-[#383838] rounded-xl transition-all duration-200 group cursor-pointer"
+            className="w-full py-3 px-4 rounded-xl bg-white hover:bg-zinc-200 text-black text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-md cursor-pointer"
           >
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                <div className="absolute inset-0 w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping opacity-75" />
-              </div>
-              <div className="text-left">
-                <div className="text-xs font-bold text-zinc-200 group-hover:text-white transition-colors">
-                  Open Inbox
-                </div>
-                <div className="text-[11px] text-zinc-500 font-mono">
-                  http://localhost:8025
-                </div>
-              </div>
-            </div>
-            <ExternalLink className="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors" />
+            <Mail className="w-4 h-4 text-black" />
+            <span>Open Inbox</span>
           </a>
 
           {/* Direct Actions */}
