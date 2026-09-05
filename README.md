@@ -69,15 +69,6 @@ http://localhost:3006/docs   # Analytics
 docker compose exec auth-service npm test
 ```
 
-## Module Ownership (Two-Developer Collaboration)
-
-| Developer | Modules |
-|-----------|---------|
-| **Developer 1** | Infrastructure Foundation, Auth Service, Catalog Service |
-| **Developer 2** | Quotation Service, Fulfillment Service, Billing Service, Analytics Service, Frontend |
-
-Each developer commits frequently to their own modules. Do not modify the other developer's files.
-
 ## Tech Stack
 
 - **Backend**: Node.js 20 + TypeScript 5 + Fastify 4 + Prisma 5 + PostgreSQL 16
