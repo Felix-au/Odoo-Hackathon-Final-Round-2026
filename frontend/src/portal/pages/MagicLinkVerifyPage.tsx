@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { usePortalAuthStore } from '../../stores/portal-auth.store';
 import { AlertCircle, ArrowRight, KeyRound, Loader2 } from 'lucide-react';
+import dealflowLogo from '../../assets/dealflow360_logo.jpg';
 
 export function MagicLinkVerifyPage() {
   const [searchParams] = useSearchParams();
@@ -41,7 +42,7 @@ export function MagicLinkVerifyPage() {
         <div className="mb-6 flex flex-col items-center gap-3">
           <div className="w-20 h-20 rounded-2xl overflow-hidden shadow-2xl flex items-center justify-center p-0.5 border border-white/10 bg-black">
             <img
-              src="/dealflow360_logo.jpg"
+              src={dealflowLogo}
               alt="DealFlow360 Logo"
               className="w-full h-full object-cover rotate-90 transform scale-125"
             />

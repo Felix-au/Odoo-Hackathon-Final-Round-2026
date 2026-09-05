@@ -1,5 +1,6 @@
 import { useLocation, Link, useSearchParams } from 'react-router-dom';
-import { MailCheck, ExternalLink, ArrowLeft, ArrowRight } from 'lucide-react';
+import { MailCheck, ExternalLink, ArrowLeft } from 'lucide-react';
+import dealflowLogo from '../../assets/dealflow360_logo.jpg';
 
 export function MagicLinkSentPage() {
   const location = useLocation();
@@ -17,7 +18,7 @@ export function MagicLinkSentPage() {
         <div className="mb-6 flex flex-col items-center gap-3">
           <div className="w-20 h-20 rounded-2xl overflow-hidden shadow-2xl flex items-center justify-center p-0.5 border border-white/10 bg-black">
             <img
-              src="/dealflow360_logo.jpg"
+              src={dealflowLogo}
               alt="DealFlow360 Logo"
               className="w-full h-full object-cover rotate-90 transform scale-125"
             />
@@ -77,19 +78,11 @@ export function MagicLinkSentPage() {
             <ExternalLink className="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors" />
           </a>
 
-          {/* Direct Actions */}
+          {/* Direct Actions (Continue to Proposal Viewer removed) */}
           <div className="space-y-3 pt-2">
             <Link
-              to="/portal/quotations/q-001"
-              className="w-full py-3 px-4 rounded-xl bg-white text-black text-xs font-bold hover:bg-zinc-200 transition-all flex items-center justify-center gap-2 shadow-md cursor-pointer"
-            >
-              <span>Continue to Proposal Viewer</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-
-            <Link
               to="/portal/auth/login"
-              className="w-full py-2.5 px-4 rounded-xl bg-[#141414] hover:bg-[#1A1A1A] border border-[#262626] hover:border-[#333333] text-zinc-300 hover:text-white text-xs font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full py-3 px-4 rounded-xl bg-[#141414] hover:bg-[#1A1A1A] border border-[#262626] hover:border-[#333333] text-zinc-200 hover:text-white text-xs font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Back to Client Sign In</span>
