@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { DiscountTierService } from '../../../src/domain/services/discount-tier.service';
-import type { DiscountTierRepository } from '../../../src/db/repositories/discount-tier.repository';
-import type { CatalogCache } from '../../../src/cache/catalog-cache';
+import { DiscountTierService } from '../../src/domain/services/discount-tier.service';
+import type { DiscountTierRepository } from '../../src/db/repositories/discount-tier.repository';
+import type { CatalogCache } from '../../src/cache/catalog-cache';
 
 describe('DiscountTierService.getCeilings (CHECK-CAT-002)', () => {
   let service: DiscountTierService;

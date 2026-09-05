@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ApprovalChainService } from '../../../src/domain/services/approval-chain.service';
-import type { ApprovalChainRepository } from '../../../src/db/repositories/approval-chain.repository';
-import type { CatalogCache } from '../../../src/cache/catalog-cache';
+import { ApprovalChainService } from '../../src/domain/services/approval-chain.service';
+import type { ApprovalChainRepository } from '../../src/db/repositories/approval-chain.repository';
+import type { CatalogCache } from '../../src/cache/catalog-cache';
 
 const mockChains = [
   { id: '1', companyId: 'default', name: 'No Approval', minRiskScore: 0, maxRiskScore: 0.1, requiredRoles: [], createdAt: new Date(), updatedAt: new Date() },
