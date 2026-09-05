@@ -110,6 +110,8 @@ async function seed() {
       { id: 'c1000000-0000-0000-0000-000000000001', email: 'acme-legacy@example.com', name: 'Acme Corp Legacy' },
     ];
 
+    await tx.customerPortalCredential.deleteMany({});
+
     for (const customer of customers) {
       await tx.customerPortalCredential.upsert({
         where: { customerId: customer.id },
