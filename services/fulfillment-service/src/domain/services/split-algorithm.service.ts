@@ -168,16 +168,43 @@ export function computeOptimalSplit(
     }
   }
 
-  
+  // Any remaining qty becomes backorder
+  const backorderedItems: SplitRecommendation['backorderedItems'] = [];
+  for (const line of request.lines) {
+    const pk = productKey(line.productId, line.variantId);
+    const remQty = remaining.get(pk) ?? 0;
+    if (remQty > 0) {
+      splits.push({
+        warehouseId: 'BACKORDER',
+        warehouseName: 'Backorder',
+        productId: line.productId,
+        variantId: line.variantId,
+        productName: line.productName,
+        quantityFromHere: 0,
+        quantityBackordered: remQty,
+        shippingCostWeight: 0,
+      });
+      backorderedItems.push({ productId: line.productId, variantId: line.variantId, quantity: remQty });
+    }
+  }
+
+  // Compute shipping cost = sum across used warehouses of costWeight (1 shipment per warehouse)
+  let totalCost = 0;
+  for (const wid of usedWarehouseIds) {
+    totalCost += allWarehouses.get(wid)?.shippingCostWeight ?? 0;
+  }
+
   return {
     orderId: request.orderId,
     splits,
     estimatedShipmentCount: usedWarehouseIds.size,
-    estimatedTotalShippingCost: 0,
-    hasBackorder: false,
-    backorderedItems: [],
+    estimatedTotalShippingCost: Math.round(totalCost * 100) / 100,
+    hasBackorder: backorderedItems.length > 0,
+    backorderedItems,
   };
 }
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 export function productKey(productId: string, variantId?: string | null): string {
   return `${productId}|${variantId ?? ''}`;
