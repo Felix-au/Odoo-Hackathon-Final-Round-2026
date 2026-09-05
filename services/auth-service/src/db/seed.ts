@@ -102,11 +102,12 @@ async function seed() {
     const customerHash = await bcrypt.hash('CustomerP@ss123', 12);
 
     const customers = [
-      { id: 'c1000000-0000-0000-0000-000000000001', email: 'acme@example.com', name: 'Acme Corp' },
-      { id: 'c1000000-0000-0000-0000-000000000002', email: 'beta@example.com', name: 'Beta Industries' },
-      { id: 'c1000000-0000-0000-0000-000000000003', email: 'gamma@example.com', name: 'Gamma LLC' },
-      { id: 'c1000000-0000-0000-0000-000000000004', email: 'delta@example.com', name: 'Delta Corp' },
-      { id: 'c1000000-0000-0000-0000-000000000005', email: 'epsilon@example.com', name: 'Epsilon Ltd' },
+      { id: 'cust-000000-0000-0000-0000-000000000001', email: 'acme@example.com', name: 'Acme Corp' },
+      { id: 'cust-000000-0000-0000-0000-000000000002', email: 'beta@example.com', name: 'Beta Industries' },
+      { id: 'cust-000000-0000-0000-0000-000000000003', email: 'gamma@example.com', name: 'Gamma LLC' },
+      { id: 'cust-000000-0000-0000-0000-000000000004', email: 'delta@example.com', name: 'Delta Corp' },
+      { id: 'cust-000000-0000-0000-0000-000000000005', email: 'epsilon@example.com', name: 'Epsilon Ltd' },
+      { id: 'c1000000-0000-0000-0000-000000000001', email: 'acme-legacy@example.com', name: 'Acme Corp Legacy' },
     ];
 
     for (const customer of customers) {
