@@ -397,8 +397,8 @@ export function DashboardPage() {
               </div>
             </div>
 
-            {/* Deal Health Alert Items */}
-            <div className="space-y-3">
+            {/* Deal Health Alert Items - Capped at 3 items in view with internal slider */}
+            <div className="space-y-3 max-h-[285px] overflow-y-auto pr-1.5 scroll-smooth">
               {filteredAlerts.length > 0 ? (
                 filteredAlerts.map((item) => (
                   <div
