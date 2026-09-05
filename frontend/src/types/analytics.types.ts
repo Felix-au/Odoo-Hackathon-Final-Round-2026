@@ -1,12 +1,16 @@
 export interface KPIData {
+  activePipeline: number;
+  activePipelineQuotesCount: number;
+  pendingApprovalsCount: number;
+  pendingApprovalsFinanceCount: number;
+  atRiskDealsCount: number;
+  atRiskNewTodayCount: number;
+  recurringRevenueMRR: number;
+  nextRenewalText: string;
   totalRevenue: number;
   revenueChangePct: number;
   quotationCount: number;
-  quotationCountChangePct: number;
   averageMarginPct: number;
-  averageMarginChangePct: number;
-  pendingApprovalsCount: number;
-  pendingApprovalsChangePct: number;
 }
 
 export interface PipelineStageCount {
@@ -23,10 +27,12 @@ export interface DealHealthAlert {
   quotationId: string;
   customerName: string;
   repName: string;
-  type: 'STALLED' | 'ANOMALY' | 'SLIPPAGE';
+  type: 'STALLED' | 'ANOMALY' | 'SLIPPAGE' | 'DISCOUNT_RISK';
   severity: 'HIGH' | 'MEDIUM' | 'LOW';
   title: string;
   description: string;
+  actionRequired?: string;
+  isEscalated?: boolean;
   stalledDays?: number;
   createdAt: string;
 }

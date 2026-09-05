@@ -1,8 +1,9 @@
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { quotationApi } from '../quotation.api';
 import { Quotation } from '../../types/quotation.types';
-import { UpsellSuggestion, Product } from '../../types/catalog.types';
+import { UpsellSuggestion } from '../../types/catalog.types';
 import { useAuthStore } from '../../stores/auth.store';
+import { toast } from 'sonner';
 
 export function useQuotation(id: string) {
   const token = useAuthStore((s) => s.accessToken) || undefined;
@@ -21,34 +22,82 @@ export function useQuotation(id: string) {
   });
 }
 
-export function useQuotationBuilder(_id: string) {
+export function useUpsellSuggestions(quotationId: string) {
+  const token = useAuthStore((s) => s.accessToken) || undefined;
+
+  return useQuery<UpsellSuggestion[]>({
+    queryKey: ['upsell-suggestions', quotationId, token],
+    queryFn: () => quotationApi.getUpsellSuggestions(quotationId, token),
+    staleTime: 20_000,
+  });
+}
+
+export function useQuotationBuilder(id: string) {
+  const token = useAuthStore((s) => s.accessToken) || undefined;
+  const queryClient = useQueryClient();
+
   const addLineMutation = useMutation({
-    mutationFn: async (_product: Product) => {
-      throw new Error('Quotation service is currently in development.');
+    mutationFn: async (productData: {
+      productId: string;
+      productName: string;
+      categoryName?: string;
+      quantity: number;
+      unitPrice: number;
+      costPrice?: number;
+      discountPct?: number;
+      isRecurring?: boolean;
+      planInterval?: string;
+    }) => {
+      return quotationApi.addLine(id, productData, token);
+    },
+    onSuccess: () => {
+      toast.success('Line item added to quotation');
+      queryClient.invalidateQueries({ queryKey: ['quotation', id] });
+      queryClient.invalidateQueries({ queryKey: ['upsell-suggestions', id] });
+    },
+    onError: () => {
+      toast.error('Failed to add product line');
     },
   });
 
   const updateLineMutation = useMutation({
-    mutationFn: async (_params: { lineId: string; quantity?: number; discountPct?: number }) => {
-      throw new Error('Quotation service is currently in development.');
+    mutationFn: async (params: { lineId: string; quantity?: number; discountPct?: number; unitPrice?: number }) => {
+      return quotationApi.updateLine(id, params.lineId, params, token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['quotation', id] });
+      queryClient.invalidateQueries({ queryKey: ['upsell-suggestions', id] });
+    },
+    onError: () => {
+      toast.error('Failed to update line');
     },
   });
 
   const removeLineMutation = useMutation({
-    mutationFn: async (_lineId: string) => {
-      throw new Error('Quotation service is currently in development.');
+    mutationFn: async (lineId: string) => {
+      return quotationApi.removeLine(id, lineId, token);
+    },
+    onSuccess: () => {
+      toast.success('Line removed');
+      queryClient.invalidateQueries({ queryKey: ['quotation', id] });
+      queryClient.invalidateQueries({ queryKey: ['upsell-suggestions', id] });
+    },
+    onError: () => {
+      toast.error('Failed to remove line');
     },
   });
 
   const submitQuotationMutation = useMutation({
     mutationFn: async () => {
-      throw new Error('Quotation service is currently in development.');
+      return quotationApi.submitQuotation(id, token);
     },
-  });
-
-  const sendToCustomerMutation = useMutation({
-    mutationFn: async () => {
-      throw new Error('Quotation service is currently in development.');
+    onSuccess: (data) => {
+      toast.success('Quotation submitted for review/approval');
+      queryClient.invalidateQueries({ queryKey: ['quotation', id] });
+      return data;
+    },
+    onError: () => {
+      toast.error('Submission failed');
     },
   });
 
@@ -57,20 +106,10 @@ export function useQuotationBuilder(_id: string) {
     updateLine: updateLineMutation.mutateAsync,
     removeLine: removeLineMutation.mutateAsync,
     submitQuotation: submitQuotationMutation.mutateAsync,
-    sendToCustomer: sendToCustomerMutation.mutateAsync,
     isUpdating:
       addLineMutation.isPending ||
       updateLineMutation.isPending ||
       removeLineMutation.isPending ||
-      submitQuotationMutation.isPending ||
-      sendToCustomerMutation.isPending,
+      submitQuotationMutation.isPending,
   };
-}
-
-export function useUpsellSuggestions(_quotationId: string) {
-  return useQuery<UpsellSuggestion[]>({
-    queryKey: ['upsell-suggestions'],
-    queryFn: async () => [],
-    staleTime: 60_000,
-  });
 }

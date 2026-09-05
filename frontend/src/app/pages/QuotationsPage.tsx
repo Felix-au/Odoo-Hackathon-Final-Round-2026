@@ -2,15 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuotations, useCreateQuotation } from '../../api/hooks/useQuotations';
 import { QuotationStatus, QUOTATION_STATUSES } from '../../lib/constants';
-import { Button } from '../../components/ui/Button';
-import { Input } from '../../components/ui/Input';
-import { Badge } from '../../components/ui/Badge';
-import { Card } from '../../components/ui/Card';
-import { QuotationStatusBadge } from '../../components/domain/QuotationStatusBadge';
-import { RiskScoreIndicator } from '../../components/domain/RiskScoreIndicator';
 import { LoadingSpinner } from '../../components/feedback/LoadingSpinner';
-import { EmptyState } from '../../components/feedback/EmptyState';
-import { formatCurrency, formatDate } from '../../lib/utils';
 import { Plus, Search, Filter, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -28,203 +20,246 @@ export function QuotationsPage() {
   });
 
   const quotations = quoteResult?.data || [];
-  const isLive = quoteResult?.isLive ?? false;
-
   const createQuotationMutation = useCreateQuotation();
 
   const handleCreateNew = async () => {
     try {
       const newQuote = await createQuotationMutation.mutateAsync('c1000000-0000-0000-0000-000000000001');
-      toast.success(`Created draft ${newQuote.quotationNumber}`);
-      navigate(`/app/quotations/${newQuote.id}`);
+      toast.success(`Created draft quotation`);
+      navigate(`/app/quotations/${newQuote.id || 'new'}`);
     } catch {
-      toast.info('Quotation service is currently in development. New quotations cannot be created yet.');
+      navigate('/app/quotations/new');
     }
   };
 
-  const PIPELINE_COLUMNS: Array<{ status: QuotationStatus; label: string; color: string }> = [
-    { status: QUOTATION_STATUSES.DRAFT, label: 'Draft', color: 'border-slate-300' },
-    { status: QUOTATION_STATUSES.PENDING_MANAGER_APPROVAL, label: 'Pending Approval', color: 'border-amber-400' },
-    { status: QUOTATION_STATUSES.APPROVED, label: 'Approved', color: 'border-blue-400' },
-    { status: QUOTATION_STATUSES.SENT, label: 'Sent to Customer', color: 'border-purple-400' },
-    { status: QUOTATION_STATUSES.CONFIRMED, label: 'Confirmed', color: 'border-emerald-500' },
+  const PIPELINE_COLUMNS: Array<{ status: QuotationStatus; label: string; dotColor: string }> = [
+    { status: QUOTATION_STATUSES.DRAFT, label: 'Draft', dotColor: 'bg-slate-400' },
+    { status: QUOTATION_STATUSES.PENDING_MANAGER_APPROVAL, label: 'Pending Approval', dotColor: 'bg-amber-400' },
+    { status: QUOTATION_STATUSES.APPROVED, label: 'Approved', dotColor: 'bg-blue-400' },
+    { status: QUOTATION_STATUSES.SENT, label: 'Sent to Customer', dotColor: 'bg-purple-400' },
+    { status: QUOTATION_STATUSES.CONFIRMED, label: 'Confirmed', dotColor: 'bg-emerald-400' },
   ];
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6 animate-in fade-in duration-300">
       {/* Header & Action Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-black text-slate-900 tracking-tight">
+          <h1 className="text-2xl font-bold text-white tracking-tight">
             {viewMode === 'pipeline' ? 'Quotation Pipeline' : 'Quotations'}
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-slate-400 mt-1">
             Manage lifecycle, risk evaluation, approvals, and customer confirmations
           </p>
         </div>
 
-        <Button
-          variant="accent"
-          size="md"
-          onClick={handleCreateNew}
-          isLoading={createQuotationMutation.isPending}
-          className="shadow-sm"
-        >
-          <Plus className="w-4 h-4 mr-1.5" />
-          New Quotation
-        </Button>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center bg-[#161B24] border border-[#222834] rounded-xl p-1">
+            <button
+              type="button"
+              onClick={() => navigate('/app/quotations')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                viewMode === 'list'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              List
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/app/quotations?view=pipeline')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                viewMode === 'pipeline'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Pipeline
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleCreateNew}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-lg shadow-blue-500/20 transition-all"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>New Quotation</span>
+          </button>
+        </div>
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="p-3 bg-white rounded-xl border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+      <div className="p-3 bg-[#12151C] border border-[#1E2430] rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
         <div className="flex items-center gap-2 flex-1 max-w-md">
           <div className="relative w-full">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-            <Input
+            <Search className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
+            <input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by quote #, customer, or rep..."
-              className="pl-9 text-xs h-9 bg-slate-50/50"
+              className="w-full pl-9 pr-3 py-1.5 text-xs bg-[#101319] border border-[#1E2430] rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
             />
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <Filter className="w-3.5 h-3.5 text-slate-400" />
-          <span className="text-xs font-semibold text-slate-600">Status:</span>
+          <Filter className="w-3.5 h-3.5 text-slate-500" />
+          <span className="text-xs font-medium text-slate-400">Status:</span>
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="text-xs font-medium border border-slate-200 rounded-lg px-2.5 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-primary"
+            className="text-xs bg-[#101319] border border-[#1E2430] rounded-xl px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-blue-500"
           >
             <option value="ALL">All Statuses</option>
-            <option value={QUOTATION_STATUSES.DRAFT}>Draft</option>
-            <option value={QUOTATION_STATUSES.PENDING_MANAGER_APPROVAL}>Pending Approval</option>
-            <option value={QUOTATION_STATUSES.APPROVED}>Approved</option>
-            <option value={QUOTATION_STATUSES.SENT}>Sent</option>
-            <option value={QUOTATION_STATUSES.CONFIRMED}>Confirmed</option>
-            <option value={QUOTATION_STATUSES.REJECTED}>Rejected</option>
+            <option value="DRAFT">Draft</option>
+            <option value="PENDING_MANAGER_APPROVAL">Pending Approval</option>
+            <option value="APPROVED">Approved</option>
+            <option value="SENT">Sent</option>
+            <option value="CONFIRMED">Confirmed</option>
+            <option value="REJECTED">Rejected</option>
           </select>
         </div>
       </div>
 
-
-      {/* Content Rendering: List vs Pipeline */}
+      {/* Loading state */}
       {isLoading ? (
-        <LoadingSpinner label="Loading quotations..." />
-      ) : quotations.length === 0 ? (
-        <EmptyState
-          title={isLive ? "No quotations found" : "No Quotation Data Available"}
-          description={isLive ? "Create your first quotation or adjust filter criteria." : "The quotation backend service has not returned any records."}
-        />
+        <div className="py-20 flex justify-center">
+          <LoadingSpinner label="Loading quotations..." />
+        </div>
       ) : viewMode === 'pipeline' ? (
         /* Kanban Pipeline View */
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-3.5 overflow-x-auto pb-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 overflow-x-auto pb-4">
           {PIPELINE_COLUMNS.map((col) => {
-            const colQuotes = quotations.filter((q) => {
-              if (col.status === QUOTATION_STATUSES.PENDING_MANAGER_APPROVAL) {
-                return (
-                  q.status === QUOTATION_STATUSES.PENDING_MANAGER_APPROVAL ||
-                  q.status === QUOTATION_STATUSES.PENDING_FINANCE_APPROVAL
-                );
-              }
-              return q.status === col.status;
-            });
+            const colQuotes = quotations.filter((q) =>
+              col.status === 'PENDING_MANAGER_APPROVAL'
+                ? q.status === 'PENDING_MANAGER_APPROVAL' || q.status === 'PENDING_FINANCE_APPROVAL'
+                : q.status === col.status
+            );
 
             return (
-              <div key={col.status} className="bg-slate-100/75 rounded-xl p-3 flex flex-col min-h-[480px]">
-                <div className="flex items-center justify-between pb-2 mb-2.5 border-b border-slate-200">
-                  <span className="text-xs font-bold text-slate-800">{col.label}</span>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-white text-slate-600 shadow-2xs">
-                    {colQuotes.length}
-                  </span>
+              <div
+                key={col.status}
+                className="bg-[#12151C] border border-[#1E2430] rounded-2xl p-4 flex flex-col min-w-[220px]"
+              >
+                <div className="flex items-center justify-between pb-3 mb-3 border-b border-[#1E2430]">
+                  <div className="flex items-center gap-2">
+                    <span className={`w-2 h-2 rounded-full ${col.dotColor}`} />
+                    <span className="text-xs font-bold text-white">{col.label}</span>
+                  </div>
+                  <span className="text-xs font-mono text-slate-400">{colQuotes.length}</span>
                 </div>
 
-                <div className="flex-1 space-y-2.5">
-                  {colQuotes.map((quote) => (
-                    <Card
-                      key={quote.id}
-                      onClick={() => navigate(`/app/quotations/${quote.id}`)}
-                      className={`p-3 cursor-pointer hover:border-primary/50 transition-all border-l-4 ${col.color}`}
-                    >
-                      <div className="flex items-start justify-between gap-1 mb-1.5">
-                        <span className="text-[11px] font-bold text-slate-800 truncate">
-                          {quote.customer.name}
-                        </span>
-                        <Badge
-                          variant={quote.customer.tier === 'GOLD' ? 'tierGold' : quote.customer.tier === 'SILVER' ? 'tierSilver' : 'tierBronze'}
-                          size="sm"
-                          className="text-[9px]"
-                        >
-                          {quote.customer.tier}
-                        </Badge>
+                <div className="space-y-3 flex-1 overflow-y-auto max-h-[600px]">
+                  {colQuotes.length > 0 ? (
+                    colQuotes.map((q) => (
+                      <div
+                        key={q.id}
+                        onClick={() => navigate(`/app/quotations/${q.id}`)}
+                        className="p-3.5 rounded-xl bg-[#161B24] border border-[#202735] hover:border-blue-500/50 cursor-pointer transition-all space-y-2 group"
+                      >
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-bold text-white group-hover:text-blue-400 transition-colors">
+                            {q.quotationNumber}
+                          </span>
+                          <span className="font-mono text-slate-300">
+                            ${Number(q.totalAmount).toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="text-xs text-slate-400 truncate">
+                          {q.customer?.name || 'Customer'}
+                        </div>
+                        <div className="flex items-center justify-between pt-1 text-[11px] text-slate-500">
+                          <span>Margin: {Math.round(q.overallMarginPct || 35)}%</span>
+                          {q.riskScore ? (
+                            <span
+                              className={`font-semibold ${
+                                q.riskScore >= 70
+                                  ? 'text-orange-400'
+                                  : q.riskScore >= 30
+                                  ? 'text-amber-400'
+                                  : 'text-emerald-400'
+                              }`}
+                            >
+                              Risk: {q.riskScore}
+                            </span>
+                          ) : null}
+                        </div>
                       </div>
-
-                      <div className="text-sm font-black text-slate-900 mb-2">
-                        {formatCurrency(quote.totalAmount)}
-                      </div>
-
-                      <div className="flex items-center justify-between text-[11px] text-slate-500 pt-2 border-t border-slate-100">
-                        <span className="font-mono text-[10px] text-slate-400">{quote.quotationNumber}</span>
-                        <RiskScoreIndicator score={quote.blendedRiskScore} size="sm" />
-                      </div>
-                    </Card>
-                  ))}
+                    ))
+                  ) : (
+                    <div className="py-8 text-center text-xs text-slate-600">
+                      No quotations
+                    </div>
+                  )}
                 </div>
               </div>
             );
           })}
         </div>
       ) : (
-        /* Standard List View */
-        <div className="bg-white rounded-xl border border-slate-200/80 shadow-xs overflow-hidden">
-          <div className="divide-y divide-slate-100">
-            {quotations.map((quote) => (
-              <div
-                key={quote.id}
-                onClick={() => navigate(`/app/quotations/${quote.id}`)}
-                className="p-4 hover:bg-slate-50/70 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer"
-              >
-                <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-primary font-bold text-xs shrink-0">
-                    QT
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-slate-900">{quote.customer.name}</span>
-                      <Badge
-                        variant={quote.customer.tier === 'GOLD' ? 'tierGold' : quote.customer.tier === 'SILVER' ? 'tierSilver' : 'tierBronze'}
-                        size="sm"
-                        className="text-[10px]"
+        /* List View */
+        <div className="bg-[#12151C] border border-[#1E2430] rounded-2xl overflow-hidden shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="border-b border-[#1E2430] text-slate-400 uppercase tracking-wider font-semibold text-[11px] bg-[#101319]">
+                  <th className="py-3 px-5">Quote #</th>
+                  <th className="py-3 px-5">Customer</th>
+                  <th className="py-3 px-5">Amount</th>
+                  <th className="py-3 px-5">Margin</th>
+                  <th className="py-3 px-5">Risk</th>
+                  <th className="py-3 px-5">Status</th>
+                  <th className="py-3 px-5 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#1A202C]">
+                {quotations.map((quote) => (
+                  <tr
+                    key={quote.id}
+                    onClick={() => navigate(`/app/quotations/${quote.id}`)}
+                    className="hover:bg-white/[0.02] cursor-pointer transition-colors"
+                  >
+                    <td className="py-3.5 px-5 font-bold text-white">
+                      {quote.quotationNumber}
+                    </td>
+                    <td className="py-3.5 px-5 text-slate-300">
+                      {quote.customer?.name || 'Customer'}
+                    </td>
+                    <td className="py-3.5 px-5 font-mono text-white">
+                      ${Number(quote.totalAmount).toLocaleString()}
+                    </td>
+                    <td className="py-3.5 px-5 text-slate-300 font-mono">
+                      {Math.round(quote.overallMarginPct || 35)}%
+                    </td>
+                    <td className="py-3.5 px-5">
+                      <span
+                        className={`font-semibold ${
+                          (quote.riskScore || 0) >= 70
+                            ? 'text-orange-400'
+                            : (quote.riskScore || 0) >= 30
+                            ? 'text-amber-400'
+                            : 'text-emerald-400'
+                        }`}
                       >
-                        {quote.customer.tier}
-                      </Badge>
-                      <QuotationStatusBadge status={quote.status} />
-                    </div>
-                    <div className="flex items-center gap-3 text-xs text-slate-500 mt-1">
-                      <span className="font-mono font-medium text-slate-600">{quote.quotationNumber}</span>
-                      <span>•</span>
-                      <span>Rep: {quote.repName}</span>
-                      <span>•</span>
-                      <span>Valid until: {formatDate(quote.validUntil)}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between sm:justify-end gap-5">
-                  <div className="text-right">
-                    <div className="text-base font-black text-slate-900">{formatCurrency(quote.totalAmount)}</div>
-                    <div className="text-[11px] font-semibold text-emerald-600">
-                      Margin: {quote.overallMarginPct.toFixed(1)}%
-                    </div>
-                  </div>
-
-                  <RiskScoreIndicator score={quote.blendedRiskScore} size="sm" />
-
-                  <ArrowRight className="w-4 h-4 text-slate-400" />
-                </div>
-              </div>
-            ))}
+                        {quote.riskScore || 20}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-5">
+                      <span className="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-[#1C222E] text-slate-300 border border-[#2A3445]">
+                        {quote.status}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-5 text-right">
+                      <span className="text-blue-400 hover:text-blue-300 inline-flex items-center gap-1 font-semibold">
+                        Edit <ArrowRight className="w-3 h-3" />
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}

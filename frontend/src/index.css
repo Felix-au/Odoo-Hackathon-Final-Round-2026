@@ -4,43 +4,79 @@
 
 @layer base {
   :root {
-    --space-1: 0.25rem;
-    --space-2: 0.5rem;
-    --space-3: 0.75rem;
-    --space-4: 1rem;
-    --space-6: 1.5rem;
-    --space-8: 2rem;
+    --bg-workspace: #0B0D11;
+    --surface-workspace: #12151C;
+    --surface-elevated: #181D26;
+    --border-subtle: #222834;
+    --text-primary: #F8FAFC;
+    --text-secondary: #94A3B8;
+    --text-muted: #64748B;
+    --accent-blue: #3B82F6;
   }
 
   body {
-    @apply bg-slate-50 text-slate-800 font-sans antialiased selection:bg-blue-100 selection:text-blue-900;
+    background-color: var(--bg-workspace);
+    color: var(--text-primary);
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }
 
 @layer components {
-  .glass-panel {
-    @apply bg-white/80 backdrop-blur-md border border-slate-200/80 shadow-sm;
-  }
-  
-  .glass-card {
-    @apply bg-white rounded-xl border border-slate-200/75 shadow-sm transition-all duration-200 hover:shadow-md;
-  }
-
-  .glass-nav {
-    @apply bg-white/90 backdrop-blur-md border-b border-slate-200/80;
+  /* Floating pill navigation */
+  .floating-navbar {
+    background-color: rgba(18, 21, 28, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid #222834;
   }
 
-  /* Table density utilities */
-  .table-dense th {
-    @apply py-2.5 px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider bg-slate-50/80;
+  /* Internal Workspace Cards */
+  .dark-card {
+    background-color: #12151C;
+    border: 1px solid #1E2430;
+    border-radius: 1rem;
   }
-  
-  .table-dense td {
-    @apply py-2.5 px-3 text-sm text-slate-700 border-t border-slate-100;
+
+  .dark-card-elevated {
+    background-color: #181D26;
+    border: 1px solid #252D3D;
+    border-radius: 1rem;
+  }
+
+  .dark-card-highlight {
+    background-color: #101319;
+    border: 1px solid #1E3A8A;
+    border-radius: 1rem;
+  }
+
+  /* White Column Header from Screenshot 2 */
+  .builder-header-bar {
+    background-color: #FFFFFF;
+    color: #0F172A;
+    font-weight: 700;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* Customer Portal Proposal Styling (Screenshot 3) */
+  .portal-root {
+    background-color: #F8FAFC;
+    color: #0F172A;
+    min-height: 100vh;
+  }
+
+  .portal-proposal-card {
+    background-color: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 1.5rem;
+    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
   }
 }
 
-/* Custom scrollbars */
+/* Custom sleek dark scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -51,10 +87,11 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #2D3748;
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #4A5568;
 }
+

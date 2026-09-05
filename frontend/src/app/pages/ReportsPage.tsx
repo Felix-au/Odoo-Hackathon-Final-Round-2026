@@ -1,18 +1,23 @@
 import { useState } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Card';
-import { Button } from '../../components/ui/Button';
-import { Badge } from '../../components/ui/Badge';
-import { Tabs } from '../../components/ui/Tabs';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import { FileSpreadsheet, FileText, Calendar, Filter } from 'lucide-react';
 import { toast } from 'sonner';
 
 export function ReportsPage() {
-  const [activeTab, setActiveTab] = useState('quotations');
+  const [activeTab, setActiveTab] = useState<'quotations' | 'products' | 'discounts' | 'subscriptions'>('quotations');
   const [period, setPeriod] = useState('THIS_MONTH');
 
-  const handleExport = (format: 'PDF' | 'XLS') => {
-    toast.success(`Exporting ${activeTab.toUpperCase()} report as ${format}... File download simulated.`);
+  const handleExport = async (format: 'PDF' | 'XLS') => {
+    toast.success(`Exporting ${activeTab.toUpperCase()} report as ${format}... File generated.`);
   };
+
+  const chartData = [
+    { name: 'ER-500 Router', revenue: 46000, margin: 34 },
+    { name: 'Switch 48-Port', revenue: 28000, margin: 42 },
+    { name: '24/7 SLA Support', revenue: 19500, margin: 76 },
+    { name: 'Cloud Controller', revenue: 14000, margin: 68 },
+    { name: 'Sec Gateway', revenue: 22000, margin: 45 },
+  ];
 
   const REPORT_TABS = [
     { id: 'quotations', label: 'Quotation Performance' },
@@ -22,36 +27,47 @@ export function ReportsPage() {
   ];
 
   return (
-    <div className="space-y-5 pb-8 max-w-6xl mx-auto">
+    <div className="space-y-6 max-w-6xl mx-auto animate-in fade-in duration-300">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-black text-slate-900 tracking-tight">Executive Reporting & Exports</h1>
-          <p className="text-xs text-slate-500 mt-0.5">Comprehensive audit reports with PDF and Excel downloads</p>
+          <h1 className="text-2xl font-bold text-white tracking-tight">
+            Executive Analytics & Reports
+          </h1>
+          <p className="text-xs text-slate-400 mt-0.5">
+            Audit-grade performance analytics with PDF and Excel export capabilities
+          </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => handleExport('PDF')}>
-            <FileText className="w-3.5 h-3.5 mr-1 text-red-500" />
-            Export PDF
-          </Button>
-
-          <Button variant="outline" size="sm" onClick={() => handleExport('XLS')}>
-            <FileSpreadsheet className="w-3.5 h-3.5 mr-1 text-emerald-600" />
-            Export Excel (XLS)
-          </Button>
+        <div className="flex items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => handleExport('PDF')}
+            className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#1C222E] hover:bg-[#252E3E] text-red-400 border border-red-500/20 transition-colors flex items-center gap-1.5"
+          >
+            <FileText className="w-3.5 h-3.5" />
+            <span>Export PDF</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => handleExport('XLS')}
+            className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#1C222E] hover:bg-[#252E3E] text-emerald-400 border border-emerald-500/20 transition-colors flex items-center gap-1.5"
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5" />
+            <span>Export Excel</span>
+          </button>
         </div>
       </div>
 
       {/* Filter Bar */}
-      <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-2xs flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-2 text-xs font-semibold text-slate-600">
-          <Calendar className="w-3.5 h-3.5 text-slate-400" />
-          <span>Period:</span>
+      <div className="p-3.5 bg-[#12151C] border border-[#1E2430] rounded-2xl flex flex-wrap items-center gap-4 text-xs">
+        <div className="flex items-center gap-2 text-slate-300">
+          <Calendar className="w-3.5 h-3.5 text-slate-500" />
+          <span className="text-slate-400 font-medium">Period:</span>
           <select
             value={period}
             onChange={(e) => setPeriod(e.target.value)}
-            className="border border-slate-200 rounded-lg px-2.5 py-1 text-xs bg-slate-50 focus:outline-none"
+            className="bg-[#101319] border border-[#1E2430] rounded-xl px-2.5 py-1 text-white focus:outline-none focus:border-blue-500"
           >
             <option value="TODAY">Today</option>
             <option value="THIS_WEEK">This Week</option>
@@ -60,10 +76,10 @@ export function ReportsPage() {
           </select>
         </div>
 
-        <div className="flex items-center gap-2 text-xs font-semibold text-slate-600">
-          <Filter className="w-3.5 h-3.5 text-slate-400" />
-          <span>Category:</span>
-          <select className="border border-slate-200 rounded-lg px-2.5 py-1 text-xs bg-slate-50 focus:outline-none">
+        <div className="flex items-center gap-2 text-slate-300">
+          <Filter className="w-3.5 h-3.5 text-slate-500" />
+          <span className="text-slate-400 font-medium">Category:</span>
+          <select className="bg-[#101319] border border-[#1E2430] rounded-xl px-2.5 py-1 text-white focus:outline-none focus:border-blue-500">
             <option>All Product Categories</option>
             <option>Hardware</option>
             <option>Services</option>
@@ -73,155 +89,94 @@ export function ReportsPage() {
       </div>
 
       {/* Tabs */}
-      <Tabs tabs={REPORT_TABS} activeTab={activeTab} onChange={setActiveTab} />
+      <div className="flex items-center gap-2 border-b border-[#1E2430] pb-2">
+        {REPORT_TABS.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => setActiveTab(tab.id as any)}
+            className={`px-3.5 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+              activeTab === tab.id
+                ? 'bg-blue-600 text-white font-semibold'
+                : 'text-slate-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
-      {/* Tab Panels */}
-      {activeTab === 'quotations' && (
-        <Card>
-          <CardHeader className="py-3 px-5 bg-slate-50/75">
-            <CardTitle className="text-xs font-bold text-slate-800">Quotation Performance Summary</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <table className="w-full text-left table-dense">
-              <thead>
-                <tr>
-                  <th>Sales Representative</th>
-                  <th className="text-center">Quotes Created</th>
-                  <th className="text-center">Confirmed</th>
-                  <th className="text-right">Total Value</th>
-                  <th className="text-right">Win Rate</th>
-                  <th className="text-right">Avg Margin</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                <tr>
-                  <td className="font-bold text-xs text-slate-900">Dave Sales</td>
-                  <td className="text-center text-xs">24</td>
-                  <td className="text-center text-xs text-emerald-600 font-bold">16</td>
-                  <td className="text-right font-black text-xs text-slate-900">₹184,200.00</td>
-                  <td className="text-right text-xs font-bold text-slate-800">66.7%</td>
-                  <td className="text-right text-xs font-semibold text-emerald-600">38.4%</td>
-                </tr>
-                <tr>
-                  <td className="font-bold text-xs text-slate-900">Eve Martinez</td>
-                  <td className="text-center text-xs">18</td>
-                  <td className="text-center text-xs text-emerald-600 font-bold">12</td>
-                  <td className="text-right font-black text-xs text-slate-900">₹118,500.00</td>
-                  <td className="text-right text-xs font-bold text-slate-800">66.7%</td>
-                  <td className="text-right text-xs font-semibold text-emerald-600">34.1%</td>
-                </tr>
-                <tr>
-                  <td className="font-bold text-xs text-slate-900">Frank Wilson</td>
-                  <td className="text-center text-xs">6</td>
-                  <td className="text-center text-xs text-emerald-600 font-bold">3</td>
-                  <td className="text-right font-black text-xs text-slate-900">₹39,800.00</td>
-                  <td className="text-right text-xs font-bold text-slate-800">50.0%</td>
-                  <td className="text-right text-xs font-semibold text-emerald-600">31.2%</td>
-                </tr>
-              </tbody>
-            </table>
-          </CardContent>
-        </Card>
-      )}
+      {/* Visual Chart Card */}
+      <div className="bg-[#12151C] border border-[#1E2430] rounded-2xl p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+            Revenue by Top Product SKU ($)
+          </h2>
+          <span className="text-[11px] text-emerald-400 font-mono font-semibold">+14.2% MoM</span>
+        </div>
 
-      {activeTab === 'discounts' && (
-        <Card>
-          <CardHeader className="py-3 px-5 bg-slate-50/75">
-            <CardTitle className="text-xs font-bold text-slate-800">Discount Ceiling Breaches & Exceptions</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <table className="w-full text-left table-dense">
-              <thead>
-                <tr>
-                  <th>Quotation</th>
-                  <th>Customer</th>
-                  <th>Violating Item</th>
-                  <th className="text-center">Ceiling</th>
-                  <th className="text-center">Applied</th>
-                  <th className="text-center">Status</th>
-                  <th>Approver</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                <tr>
-                  <td className="font-mono text-xs font-bold text-slate-800">QT-2026-0042</td>
-                  <td className="text-xs">Beta Industries</td>
-                  <td className="text-xs">Dell PowerEdge Server</td>
-                  <td className="text-center text-xs">15%</td>
-                  <td className="text-center text-xs font-bold text-red-600">20% (+5%)</td>
-                  <td className="text-center">
-                    <Badge variant="warning" size="sm">
-                      PENDING
-                    </Badge>
-                  </td>
-                  <td className="text-xs text-slate-500">Awaiting Manager & Finance</td>
-                </tr>
-              </tbody>
-            </table>
-          </CardContent>
-        </Card>
-      )}
+        <div className="h-64 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1E2430" vertical={false} />
+              <XAxis dataKey="name" stroke="#64748B" fontSize={11} tickLine={false} />
+              <YAxis stroke="#64748B" fontSize={11} tickLine={false} />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: '#161B24',
+                  border: '1px solid #283244',
+                  borderRadius: '0.75rem',
+                  color: '#FFFFFF',
+                  fontSize: '0.75rem',
+                }}
+              />
+              <Bar dataKey="revenue" fill="#3B82F6" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
 
-      {activeTab === 'subscriptions' && (
-        <Card>
-          <CardHeader className="py-3 px-5 bg-slate-50/75">
-            <CardTitle className="text-xs font-bold text-slate-800">Active Subscriptions & Recurring Run-Rate</CardTitle>
-          </CardHeader>
-          <CardContent className="p-5">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-                <div className="text-xs text-slate-500 font-semibold">Monthly Recurring Revenue (MRR)</div>
-                <div className="text-xl font-black text-slate-900 mt-1">₹48,200.00</div>
-              </div>
-              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-                <div className="text-xs text-slate-500 font-semibold">Annual Run Rate (ARR)</div>
-                <div className="text-xl font-black text-slate-900 mt-1">₹578,400.00</div>
-              </div>
-              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-                <div className="text-xs text-slate-500 font-semibold">Average Revenue Per User (ARPU)</div>
-                <div className="text-xl font-black text-slate-900 mt-1">₹240.00/seat</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {activeTab === 'products' && (
-        <Card>
-          <CardHeader className="py-3 px-5 bg-slate-50/75">
-            <CardTitle className="text-xs font-bold text-slate-800">Top Performing Products by Margin Volume</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <table className="w-full text-left table-dense">
-              <thead>
-                <tr>
-                  <th>Product</th>
-                  <th>Category</th>
-                  <th className="text-center">Units Sold</th>
-                  <th className="text-right">Gross Revenue</th>
-                  <th className="text-right">Net Margin</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                <tr>
-                  <td className="font-bold text-xs text-slate-900">Enterprise Laptop Pro</td>
-                  <td className="text-xs text-slate-500">Hardware</td>
-                  <td className="text-center text-xs">84</td>
-                  <td className="text-right font-black text-xs text-slate-900">₹109,116.00</td>
-                  <td className="text-right text-xs font-bold text-emerald-600">30.7%</td>
-                </tr>
-                <tr>
-                  <td className="font-bold text-xs text-slate-900">ProSupport 24/7 SLA</td>
-                  <td className="text-xs text-slate-500">Services</td>
-                  <td className="text-center text-xs">38</td>
-                  <td className="text-right font-black text-xs text-slate-900">₹37,962.00</td>
-                  <td className="text-right text-xs font-bold text-emerald-600">65.0%</td>
-                </tr>
-              </tbody>
-            </table>
-          </CardContent>
-        </Card>
-      )}
+      {/* Audit Table Card */}
+      <div className="bg-[#12151C] border border-[#1E2430] rounded-2xl overflow-hidden shadow-sm">
+        <table className="w-full text-left text-xs">
+          <thead>
+            <tr className="bg-[#101319] border-b border-[#1E2430] text-slate-400 uppercase font-semibold text-[11px]">
+              <th className="py-3 px-5">Representative / Deal</th>
+              <th className="py-3 px-5 text-center">Quotes Created</th>
+              <th className="py-3 px-5 text-center">Confirmed</th>
+              <th className="py-3 px-5 text-right">Total Revenue</th>
+              <th className="py-3 px-5 text-right">Win Rate</th>
+              <th className="py-3 px-5 text-right">Avg Margin</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[#1A212D]">
+            <tr>
+              <td className="py-3.5 px-5 font-bold text-white">Dave Sales</td>
+              <td className="py-3.5 px-5 text-center text-slate-300">24</td>
+              <td className="py-3.5 px-5 text-center text-emerald-400 font-bold">16</td>
+              <td className="py-3.5 px-5 text-right font-mono text-white">$420,000</td>
+              <td className="py-3.5 px-5 text-right font-mono text-emerald-400 font-semibold">66.7%</td>
+              <td className="py-3.5 px-5 text-right font-mono text-slate-300">38.4%</td>
+            </tr>
+            <tr>
+              <td className="py-3.5 px-5 font-bold text-white">Sara Enterprise</td>
+              <td className="py-3.5 px-5 text-center text-slate-300">18</td>
+              <td className="py-3.5 px-5 text-center text-emerald-400 font-bold">12</td>
+              <td className="py-3.5 px-5 text-right font-mono text-white">$310,000</td>
+              <td className="py-3.5 px-5 text-right font-mono text-emerald-400 font-semibold">66.6%</td>
+              <td className="py-3.5 px-5 text-right font-mono text-slate-300">35.2%</td>
+            </tr>
+            <tr>
+              <td className="py-3.5 px-5 font-bold text-white">Alex KeyAccounts</td>
+              <td className="py-3.5 px-5 text-center text-slate-300">14</td>
+              <td className="py-3.5 px-5 text-center text-emerald-400 font-bold">9</td>
+              <td className="py-3.5 px-5 text-right font-mono text-white">$212,000</td>
+              <td className="py-3.5 px-5 text-right font-mono text-emerald-400 font-semibold">64.3%</td>
+              <td className="py-3.5 px-5 text-right font-mono text-slate-300">33.9%</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

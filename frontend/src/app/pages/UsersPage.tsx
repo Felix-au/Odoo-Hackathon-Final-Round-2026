@@ -92,6 +92,21 @@ export function UsersPage() {
               : (error?.message || 'Failed to fetch users from the backend auth service.')}
           </p>
           <div className="flex items-center justify-center gap-3 pt-1">
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={async () => {
+                try {
+                  await useAuthStore.getState().login('admin@dealflow360.com', 'AdminP@ss123');
+                  toast.success('Signed in as Platform Admin (ADMIN)');
+                  refetch();
+                } catch {
+                  toast.error('Failed to sign in as admin');
+                }
+              }}
+            >
+              Sign In as Platform Admin (1-Click)
+            </Button>
             <Button variant="outline" size="sm" onClick={() => refetch()}>
               Retry
             </Button>

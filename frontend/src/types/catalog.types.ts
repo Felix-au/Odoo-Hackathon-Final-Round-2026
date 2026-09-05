@@ -23,6 +23,7 @@ export interface Product {
   taxRate: number;
   description?: string;
   isActive?: boolean;
+  isRecurring?: boolean;
   variants?: ProductVariant[];
 }
 

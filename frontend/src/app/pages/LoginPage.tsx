@@ -1,11 +1,7 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/auth.store';
-import { Button } from '../../components/ui/Button';
-import { Input } from '../../components/ui/Input';
-import { Card, CardContent } from '../../components/ui/Card';
 import { toast } from 'sonner';
-import { ShieldCheck } from 'lucide-react';
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -35,119 +31,109 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-slate-100 via-blue-50/50 to-slate-200 p-4">
+    <div className="min-h-screen w-full flex items-center justify-center bg-[#0B0D11] p-4 text-slate-100 animate-in fade-in duration-300">
       <div className="w-full max-w-md">
         {/* Brand Header */}
         <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-primary text-white font-black text-xl shadow-lg mb-3">
-            360
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-blue-600 text-white font-bold text-xl shadow-lg shadow-blue-500/20 mb-3">
+            ◈
           </div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">DealFlow360</h1>
-          <p className="text-xs text-slate-500 mt-1 font-medium">Intelligent Sales Operations Platform</p>
+          <h1 className="text-2xl font-bold text-white tracking-tight">DealFlow360</h1>
+          <p className="text-xs text-slate-400 mt-1 font-medium">Intelligent Sales Operations Platform</p>
         </div>
 
         {/* Login Card */}
-        <Card className="shadow-glass-card border border-white/80 bg-white/95 backdrop-blur-md">
-          <CardContent className="p-6">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <Input
-                  label="Business Email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@dealflow360.com"
-                  required
-                />
-              </div>
-
-              <div>
-                <Input
-                  label="Password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  required
-                />
-              </div>
-
-              {error && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700 font-medium">
-                  {error}
-                </div>
-              )}
-
-              <Button type="submit" variant="primary" className="w-full py-2.5 mt-2 shadow-sm font-bold" isLoading={isLoading}>
-                Sign In to Workspace
-              </Button>
-
-              <div className="pt-3 pb-1 text-center border-t border-slate-100">
-                <p className="text-xs text-slate-500 mb-2 font-medium">Don't have a workspace account?</p>
-                <Link
-                  to="/signup"
-                  className="inline-flex items-center justify-center w-full py-2 px-3 rounded-lg border-2 border-primary/30 text-xs font-bold text-primary bg-blue-50/50 hover:bg-blue-50 hover:border-primary transition-all"
-                >
-                  Create New Account / Sign Up →
-                </Link>
-              </div>
-            </form>
-
-            {/* Quick Demo Credentials */}
-            <div className="mt-6 pt-5 border-t border-slate-100">
-              <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-primary" />
-                Quick Demo Accounts (1-Click Fill)
-              </div>
-              <div className="grid grid-cols-2 gap-2 text-[11px]">
-                <button
-                  type="button"
-                  onClick={() => setDemoCredentials('admin@dealflow360.com', 'AdminP@ss123')}
-                  className="p-2 text-left rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-colors"
-                >
-                  <div className="font-bold text-slate-800">Admin</div>
-                  <div className="text-slate-500 text-[10px] truncate">admin@dealflow360.com</div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setDemoCredentials('manager1@dealflow360.com', 'ManagerP@ss123')}
-                  className="p-2 text-left rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-colors"
-                >
-                  <div className="font-bold text-slate-800">Sales Manager</div>
-                  <div className="text-slate-500 text-[10px] truncate">manager1@dealflow360.com</div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setDemoCredentials('finance@dealflow360.com', 'FinanceP@ss123')}
-                  className="p-2 text-left rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-colors"
-                >
-                  <div className="font-bold text-slate-800">Finance</div>
-                  <div className="text-slate-500 text-[10px] truncate">finance@dealflow360.com</div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setDemoCredentials('rep1@dealflow360.com', 'RepP@ss123')}
-                  className="p-2 text-left rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-colors"
-                >
-                  <div className="font-bold text-slate-800">Sales Rep</div>
-                  <div className="text-slate-500 text-[10px] truncate">rep1@dealflow360.com</div>
-                </button>
-              </div>
+        <div className="bg-[#12151C] border border-[#1E2430] rounded-2xl p-6 shadow-2xl space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">
+                Business Email
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="name@dealflow360.com"
+                required
+                className="w-full bg-[#101319] border border-[#222834] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
+              />
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Customer Portal Link */}
-        <div className="text-center mt-6">
-          <a
-            href="/portal/auth/login"
-            className="text-xs text-slate-500 hover:text-primary transition-colors font-medium"
-          >
-            Are you a B2B customer? Access Customer Portal ↗
-          </a>
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">
+                Password
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className="w-full bg-[#101319] border border-[#222834] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
+              />
+            </div>
+
+            {error && (
+              <div className="p-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium">
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-lg shadow-blue-500/20 transition-all disabled:opacity-50"
+            >
+              {isLoading ? 'Signing In...' : 'Sign In to Workspace'}
+            </button>
+
+            <div className="pt-2 text-center border-t border-[#1E2430]">
+              <span className="text-xs text-slate-400">Don't have an account? </span>
+              <a href="/signup" className="text-xs font-bold text-blue-400 hover:text-blue-300 underline">
+                Create Account / Sign Up →
+              </a>
+            </div>
+          </form>
+
+          {/* Demo Roles Quick Selection */}
+          <div className="pt-4 border-t border-[#1E2430]">
+            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-2">
+              Quick Role Test Credentials
+            </span>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <button
+                type="button"
+                onClick={() => setDemoCredentials('admin@dealflow360.com', 'AdminP@ss123')}
+                className="p-2 rounded-xl bg-[#161B24] border border-[#202735] hover:border-blue-500/50 text-left text-slate-300 transition-colors"
+              >
+                <div className="font-semibold text-white">Admin</div>
+                <div className="text-[10px] text-slate-500">Full Access</div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setDemoCredentials('manager@dealflow360.com', 'ManagerP@ss123')}
+                className="p-2 rounded-xl bg-[#161B24] border border-[#202735] hover:border-blue-500/50 text-left text-slate-300 transition-colors"
+              >
+                <div className="font-semibold text-white">Sales Manager</div>
+                <div className="text-[10px] text-slate-500">Approvals</div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setDemoCredentials('rep@dealflow360.com', 'RepP@ss123')}
+                className="p-2 rounded-xl bg-[#161B24] border border-[#202735] hover:border-blue-500/50 text-left text-slate-300 transition-colors"
+              >
+                <div className="font-semibold text-white">Sales Rep</div>
+                <div className="text-[10px] text-slate-500">Quotes & Deals</div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setDemoCredentials('finance@dealflow360.com', 'FinanceP@ss123')}
+                className="p-2 rounded-xl bg-[#161B24] border border-[#202735] hover:border-blue-500/50 text-left text-slate-300 transition-colors"
+              >
+                <div className="font-semibold text-white">Finance</div>
+                <div className="text-[10px] text-slate-500">Billing & Overrides</div>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -10,6 +10,7 @@ import { QuotationApprovalPage } from './pages/QuotationApprovalPage';
 import { FulfillmentPage } from './pages/FulfillmentPage';
 import { BillingPage } from './pages/BillingPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
+import { ReportsPage } from './pages/ReportsPage';
 import { ProductsPage } from './pages/admin/ProductsPage';
 import { DiscountTiersPage } from './pages/admin/DiscountTiersPage';
 import { ApprovalChainsPage } from './pages/admin/ApprovalChainsPage';
@@ -57,7 +58,7 @@ export const appRoutes = {
         { path: 'fulfillment', element: <FulfillmentPage /> },
         { path: 'billing', element: <BillingPage /> },
         { path: 'analytics', element: <AnalyticsPage /> },
-        { path: 'reports', element: <Navigate to="/app/analytics" replace /> },
+        { path: 'reports', element: <ReportsPage /> },
         {
           path: 'admin',
           element: <AdminRoleGuard />,

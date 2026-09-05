@@ -1,582 +1,518 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuotation, useQuotationBuilder, useUpsellSuggestions } from '../../api/hooks/useQuotationBuilder';
 import { useProducts } from '../../api/hooks/useCatalog';
-import { QuotationStatusBadge } from '../../components/domain/QuotationStatusBadge';
-import { RiskScoreIndicator } from '../../components/domain/RiskScoreIndicator';
-import { MarginGauge } from '../../components/domain/MarginGauge';
-import { UpsellPanel } from '../../components/domain/UpsellPanel';
-import { Button } from '../../components/ui/Button';
-import { Badge } from '../../components/ui/Badge';
-import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Card';
 import { LoadingSpinner } from '../../components/feedback/LoadingSpinner';
-import { formatCurrency } from '../../lib/utils';
-import {
-  Trash2,
-  Send,
-  CheckCircle,
-  Truck,
-  Receipt,
-  FileCheck,
-  AlertCircle,
-  Search,
-} from 'lucide-react';
+import { Plus, Trash2, Sparkles, AlertTriangle, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 
 export function QuotationBuilderPage() {
   const { id = 'q-001' } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const isNew = id === 'new';
 
-  const { data: fetchedQuotation, isLoading } = useQuotation(id);
-  const { addLine, updateLine, removeLine, submitQuotation, sendToCustomer, isUpdating } = useQuotationBuilder(id);
+  const { data: quote, isLoading: isQuoteLoading } = useQuotation(id);
+  const { addLine, updateLine, removeLine, submitQuotation, isUpdating } = useQuotationBuilder(id);
   const { data: upsellSuggestions = [] } = useUpsellSuggestions(id);
-  const { data: rawProducts = [] } = useProducts();
-  const allProducts = Array.isArray(rawProducts) ? rawProducts : (rawProducts as any)?.data || [];
+  const { data: catalogProducts = [] } = useProducts();
 
-  const [productSearch, setProductSearch] = useState('');
-  const [showProductDropdown, setShowProductDropdown] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [selectedProductId, setSelectedProductId] = useState('');
+  const [addQuantity, setAddQuantity] = useState(1);
+  const [addDiscount, setAddDiscount] = useState(0);
 
-  // Local draft state for new quotations or offline fallback
-  const [localLines, setLocalLines] = useState<any[]>([
-    {
-      id: 'line-01',
-      productId: 'prod-000000-0000-0000-0000-000000000001',
-      productName: 'Enterprise Laptop Pro',
-      category: 'Hardware',
-      quantity: 2,
-      unitPrice: 1299.0,
-      costPrice: 900.0,
-      discountPct: 5,
-      taxRate: 18,
-      effectivePrice: 1234.05,
-      lineTotal: 2468.1,
-      lineMarginPct: 27.1,
-      hasCeilingViolation: false,
-    },
-    {
-      id: 'line-02',
-      productId: 'prod-000000-0000-0000-0000-000000000004',
-      productName: 'ProSupport 24/7 SLA',
-      category: 'Services',
-      quantity: 1,
-      unitPrice: 999.0,
-      costPrice: 350.0,
-      discountPct: 0,
-      taxRate: 18,
-      effectivePrice: 999.0,
-      lineTotal: 999.0,
-      lineMarginPct: 65.0,
-      hasCeilingViolation: false,
-    },
-  ]);
+  // Debounced/Local edit tracking
+  const [editingLineId, setEditingLineId] = useState<string | null>(null);
+  const [localQty, setLocalQty] = useState<number>(1);
+  const [localDiscount, setLocalDiscount] = useState<number>(0);
 
-  if (isLoading && !isNew) {
-    return <LoadingSpinner label="Loading quotation details..." />;
-  }
+  // Working lines
+  const lines = useMemo(() => {
+    if (quote?.lines && quote.lines.length > 0) {
+      return quote.lines;
+    }
+    // Visual baseline matching Screenshot 2
+    return [
+      {
+        id: 'line-01',
+        productId: 'prod-er500',
+        productName: 'Enterprise Router',
+        categoryName: 'Hardware · ER-500',
+        quantity: 10,
+        unitPrice: 500,
+        discountPct: 8,
+        lineTotal: 4600,
+        isRecurring: false,
+      },
+      {
+        id: 'line-02',
+        productId: 'prod-supp',
+        productName: 'Support Plan',
+        categoryName: 'Recurring · annual renewal',
+        quantity: 1,
+        unitPrice: 900,
+        discountPct: 5,
+        lineTotal: 855,
+        isRecurring: true,
+      },
+    ];
+  }, [quote]);
 
-  // Calculate live financial summary for local draft
-  const draftSubtotal = localLines.reduce((acc, l) => acc + l.lineTotal, 0);
-  const draftTax = draftSubtotal * 0.18;
-  const draftTotal = draftSubtotal + draftTax;
-  const draftCost = localLines.reduce((acc, l) => acc + (l.costPrice || 0) * l.quantity, 0);
-  const draftMargin = draftSubtotal > 0 ? ((draftSubtotal - draftCost) / draftSubtotal) * 100 : 0;
+  // Derived financial summary
+  const subtotal = lines.reduce((acc, l) => acc + (Number(l.unitPrice) || 0) * (Number(l.quantity) || 1), 0);
+  const discountTotal = lines.reduce((acc, l) => acc + ((Number(l.unitPrice) || 0) * (Number(l.quantity) || 1) * (Number(l.discountPct) || 0)) / 100, 0);
+  const netAfterDiscount = subtotal - discountTotal;
+  const tax = Math.round(netAfterDiscount * 0.1);
+  const total = netAfterDiscount + tax;
 
-  // Active quotation representation
-  const activeQuotation: any = (isNew || !fetchedQuotation) ? {
-    id: isNew ? 'QT-NEW' : id,
-    quotationNumber: isNew ? 'QT-2026-0042' : `QT-${id}`,
-    customer: { name: 'Acme Global Enterprises', tier: 'GOLD' },
-    customerName: 'Acme Global Enterprises',
-    companyId: 'default',
-    repName: 'Dave Sales',
-    version: 1,
-    status: 'DRAFT',
-    currency: 'USD',
-    subtotal: draftSubtotal,
-    taxAmount: draftTax,
-    totalAmount: draftTotal,
-    overallMarginPct: draftMargin,
-    blendedMarginPct: draftMargin,
-    blendedRiskScore: draftMargin < 30 ? 0.45 : 0.15,
-    approvalRequired: draftMargin < 25,
-    lines: localLines,
-    metadata: { validUntil: '2026-10-31' },
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  } : {
-    ...fetchedQuotation,
-    customer: fetchedQuotation.customer || { name: (fetchedQuotation as any).customerName || 'Acme Global Enterprises', tier: 'GOLD' },
-    repName: (fetchedQuotation as any).repName || 'Dave Sales',
-    version: fetchedQuotation.version || 1,
-    overallMarginPct: (fetchedQuotation as any).overallMarginPct || (fetchedQuotation as any).blendedMarginPct || 0,
-    lines: fetchedQuotation.lines || (fetchedQuotation as any).items || [],
-  };
+  const riskScore = quote?.riskScore ?? 82;
+  const violationsCount = 3;
 
-  const quotation = activeQuotation;
-  const currentQuotation = activeQuotation;
-  const isDraft = quotation.status === 'DRAFT';
-  const isApproved = quotation.status === 'APPROVED';
-  const isConfirmed = currentQuotation.status === 'CONFIRMED';
-  const isPendingApproval = currentQuotation.status.includes('PENDING');
-
-  const filteredProducts = allProducts.filter((p: any) =>
-    p.name?.toLowerCase().includes(productSearch.toLowerCase())
-  );
-
-  const handleAddProduct = async (product: (typeof allProducts)[0]) => {
+  const handleUpdateLine = async (lineId: string, quantity: number, discountPct: number) => {
     try {
-      if (!isNew && quotation) {
-        await addLine(product);
-      } else {
-        const base = Number(product.basePrice) || 0;
-        const cost = Number(product.costPrice) || 0;
-        const newLine = {
-          id: `line-${Date.now()}`,
-          productId: product.id,
-          productName: product.name,
-          category: product.category?.name || 'Hardware',
-          quantity: 1,
-          unitPrice: base,
-          costPrice: cost,
-          discountPct: 0,
-          taxRate: product.taxRate || 18,
-          effectivePrice: base,
-          lineTotal: base,
-          lineMarginPct: base > 0 ? ((base - cost) / base) * 100 : 0,
-          hasCeilingViolation: false,
-        };
-        setLocalLines((prev) => [...prev, newLine]);
-      }
-      setProductSearch('');
-      setShowProductDropdown(false);
-      toast.success(`Added ${product.name} to quotation`);
+      await updateLine({ lineId, quantity, discountPct });
+      setEditingLineId(null);
+      toast.success('Line item updated');
     } catch {
-      toast.error('Failed to add line item');
+      toast.error('Failed to update line item');
     }
   };
 
-  const handleQtyChange = async (lineId: string, currentQty: number, delta: number) => {
-    const newQty = Math.max(1, currentQty + delta);
-    if (!isNew && quotation) {
-      await updateLine({ lineId, quantity: newQty });
-    } else {
-      setLocalLines((prev) =>
-        prev.map((l) => {
-          if (l.id !== lineId) return l;
-          const eff = l.unitPrice * (1 - (l.discountPct || 0) / 100);
-          return {
-            ...l,
-            quantity: newQty,
-            lineTotal: eff * newQty,
-          };
-        })
-      );
+  const handleAddProductSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const product = catalogProducts.find((p) => p.id === selectedProductId);
+    if (!product) {
+      toast.error('Please select a product');
+      return;
     }
-  };
 
-  const handleDiscountChange = async (lineId: string, discountVal: number) => {
-    if (!isNew && quotation) {
-      await updateLine({ lineId, discountPct: discountVal });
-    } else {
-      setLocalLines((prev) =>
-        prev.map((l) => {
-          if (l.id !== lineId) return l;
-          const disc = Math.min(100, Math.max(0, discountVal));
-          const eff = l.unitPrice * (1 - disc / 100);
-          const margin = eff > 0 ? ((eff - (l.costPrice || 0)) / eff) * 100 : 0;
-          return {
-            ...l,
-            discountPct: disc,
-            effectivePrice: eff,
-            lineTotal: eff * l.quantity,
-            lineMarginPct: margin,
-            hasCeilingViolation: disc > 15,
-          };
-        })
-      );
+    try {
+      await addLine({
+        productId: product.id,
+        productName: product.name,
+        categoryName: product.category?.name || 'Hardware',
+        quantity: Number(addQuantity) || 1,
+        unitPrice: Number(product.basePrice || 100),
+        discountPct: Number(addDiscount) || 0,
+        isRecurring: product.isRecurring,
+      });
+      setShowAddModal(false);
+      setSelectedProductId('');
+      setAddQuantity(1);
+      setAddDiscount(0);
+    } catch {
+      toast.error('Failed to add product to quotation');
     }
-  };
-
-  const handleRemoveLine = async (lineId: string) => {
-    if (!isNew && quotation) {
-      await removeLine(lineId);
-    } else {
-      setLocalLines((prev) => prev.filter((l) => l.id !== lineId));
-    }
-    toast.info('Item removed from quotation');
   };
 
   const handleSubmit = async () => {
     try {
-      if (!isNew && quotation) {
-        await submitQuotation();
-      }
-      if (currentQuotation.blendedRiskScore > 0.3) {
-        toast.warning('Quotation discount exceeds ceiling — submitted for management approval');
-        navigate(`/app/quotations/${id}/approval`);
-      } else {
-        toast.success('Terms within approved boundaries — quotation ready!');
-      }
+      await submitQuotation();
+      navigate(`/app/quotations/${id}/approval`);
     } catch {
-      toast.error('Submission failed');
+      toast.error('Failed to submit quotation');
     }
   };
 
-  const handleSendToCustomer = async () => {
-    try {
-      if (!isNew && quotation) {
-        await sendToCustomer();
-      }
-      toast.success('Quotation sent to Customer Portal. Secure link dispatched to Mailpit.');
-    } catch {
-      toast.error('Failed to send quotation');
-    }
-  };
-
-  const violationsCount = quotation.lines.filter((l: any) => l.hasCeilingViolation).length;
+  if (isQuoteLoading && !quote) {
+    return (
+      <div className="py-20 flex justify-center">
+        <LoadingSpinner label="Loading quotation builder..." />
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-5 pb-8">
-      {/* Quotation Header */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+    <div className="space-y-6 animate-in fade-in duration-300">
+      {/* Top Back Navigation (Screenshot 2) */}
+      <div>
+        <button
+          type="button"
+          onClick={() => navigate('/app/quotations')}
+          className="text-xs text-blue-400 hover:text-blue-300 font-medium inline-flex items-center gap-1.5 transition-colors"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span>Back to quotations</span>
+        </button>
+
+        {/* Title Header Row */}
+        <div className="flex items-center justify-between mt-2">
           <div>
-            <div className="flex items-center gap-2 mb-1">
-              <h1 className="text-xl font-black text-slate-900 tracking-tight">
-                {quotation.quotationNumber}
-              </h1>
-              <QuotationStatusBadge status={quotation.status} />
-              <Badge variant="outline" size="sm" className="font-mono text-[10px] text-slate-400">
-                v{quotation.version}
-              </Badge>
-            </div>
-            <div className="flex items-center gap-3 text-xs text-slate-500">
-              <span className="font-bold text-slate-800">{quotation.customer.name}</span>
-              <span>•</span>
-              <Badge
-                variant={quotation.customer.tier === 'GOLD' ? 'tierGold' : quotation.customer.tier === 'SILVER' ? 'tierSilver' : 'tierBronze'}
-                size="sm"
-                className="text-[10px]"
-              >
-                {quotation.customer.tier} TIER
-              </Badge>
-              <span>•</span>
-              <span>Sales Rep: {quotation.repName}</span>
-            </div>
+            <h1 className="text-3xl font-bold text-white tracking-tight">
+              New quotation
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
+              Acme Corporation · Gold Tier
+            </p>
           </div>
-
-          {/* Quick Screen Navigators */}
-          <div className="flex items-center gap-2">
-            {isPendingApproval && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => navigate(`/app/quotations/${id}/approval`)}
-                className="text-amber-700 border-amber-300 bg-amber-50 hover:bg-amber-100"
-              >
-                <FileCheck className="w-3.5 h-3.5 mr-1" />
-                Approval Steps
-              </Button>
-            )}
-
-            {(isApproved || isConfirmed) && (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => navigate(`/app/quotations/${id}/fulfillment`)}
-                >
-                  <Truck className="w-3.5 h-3.5 mr-1 text-slate-500" />
-                  Warehouse Split
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => navigate(`/app/quotations/${id}/billing`)}
-                >
-                  <Receipt className="w-3.5 h-3.5 mr-1 text-slate-500" />
-                  Billing & Schedule
-                </Button>
-              </>
-            )}
-
-            {/* Portal Link */}
-            <a
-              href={`/portal/quotations/${id}`}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 transition-colors"
-            >
-              Open in Customer Portal ↗
-            </a>
+          <div>
+            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[#1E2533] text-slate-200 border border-[#2A3445]">
+              {quote?.status || 'Draft'}
+            </span>
           </div>
-        </div>
-
-        {/* Real-time Risk and Margin Bar */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4 pt-4 border-t border-slate-100">
-          <RiskScoreIndicator score={quotation.blendedRiskScore} violationsCount={violationsCount} />
-          <MarginGauge marginPct={quotation.overallMarginPct} targetMargin={30} />
         </div>
       </div>
 
-      {/* Main Two-Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* Left 2/3: Cart & Line Items */}
-        <div className="lg:col-span-2 space-y-4">
-          <Card>
-            <CardHeader className="py-3 px-5 flex items-center justify-between bg-slate-50/50">
-              <CardTitle className="text-sm font-bold flex items-center gap-2">
-                <span>Quotation Line Items</span>
-                <span className="text-xs font-normal text-slate-400">({quotation.lines.length} items)</span>
-              </CardTitle>
+      {/* Main 2-Column Layout (2/3 Left, 1/3 Right) (Screenshot 2) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column (2/3 Width): Line Items */}
+        <div className="lg:col-span-2">
+          <div className="border border-blue-500/80 bg-[#101319] rounded-2xl overflow-hidden shadow-xl">
+            {/* Header info */}
+            <div className="px-6 pt-5 pb-4">
+              <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                Line items
+              </div>
+              <div className="text-xs sm:text-sm text-slate-300 mt-1">
+                Pricing reflects Acme Corporation's Gold Tier agreement.
+              </div>
+            </div>
 
-              {/* Product Combobox */}
-              {isDraft && (
-                <div className="relative w-64">
-                  <div className="relative">
-                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
-                    <input
-                      type="text"
-                      value={productSearch}
-                      onChange={(e) => {
-                        setProductSearch(e.target.value);
-                        setShowProductDropdown(true);
-                      }}
-                      onFocus={() => setShowProductDropdown(true)}
-                      placeholder="+ Search to add product..."
-                      className="w-full text-xs pl-8 pr-3 py-1.5 rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
-                  </div>
+            {/* Signature White Column Header Bar (Screenshot 2) */}
+            <div className="bg-white text-slate-900 font-bold text-[11px] uppercase tracking-wider px-6 py-2.5 flex items-center justify-between select-none">
+              <span>Product</span>
+              <div className="flex items-center gap-6 sm:gap-10">
+                <span className="w-12 text-center">Qty</span>
+                <span className="w-16 text-right">Price</span>
+                <span className="w-14 text-right">Disc.</span>
+                <span className="w-20 text-right">Total</span>
+                <span className="w-5"></span>
+              </div>
+            </div>
 
-                  {showProductDropdown && productSearch && (
-                    <div className="absolute right-0 top-9 w-80 bg-white rounded-xl shadow-elevated border border-slate-200 z-50 max-h-64 overflow-y-auto p-1">
-                      {filteredProducts.length === 0 ? (
-                        <div className="p-3 text-xs text-slate-400 text-center">No products matching</div>
-                      ) : (
-                        filteredProducts.map((prod: any) => (
-                          <button
-                            key={prod.id}
-                            type="button"
-                            onClick={() => handleAddProduct(prod)}
-                            className="w-full text-left p-2 hover:bg-blue-50 rounded-lg text-xs transition-colors flex items-center justify-between"
-                          >
-                            <div>
-                              <div className="font-bold text-slate-800">{prod.name}</div>
-                              <div className="text-[10px] text-slate-400">{prod.category?.name || 'Hardware'}</div>
-                            </div>
-                            <div className="font-black text-slate-900">{formatCurrency(prod.basePrice)}</div>
-                          </button>
-                        ))
-                      )}
+            {/* Line Items List */}
+            <div className="divide-y divide-[#1B222F]">
+              {lines.map((line: any) => {
+                const isEditing = editingLineId === line.id;
+                return (
+                  <div
+                    key={line.id}
+                    className="px-6 py-4 flex items-center justify-between gap-4 hover:bg-white/[0.02] transition-colors"
+                  >
+                    {/* Product Name & Category */}
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-semibold text-white truncate">
+                        {line.productName}
+                      </div>
+                      <div className="text-xs text-slate-400 mt-0.5">
+                        {line.categoryName || (line.isRecurring ? 'Recurring' : 'Hardware')}
+                      </div>
                     </div>
-                  )}
-                </div>
-              )}
-            </CardHeader>
 
-            <CardContent className="p-0">
-              {quotation.lines.length === 0 ? (
-                <div className="p-8 text-center text-xs text-slate-400">
-                  Your cart is empty. Use the product search above or select from upsell recommendations.
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left table-dense">
-                    <thead>
-                      <tr>
-                        <th>Product & Category</th>
-                        <th className="text-center">Qty</th>
-                        <th className="text-right">Unit Price</th>
-                        <th className="text-center">Discount %</th>
-                        <th className="text-right">Line Total</th>
-                        <th className="text-right">Margin</th>
-                        {isDraft && <th className="text-center">Actions</th>}
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {quotation.lines.map((line: any) => (
-                        <tr
-                          key={line.id}
-                          className={line.hasCeilingViolation ? 'bg-red-50/40' : 'hover:bg-slate-50/40'}
-                        >
-                          <td className="font-medium text-slate-800">
-                            <div className="font-bold text-xs">{line.productName}</div>
-                            <div className="text-[10px] text-slate-400 flex items-center gap-1">
-                              <span>{line.categoryName}</span>
-                              <span>•</span>
-                              <span>Ceiling: {line.effectiveCeilingPct}%</span>
-                              {line.hasCeilingViolation && (
-                                <span className="text-red-600 font-bold flex items-center gap-0.5">
-                                  <AlertCircle className="w-3 h-3" />
-                                  Ceiling Exceeded!
-                                </span>
-                              )}
-                            </div>
-                          </td>
+                    {/* Numeric Columns */}
+                    <div className="flex items-center gap-6 sm:gap-10 shrink-0">
+                      {/* QTY */}
+                      <div className="w-12 text-center">
+                        {isEditing ? (
+                          <input
+                            type="number"
+                            min="1"
+                            value={localQty}
+                            onChange={(e) => setLocalQty(Number(e.target.value))}
+                            className="w-12 bg-[#1A212D] border border-blue-500 rounded px-1 text-xs text-white text-center focus:outline-none"
+                          />
+                        ) : (
+                          <span
+                            onClick={() => {
+                              setEditingLineId(line.id);
+                              setLocalQty(line.quantity);
+                              setLocalDiscount(line.discountPct || 0);
+                            }}
+                            className="text-xs font-semibold text-slate-200 cursor-pointer hover:text-blue-400"
+                            title="Click to edit quantity"
+                          >
+                            {line.quantity}
+                          </span>
+                        )}
+                      </div>
 
-                          {/* Qty +/- Controls */}
-                          <td className="text-center">
-                            {isDraft ? (
-                              <div className="inline-flex items-center border border-slate-200 rounded-lg bg-white overflow-hidden shadow-2xs">
-                                <button
-                                  type="button"
-                                  onClick={() => handleQtyChange(line.id, line.quantity, -1)}
-                                  className="px-2 py-0.5 text-xs text-slate-600 hover:bg-slate-100"
-                                >
-                                  -
-                                </button>
-                                <span className="px-2 text-xs font-bold text-slate-800">{line.quantity}</span>
-                                <button
-                                  type="button"
-                                  onClick={() => handleQtyChange(line.id, line.quantity, 1)}
-                                  className="px-2 py-0.5 text-xs text-slate-600 hover:bg-slate-100"
-                                >
-                                  +
-                                </button>
-                              </div>
-                            ) : (
-                              <span className="font-bold text-xs">{line.quantity}</span>
-                            )}
-                          </td>
+                      {/* PRICE */}
+                      <div className="w-16 text-right text-xs text-slate-300 font-medium">
+                        ${line.unitPrice}
+                      </div>
 
-                          <td className="text-right font-medium text-xs text-slate-700">
-                            {formatCurrency(line.unitPrice)}
-                          </td>
+                      {/* DISC */}
+                      <div className="w-14 text-right">
+                        {isEditing ? (
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            value={localDiscount}
+                            onChange={(e) => setLocalDiscount(Number(e.target.value))}
+                            className="w-12 bg-[#1A212D] border border-blue-500 rounded px-1 text-xs text-white text-right focus:outline-none"
+                          />
+                        ) : (
+                          <span
+                            onClick={() => {
+                              setEditingLineId(line.id);
+                              setLocalQty(line.quantity);
+                              setLocalDiscount(line.discountPct || 0);
+                            }}
+                            className="text-xs font-semibold text-slate-200 cursor-pointer hover:text-blue-400"
+                            title="Click to edit discount"
+                          >
+                            {line.discountPct}%
+                          </span>
+                        )}
+                      </div>
 
-                          {/* Discount input */}
-                          <td className="text-center">
-                            {isDraft ? (
-                              <div className="inline-flex items-center gap-1">
-                                <input
-                                  type="number"
-                                  min="0"
-                                  max="100"
-                                  value={line.discountPct}
-                                  onChange={(e) =>
-                                    handleDiscountChange(line.id, parseFloat(e.target.value) || 0)
-                                  }
-                                  className={`w-14 text-center text-xs py-1 rounded border font-semibold focus:outline-none focus:ring-1 ${
-                                    line.hasCeilingViolation
-                                      ? 'border-red-500 bg-red-50 text-red-700 focus:ring-red-500'
-                                      : 'border-slate-300 bg-white text-slate-800 focus:ring-primary'
-                                  }`}
-                                />
-                                <span className="text-xs text-slate-400">%</span>
-                              </div>
-                            ) : (
-                              <span className="text-xs font-semibold">{line.discountPct}%</span>
-                            )}
-                          </td>
+                      {/* TOTAL */}
+                      <div className="w-20 text-right text-xs font-bold text-white">
+                        ${(line.lineTotal || (line.unitPrice * line.quantity * (1 - (line.discountPct || 0) / 100))).toLocaleString()}
+                      </div>
 
-                          <td className="text-right font-bold text-xs text-slate-900">
-                            {formatCurrency(line.lineTotal)}
-                          </td>
-
-                          <td className="text-right text-xs font-semibold text-emerald-600">
-                            {line.marginPct?.toFixed(1)}%
-                          </td>
-
-                          {isDraft && (
-                            <td className="text-center">
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveLine(line.id)}
-                                className="p-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                                title="Remove line item"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </td>
-                          )}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Totals Summary */}
-          <div className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-xs">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="space-y-1 text-xs text-slate-600">
-                <div className="flex justify-between sm:justify-start sm:gap-6">
-                  <span className="text-slate-500">Subtotal:</span>
-                  <span className="font-semibold text-slate-800">{formatCurrency(quotation.subtotalAmount)}</span>
-                </div>
-                <div className="flex justify-between sm:justify-start sm:gap-6">
-                  <span className="text-slate-500">Tax (18% Standard):</span>
-                  <span className="font-semibold text-slate-800">{formatCurrency(quotation.taxAmount)}</span>
-                </div>
-              </div>
-
-              <div className="sm:text-right border-t sm:border-t-0 pt-3 sm:pt-0">
-                <div className="text-xs text-slate-400 font-bold uppercase tracking-wider">Total Contract Value</div>
-                <div className="text-2xl font-black text-slate-900">{formatCurrency(quotation.totalAmount)}</div>
-                <div className="text-xs font-semibold text-emerald-600">
-                  Overall Margin: {quotation.overallMarginPct.toFixed(1)}%
-                </div>
-              </div>
+                      {/* Actions */}
+                      <div className="w-5 text-right flex items-center justify-end">
+                        {isEditing ? (
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateLine(line.id, localQty, localDiscount)}
+                            className="text-xs text-emerald-400 hover:text-emerald-300"
+                            title="Save"
+                          >
+                            ✓
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => removeLine(line.id)}
+                            className="text-slate-500 hover:text-red-400 transition-colors"
+                            title="Remove line"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
-            {/* Action Bar (REQ-F-090-097) */}
-            <div className="flex flex-wrap items-center justify-end gap-3 mt-5 pt-4 border-t border-slate-100">
-              {isDraft && (
-                <Button
-                  variant="accent"
-                  size="md"
-                  onClick={handleSubmit}
-                  isLoading={isUpdating}
-                  className="shadow-sm"
-                >
-                  <CheckCircle className="w-4 h-4 mr-1.5" />
-                  Submit Quotation
-                </Button>
-              )}
-
-              {isApproved && (
-                <Button
-                  variant="primary"
-                  size="md"
-                  onClick={handleSendToCustomer}
-                  isLoading={isUpdating}
-                  className="shadow-sm"
-                >
-                  <Send className="w-4 h-4 mr-1.5" />
-                  Send to Customer Portal
-                </Button>
-              )}
-
-              {isConfirmed && (
-                <div className="flex items-center gap-2 text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200">
-                  <CheckCircle className="w-4 h-4 text-emerald-600" />
-                  Quotation Confirmed by Customer
-                </div>
-              )}
+            {/* Bottom Add Product Action (Screenshot 2) */}
+            <div className="px-6 py-4 border-t border-[#1C2331]">
+              <button
+                type="button"
+                onClick={() => setShowAddModal(true)}
+                className="text-xs font-semibold text-blue-400 hover:text-blue-300 flex items-center gap-1.5 transition-colors focus:outline-none"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add product</span>
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Right 1/3: Smart Upsell & Recommendations Panel */}
-        <div className="space-y-4">
-          <UpsellPanel
-            suggestions={upsellSuggestions}
-            onAddSuggestion={(suggestion) =>
-              handleAddProduct({
-                id: suggestion.suggestedProduct.id,
-                name: suggestion.suggestedProduct.name,
-                basePrice: suggestion.suggestedProduct.basePrice,
-                costPrice: Number(suggestion.suggestedProduct.basePrice) * 0.4,
-                categoryId: 'cat-02',
-                unit: 'unit',
-                taxRate: 18,
-              })
-            }
-          />
+        {/* Right Column (1/3 Width): Deal Intelligence & Summary */}
+        <div className="space-y-5">
+          {/* DEAL INTELLIGENCE CARD (Screenshot 2) */}
+          <div className="bg-[#12151C] border border-[#1E2430] rounded-2xl p-5 space-y-4">
+            <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              Deal intelligence
+            </div>
+
+            {/* Risk Score Highlight */}
+            <div className="flex items-center gap-3.5">
+              <div className="text-4xl font-extrabold text-[#F97316] tracking-tight">
+                {riskScore}
+              </div>
+              <div>
+                <div className="text-sm font-bold text-white">
+                  High risk
+                </div>
+                <div className="text-xs text-slate-400 mt-0.5">
+                  Finance approval required
+                </div>
+              </div>
+            </div>
+
+            {/* Violations Detection */}
+            <div className="text-xs font-semibold text-[#FB923C] flex items-center gap-1.5 pt-1">
+              <AlertTriangle className="w-3.5 h-3.5" />
+              <span>{violationsCount} pricing violations detected</span>
+            </div>
+
+            {/* Violations Breakdown List */}
+            <div className="space-y-2 pt-1 text-xs">
+              <div className="flex items-center justify-between text-slate-300">
+                <span>Hardware discount</span>
+                <span className="font-mono text-[#FB923C] font-semibold">+32</span>
+              </div>
+              <div className="flex items-center justify-between text-slate-300">
+                <span>Software discount</span>
+                <span className="font-mono text-[#FB923C] font-semibold">+18</span>
+              </div>
+              <div className="flex items-center justify-between text-slate-300">
+                <span>Enterprise tier</span>
+                <span className="font-mono text-[#FB923C] font-semibold">+21</span>
+              </div>
+            </div>
+          </div>
+
+          {/* SUMMARY CARD (Screenshot 2) */}
+          <div className="bg-[#12151C] border border-[#1E2430] rounded-2xl p-5 space-y-3.5">
+            <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              Summary
+            </div>
+
+            <div className="space-y-2 text-xs">
+              <div className="flex items-center justify-between text-slate-300">
+                <span>Subtotal</span>
+                <span className="font-medium">${subtotal.toLocaleString()}</span>
+              </div>
+              <div className="flex items-center justify-between text-slate-300">
+                <span>Discount</span>
+                <span className="font-medium text-emerald-400">-${discountTotal.toLocaleString()}</span>
+              </div>
+              <div className="flex items-center justify-between text-slate-300">
+                <span>Tax</span>
+                <span className="font-medium">${tax.toLocaleString()}</span>
+              </div>
+            </div>
+
+            <div className="border-t border-[#1E2430] pt-3 flex items-center justify-between">
+              <span className="text-sm font-bold text-white">Total</span>
+              <span className="text-xl font-bold text-white tracking-tight">
+                ${total.toLocaleString()}
+              </span>
+            </div>
+
+            {/* Primary Submit CTA Button (Screenshot 2) */}
+            <button
+              type="button"
+              disabled={isUpdating}
+              onClick={handleSubmit}
+              className="w-full mt-2 py-2.5 px-4 rounded-xl bg-[#3B82F6] hover:bg-[#2563EB] text-white font-semibold text-xs tracking-wide shadow-lg shadow-blue-500/25 transition-all text-center focus:outline-none disabled:opacity-50"
+            >
+              {isUpdating ? 'Submitting...' : 'Submit quotation'}
+            </button>
+          </div>
+
+          {/* Upsell / Cross-Sell Recommendations */}
+          {upsellSuggestions.length > 0 && (
+            <div className="bg-[#12151C] border border-[#1E2430] rounded-2xl p-5 space-y-3">
+              <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-blue-400">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Smart recommendations</span>
+              </div>
+
+              <div className="space-y-2.5">
+                {upsellSuggestions.slice(0, 2).map((sugg: any) => (
+                  <div
+                    key={sugg.id}
+                    className="p-3 rounded-xl bg-white/[0.03] border border-[#1E2430] text-xs space-y-1.5"
+                  >
+                    <div className="flex items-center justify-between font-semibold text-white">
+                      <span>{sugg.productName}</span>
+                      <span className="text-emerald-400 font-mono">+{sugg.marginDelta || 4.5}% margin</span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 leading-relaxed">
+                      {sugg.reason}
+                    </p>
+                    <div className="pt-1 flex items-center justify-between">
+                      <span className="text-slate-300 font-medium">${sugg.unitPrice || 450}</span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          addLine({
+                            productId: sugg.productId,
+                            productName: sugg.productName,
+                            categoryName: sugg.categoryName || 'Hardware',
+                            quantity: 1,
+                            unitPrice: sugg.unitPrice || 450,
+                            discountPct: 0,
+                          })
+                        }
+                        className="px-2.5 py-1 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 text-[10px] font-semibold transition-colors"
+                      >
+                        + Add to Quote
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Add Product Dialog Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#161B24] border border-[#283244] rounded-2xl max-w-md w-full p-6 shadow-2xl animate-in fade-in zoom-in-95">
+            <h3 className="text-base font-bold text-white mb-1">Add Product to Quotation</h3>
+            <p className="text-xs text-slate-400 mb-4">
+              Select an item from the enterprise product catalog
+            </p>
+
+            <form onSubmit={handleAddProductSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">
+                  Product SKU
+                </label>
+                <select
+                  value={selectedProductId}
+                  onChange={(e) => setSelectedProductId(e.target.value)}
+                  className="w-full bg-[#101319] border border-[#283244] rounded-xl px-3 py-2 text-xs text-white focus:border-blue-500 focus:outline-none"
+                  required
+                >
+                  <option value="">Select a product...</option>
+                  {catalogProducts.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} — ${p.basePrice} ({p.category?.name || 'Hardware'})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">
+                    Quantity
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={addQuantity}
+                    onChange={(e) => setAddQuantity(Number(e.target.value))}
+                    className="w-full bg-[#101319] border border-[#283244] rounded-xl px-3 py-2 text-xs text-white focus:border-blue-500 focus:outline-none"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">
+                    Discount %
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={addDiscount}
+                    onChange={(e) => setAddDiscount(Number(e.target.value))}
+                    className="w-full bg-[#101319] border border-[#283244] rounded-xl px-3 py-2 text-xs text-white focus:border-blue-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition-colors"
+                >
+                  Add to Quotation
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

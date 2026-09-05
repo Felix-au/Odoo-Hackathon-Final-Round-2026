@@ -1,72 +1,28 @@
-import { Outlet, useNavigate } from 'react-router-dom';
-import { usePortalAuthStore } from '../../stores/portal-auth.store';
-import { Button } from '../../components/ui/Button';
-import { ShieldCheck, LogOut } from 'lucide-react';
+import { Outlet } from 'react-router-dom';
 
 export function PortalShell() {
-  const navigate = useNavigate();
-  const { customer, logout } = usePortalAuthStore();
-
-  const handleSignOut = async () => {
-    await logout();
-    navigate('/portal/auth/login');
-  };
-
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col selection:bg-blue-100 selection:text-blue-900">
-      {/* Customer Header — Strictly isolated, zero internal links (REQ-F-008, REQ-CON-003) */}
-      <header className="h-16 bg-white border-b border-slate-200/80 px-4 sm:px-8 flex items-center justify-between sticky top-0 z-30 shadow-2xs">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-primary to-blue-500 flex items-center justify-center text-white font-black text-sm shadow-xs">
-            360
+    <div className="min-h-screen bg-[#FBFBFC] text-slate-900 flex flex-col font-sans antialiased selection:bg-slate-900 selection:text-white">
+      {/* Editorial Proposal Header (Screenshot 3) */}
+      <header className="w-full max-w-4xl mx-auto px-6 py-6 flex items-center justify-between border-b border-slate-200/60">
+        <div className="flex items-center gap-2.5">
+          <div className="w-6 h-6 rounded-md bg-slate-900 flex items-center justify-center text-white text-xs font-black shadow-xs">
+            ◈
           </div>
-          <div>
-            <div className="text-sm font-black tracking-tight text-slate-900">
-              DealFlow<span className="text-primary">360</span>
-            </div>
-            <div className="text-[10px] text-slate-400 font-medium">Customer Review Portal</div>
-          </div>
+          <span className="text-sm font-bold tracking-tight text-slate-900">
+            DealFlow360
+          </span>
         </div>
 
-        {customer ? (
-          <div className="flex items-center gap-3">
-            <div className="text-right hidden sm:block">
-              <div className="text-xs font-bold text-slate-800">{customer.name || customer.email}</div>
-              <div className="text-[10px] text-emerald-600 font-semibold flex items-center justify-end gap-1">
-                <ShieldCheck className="w-3 h-3" />
-                Verified B2B Session
-              </div>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleSignOut}
-              className="text-xs text-slate-500 hover:text-red-600 h-8"
-              title="Sign out of customer portal"
-            >
-              <LogOut className="w-3.5 h-3.5 mr-1" />
-              <span className="hidden sm:inline">Sign Out</span>
-            </Button>
-          </div>
-        ) : (
-          <a
-            href="/portal/auth/login"
-            className="text-xs font-semibold text-primary hover:underline"
-          >
-            Customer Sign In
-          </a>
-        )}
+        <div className="text-xs text-slate-400 font-medium tracking-wide">
+          Secure proposal
+        </div>
       </header>
 
-      {/* Main portal content */}
-      <main className="flex-1 p-4 sm:p-8 max-w-5xl w-full mx-auto">
+      {/* Main Content Area */}
+      <main className="flex-1 w-full max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-12 flex items-center justify-center">
         <Outlet />
       </main>
-
-      {/* Footer */}
-      <footer className="py-6 border-t border-slate-200 text-center text-xs text-slate-400 bg-white">
-        DealFlow360 Secure Customer Portal • End-to-End Encrypted Session
-      </footer>
     </div>
   );
 }

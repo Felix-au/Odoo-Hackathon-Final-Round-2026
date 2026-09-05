@@ -65,11 +65,16 @@ export interface Quotation {
   status: QuotationStatus;
   currency: string;
   subtotalAmount: string | number;
+  subtotal?: string | number;
   taxAmount: string | number;
   totalAmount: string | number;
+  totalCost?: string | number;
   overallMarginPct: number;
   blendedRiskScore: number;
+  riskScore?: number;
+  riskLevel?: string;
   requiresApproval: boolean;
+  approvalLevelRequired?: string;
   validUntil: string;
   lines: QuotationLine[];
   approvalSteps?: ApprovalStep[];

@@ -51,6 +51,13 @@ const config: Config = {
           DEFAULT: '#16A34A',
           foreground: '#FFFFFF',
         },
+        dark: {
+          bg: '#0B0D11',
+          surface: '#12151C',
+          elevated: '#181D26',
+          border: '#222834',
+          borderSubtle: '#1A202C',
+        },
         warning: {
           DEFAULT: '#D97706',
           foreground: '#FFFFFF',

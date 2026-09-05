@@ -245,7 +245,7 @@ export function CatalogPage() {
 
           <div className="grid grid-cols-2 gap-3">
             <Input
-              label="Base Selling Price (₹) *"
+              label="Base Selling Price ($) *"
               type="number"
               step="0.01"
               value={basePrice}
@@ -254,7 +254,7 @@ export function CatalogPage() {
               required
             />
             <Input
-              label="Unit Cost Price (₹)"
+              label="Unit Cost Price ($)"
               type="number"
               step="0.01"
               value={costPrice}
