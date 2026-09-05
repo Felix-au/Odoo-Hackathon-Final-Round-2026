@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { usePortalQuotation } from '../../api/hooks/usePortalQuotation';
 import { LoadingSpinner } from '../../components/feedback/LoadingSpinner';
+import { formatCurrency } from '../../lib/utils';
 import { CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -61,7 +62,7 @@ export function QuotationPortalPage() {
       quantity: 10,
       unitPrice: 500,
       total: 5000,
-      subtext: '10 × $500',
+      subtext: '10 × ₹500',
     },
     {
       id: 'line-02',
@@ -69,7 +70,7 @@ export function QuotationPortalPage() {
       quantity: 1,
       unitPrice: 900,
       total: 900,
-      subtext: '1 × $900 · annual renewal',
+      subtext: '1 × ₹900 · annual renewal',
     },
   ];
 
@@ -111,28 +112,31 @@ export function QuotationPortalPage() {
 
         {/* Line Items List */}
         <div className="divide-y divide-slate-100">
-          {lines.map((item: any) => (
-            <div key={item.id} className="py-5 flex items-baseline justify-between gap-4">
-              <div>
-                <div className="text-sm sm:text-base font-semibold text-slate-900">
-                  {item.productName}
+          {lines.map((item: any) => {
+            const itemTotal = item.total || (item.unitPrice * item.quantity);
+            return (
+              <div key={item.id} className="py-5 flex items-baseline justify-between gap-4">
+                <div>
+                  <div className="text-sm sm:text-base font-semibold text-slate-900">
+                    {item.productName}
+                  </div>
+                  <div className="text-xs text-slate-500 mt-0.5 font-mono">
+                    {item.subtext || `${item.quantity} × ${formatCurrency(item.unitPrice)}`}
+                  </div>
                 </div>
-                <div className="text-xs text-slate-500 mt-0.5">
-                  {item.subtext || `${item.quantity} × $${item.unitPrice}`}
+                <div className="text-sm sm:text-base font-bold text-slate-900 shrink-0 font-mono">
+                  {formatCurrency(itemTotal)}
                 </div>
               </div>
-              <div className="text-sm sm:text-base font-bold text-slate-900 shrink-0">
-                ${(item.total || (item.unitPrice * item.quantity)).toLocaleString()}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Total Row */}
         <div className="pt-6 pb-6 border-t border-slate-100 flex items-center justify-between">
           <span className="text-base font-bold text-slate-900">Total</span>
-          <span className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
-            ${totalAmount.toLocaleString()}
+          <span className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight font-mono">
+            {formatCurrency(totalAmount)}
           </span>
         </div>
 
