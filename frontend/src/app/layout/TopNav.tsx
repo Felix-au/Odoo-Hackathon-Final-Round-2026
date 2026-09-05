@@ -65,7 +65,9 @@ export function TopNav() {
         .slice(0, 2)
         .join('')
         .toUpperCase()
-    : 'MP';
+    : user?.email
+    ? user.email.slice(0, 2).toUpperCase()
+    : 'DF';
 
   return (
     <div className="sticky top-3 z-40 w-full max-w-7xl mx-auto px-4 sm:px-6 mb-6">
@@ -279,7 +281,7 @@ export function TopNav() {
               <div className="absolute right-0 mt-2 w-56 bg-[#161B24] border border-[#262E3D] rounded-xl shadow-2xl py-2 z-50 animate-in fade-in zoom-in-95">
                 <div className="px-4 py-2 border-b border-[#262E3D]">
                   <p className="text-xs font-semibold text-white truncate">
-                    {user?.name || 'Madhab Rep'}
+                    {user?.name || (user?.email ? user.email.split('@')[0] : 'Account')}
                   </p>
                   <p className="text-[11px] text-slate-400 truncate">{user?.email}</p>
                   <div className="mt-1.5">
