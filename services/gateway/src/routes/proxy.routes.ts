@@ -43,7 +43,7 @@ export async function registerProxyRoutes(app: FastifyInstance): Promise<void> {
   await app.register(fastifyHttpProxy, {
     upstream: env.AUTH_SERVICE_URL,
     prefix: '/api/v1/auth',
-    rewritePrefix: '/api/v1/auth',
+    rewritePrefix: '/auth',
     preHandler: requestIdMiddleware,
     http2: false,
   });
@@ -51,7 +51,7 @@ export async function registerProxyRoutes(app: FastifyInstance): Promise<void> {
   await app.register(fastifyHttpProxy, {
     upstream: env.AUTH_SERVICE_URL,
     prefix: '/portal/v1/auth',
-    rewritePrefix: '/portal/v1/auth',
+    rewritePrefix: '/portal/auth',
     preHandler: requestIdMiddleware,
     http2: false,
   });
@@ -61,7 +61,7 @@ export async function registerProxyRoutes(app: FastifyInstance): Promise<void> {
   await app.register(fastifyHttpProxy, {
     upstream: env.CATALOG_SERVICE_URL,
     prefix: '/api/v1/catalog',
-    rewritePrefix: '/api/v1/catalog',
+    rewritePrefix: '/catalog',
     preHandler: jwtPipeline,
     http2: false,
   });
@@ -69,7 +69,7 @@ export async function registerProxyRoutes(app: FastifyInstance): Promise<void> {
   await app.register(fastifyHttpProxy, {
     upstream: env.QUOTATION_SERVICE_URL,
     prefix: '/api/v1/quotations',
-    rewritePrefix: '/api/v1/quotations',
+    rewritePrefix: '/quotations',
     preHandler: jwtPipeline,
     http2: false,
   });
@@ -77,7 +77,7 @@ export async function registerProxyRoutes(app: FastifyInstance): Promise<void> {
   await app.register(fastifyHttpProxy, {
     upstream: env.FULFILLMENT_SERVICE_URL,
     prefix: '/api/v1/fulfillment',
-    rewritePrefix: '/api/v1/fulfillment',
+    rewritePrefix: '/fulfillment',
     preHandler: jwtPipeline,
     http2: false,
   });
@@ -85,7 +85,7 @@ export async function registerProxyRoutes(app: FastifyInstance): Promise<void> {
   await app.register(fastifyHttpProxy, {
     upstream: env.BILLING_SERVICE_URL,
     prefix: '/api/v1/billing',
-    rewritePrefix: '/api/v1/billing',
+    rewritePrefix: '/billing',
     preHandler: jwtPipeline,
     http2: false,
   });
@@ -93,7 +93,7 @@ export async function registerProxyRoutes(app: FastifyInstance): Promise<void> {
   await app.register(fastifyHttpProxy, {
     upstream: env.ANALYTICS_SERVICE_URL,
     prefix: '/api/v1/analytics',
-    rewritePrefix: '/api/v1/analytics',
+    rewritePrefix: '/analytics',
     preHandler: jwtPipeline,
     http2: false,
   });
@@ -103,7 +103,7 @@ export async function registerProxyRoutes(app: FastifyInstance): Promise<void> {
   await app.register(fastifyHttpProxy, {
     upstream: env.QUOTATION_SERVICE_URL,
     prefix: '/portal/v1/quotations',
-    rewritePrefix: '/portal/v1/quotations',
+    rewritePrefix: '/portal/quotations',
     preHandler: portalPipeline,
     http2: false,
   });
@@ -111,7 +111,7 @@ export async function registerProxyRoutes(app: FastifyInstance): Promise<void> {
   await app.register(fastifyHttpProxy, {
     upstream: env.FULFILLMENT_SERVICE_URL,
     prefix: '/portal/v1/fulfillment',
-    rewritePrefix: '/portal/v1/fulfillment',
+    rewritePrefix: '/portal/fulfillment',
     preHandler: portalPipeline,
     http2: false,
   });
