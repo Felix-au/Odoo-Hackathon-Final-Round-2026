@@ -1,22 +1,87 @@
+// fulfillment-service/src/db/prisma/schema.prisma
+
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url      = env("FULFILLMENT_DATABASE_URL")
 }
 
 generator client {
   provider = "prisma-client-js"
 }
 
-model WarehouseStock {
-  id          String   @id @default(uuid())
-  warehouseId String   @map("warehouse_id")
-  productId   String   @map("product_id")
-  quantity    Int      @default(0)
-  reserved    Int      @default(0)
-  reorderPoint Int     @default(10) @map("reorder_point")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  @@unique([warehouseId, productId])
-  @@map("warehouse_stocks")
+enum FulfillmentStatus {
+  PENDING
+  RESERVED
+  PICKING
+  SHIPPED
+  DELIVERED
+  BACKORDERED
+  CANCELLED
 }
+
+// ─────────────────────────────────────────────
+// Stock
+// ─────────────────────────────────────────────
+
+model WarehouseStock {
+  id               String   @id @default(uuid())
+  companyId        String   @default("default")
+  warehouseId      String   // logical FK to catalog_db.WarehouseDefinition
+  warehouseName    String   // snapshot for display
+  productId        String   // logical FK to catalog_db.Product
+  variantId        String?
+  quantityOnHand   Int      @default(0)
+  quantityReserved Int      @default(0)
+  reorderPoint     Int      @default(10)
+  reorderQty       Int      @default(50)
+  updatedAt        DateTime @updatedAt
+
+  @@unique([companyId, warehouseId, productId, variantId])
+  @@index([companyId, warehouseId])
+  @@index([companyId, productId])
+}
+
+// ─────────────────────────────────────────────
+// Fulfillment Order
+// ─────────────────────────────────────────────
+
+model FulfillmentOrder {
+  id         String   @id @default(uuid())
+  companyId  String   @default("default")
+  orderId    String   // quotationId from quotation_db
+  customerId String
+  currency   String   @default("USD")
+  isOverride Boolean  @default(false) // true if rep manually overrode suggested split
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  splits FulfillmentSplit[]
+
+  @@index([companyId, orderId])
+}
+
+model FulfillmentSplit {
+  id                 String            @id @default(uuid())
+  fulfillmentOrderId String
+  warehouseId        String
+  warehouseName      String
+  productId          String
+  variantId          String?
+  productName        String
+  quantityRequested  Int
+  quantityFulfilled  Int               @default(0)
+  quantityBackordered Int              @default(0)
+  estimatedShipDate  DateTime?
+  status             FulfillmentStatus @default(PENDING)
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  fulfillmentOrder FulfillmentOrder @relation(fields: [fulfillmentOrderId], references: [id], onDelete: Cascade)
+
+  @@index([fulfillmentOrderId])
+  @@index([warehouseId, status])
+}
+
+// ─────────────────────────────────────────────
+// Backorder
+// ─────────────────────────────────────────────
