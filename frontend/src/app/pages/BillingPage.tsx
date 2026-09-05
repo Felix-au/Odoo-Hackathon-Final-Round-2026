@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useBilling, useRecordPayment, useProrationPreview } from '../../api/hooks/useBilling';
 import { useAuthStore } from '../../stores/auth.store';
-import { formatDate } from '../../lib/utils';
+import { formatDate, formatCurrency } from '../../lib/utils';
 import { Receipt, Calendar, CreditCard, ArrowLeft, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -68,7 +68,7 @@ export function BillingPage() {
       toast.success('Payment recorded successfully. Invoice marked as PAID.');
     } catch {
       setShowPaymentModal(false);
-      toast.success('Payment of $6,160.00 recorded via Wire Transfer');
+      toast.success(`Payment of ${formatCurrency(paymentAmount || 6160)} recorded via Wire Transfer`);
     }
   };
 
@@ -153,11 +153,11 @@ export function BillingPage() {
             </div>
             <div className="flex justify-between items-center">
               <span className="text-slate-400">Subtotal:</span>
-              <span className="font-medium text-slate-200">${Number(activeInvoice.amount).toLocaleString()}</span>
+              <span className="font-medium text-slate-200 font-mono">{formatCurrency(activeInvoice.amount)}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-slate-400">Tax (10%):</span>
-              <span className="font-medium text-slate-200">${Number(activeInvoice.taxAmount).toLocaleString()}</span>
+              <span className="font-medium text-slate-200 font-mono">{formatCurrency(activeInvoice.taxAmount)}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-slate-400">Due Date:</span>
@@ -165,7 +165,7 @@ export function BillingPage() {
             </div>
             <div className="flex justify-between items-center pt-3 border-t border-[#1E2430]">
               <span className="text-sm font-bold text-white">Total Due:</span>
-              <span className="text-lg font-bold text-white">${Number(activeInvoice.totalAmount).toLocaleString()}</span>
+              <span className="text-lg font-bold text-white font-mono">{formatCurrency(activeInvoice.totalAmount)}</span>
             </div>
           </div>
 
@@ -214,7 +214,7 @@ export function BillingPage() {
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-slate-400">Unit Price:</span>
-                <span className="font-medium text-slate-200">${Number(sub.unitPrice).toLocaleString()} / yr</span>
+                <span className="font-medium text-slate-200 font-mono">{formatCurrency(sub.unitPrice)} / yr</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-slate-400">Next Charges Date:</span>
@@ -222,8 +222,8 @@ export function BillingPage() {
               </div>
               <div className="flex justify-between items-center pt-3 border-t border-[#1E2430]">
                 <span className="text-sm font-bold text-white">Recurring Total:</span>
-                <span className="text-lg font-bold text-emerald-400">
-                  ${(sub.unitPrice * sub.quantity).toLocaleString()} / yr
+                <span className="text-lg font-bold text-emerald-400 font-mono">
+                  {formatCurrency(sub.unitPrice * sub.quantity)} / yr
                 </span>
               </div>
 
@@ -264,7 +264,7 @@ export function BillingPage() {
 
             <div className="space-y-3 text-xs">
               <div>
-                <label className="block text-slate-300 mb-1">Amount ($)</label>
+                <label className="block text-slate-300 mb-1">Amount (₹)</label>
                 <input
                   type="text"
                   value={paymentAmount}
@@ -346,19 +346,19 @@ export function BillingPage() {
                 <div className="flex justify-between items-center text-xs">
                   <span className="text-slate-400">Credit for unused period:</span>
                   <span className="font-mono text-emerald-400 font-semibold">
-                    ${prorationData?.credit ?? '37.49'}
+                    {formatCurrency(prorationData?.credit ?? 37.49)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center text-xs">
                   <span className="text-slate-400">Charge for new seats:</span>
                   <span className="font-mono text-slate-200 font-semibold">
-                    ${prorationData?.charge ?? '59.99'}
+                    {formatCurrency(prorationData?.charge ?? 59.99)}
                   </span>
                 </div>
                 <div className="border-t border-[#222834] pt-2 flex justify-between items-center text-xs font-bold">
                   <span className="text-white">Net Due Immediately:</span>
                   <span className="font-mono text-blue-400 text-sm">
-                    +${prorationData?.net ?? '22.50'}
+                    +{formatCurrency(prorationData?.net ?? 22.50)}
                   </span>
                 </div>
               </div>

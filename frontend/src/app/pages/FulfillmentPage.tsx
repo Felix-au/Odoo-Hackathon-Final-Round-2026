@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAcceptSplit } from '../../api/hooks/useFulfillment';
+import { formatCurrency } from '../../lib/utils';
 import { Truck, ArrowLeft, CheckCircle, SlidersHorizontal, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -183,7 +184,7 @@ export function FulfillmentPage() {
 
         <div className="bg-[#12151C] border border-[#1E2430] rounded-2xl p-4">
           <span className="text-[11px] font-semibold uppercase text-slate-400">Est. Shipping Cost</span>
-          <div className="text-2xl font-bold text-emerald-400 mt-1">$145.00</div>
+          <div className="text-2xl font-bold text-emerald-400 mt-1 font-mono">{formatCurrency(145)}</div>
           <span className="text-xs text-slate-500">Consolidated carrier volume rate</span>
         </div>
       </div>
