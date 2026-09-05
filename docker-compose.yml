@@ -2,7 +2,7 @@ version: '3.9'
 
 services:
 
-  # â”€â”€â”€ Databases â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  # ─── Databases ─────────────────────────────────────────────
 
   auth-db:
     image: postgres:16-alpine
@@ -100,7 +100,7 @@ services:
       timeout: 5s
       retries: 5
 
-  # â”€â”€â”€ Redis â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  # ─── Redis ─────────────────────────────────────────────────
 
   redis:
     image: redis:7-alpine
@@ -115,15 +115,15 @@ services:
       timeout: 3s
       retries: 5
 
-  # â”€â”€â”€ Email (Local SMTP Trap) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  # ─── Email (Local SMTP Trap) ────────────────────────────────
 
   mailpit:
     image: axllent/mailpit:latest
     ports:
-      - "1025:1025"   # SMTP â€” services send here
-      - "8025:8025"   # Web UI â€” view emails at http://localhost:8025
+      - "1025:1025"   # SMTP — services send here
+      - "8025:8025"   # Web UI — view emails at http://localhost:8025
 
-  # â”€â”€â”€ Auth Service â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  # ─── Auth Service ──────────────────────────────────────────
 
   auth-service:
     build:
@@ -156,10 +156,10 @@ services:
       test: ["CMD", "wget", "-qO-", "http://localhost:3001/health"]
       interval: 10s
       timeout: 5s
-      retries: 5
-      start_period: 30s
+      retries: 10
+      start_period: 60s
 
-  # â”€â”€â”€ Catalog Service â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  # ─── Catalog Service ───────────────────────────────────────
 
   catalog-service:
     build:
@@ -185,10 +185,10 @@ services:
       test: ["CMD", "wget", "-qO-", "http://localhost:3002/health"]
       interval: 10s
       timeout: 5s
-      retries: 5
-      start_period: 30s
+      retries: 10
+      start_period: 60s
 
-  # â”€â”€â”€ Quotation Service â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  # ─── Quotation Service ─────────────────────────────────────
 
   quotation-service:
     build:
@@ -222,10 +222,10 @@ services:
       test: ["CMD", "wget", "-qO-", "http://localhost:3003/health"]
       interval: 10s
       timeout: 5s
-      retries: 5
-      start_period: 30s
+      retries: 10
+      start_period: 60s
 
-  # â”€â”€â”€ Fulfillment Service â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  # ─── Fulfillment Service ───────────────────────────────────
 
   fulfillment-service:
     build:
@@ -254,10 +254,10 @@ services:
       test: ["CMD", "wget", "-qO-", "http://localhost:3004/health"]
       interval: 10s
       timeout: 5s
-      retries: 5
-      start_period: 30s
+      retries: 10
+      start_period: 60s
 
-  # â”€â”€â”€ Billing Service â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  # ─── Billing Service ───────────────────────────────────────
 
   billing-service:
     build:
@@ -289,7 +289,7 @@ services:
       retries: 5
       start_period: 30s
 
-  # â”€â”€â”€ Analytics Service â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  # ─── Analytics Service ─────────────────────────────────────
 
   analytics-service:
     build:
@@ -319,7 +319,7 @@ services:
       retries: 5
       start_period: 30s
 
-  # â”€â”€â”€ API Gateway / BFF â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  # ─── API Gateway / BFF ─────────────────────────────────────
 
   gateway:
     build:
@@ -361,7 +361,7 @@ services:
       retries: 5
       start_period: 30s
 
-  # â”€â”€â”€ Frontend â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  # ─── Frontend ──────────────────────────────────────────────
 
   frontend:
     build:
