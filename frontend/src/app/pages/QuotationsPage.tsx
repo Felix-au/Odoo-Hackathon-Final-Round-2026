@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuotations, useCreateQuotation } from '../../api/hooks/useQuotations';
+import { useDashboardAnalytics } from '../../api/hooks/useAnalytics';
 import { QuotationStatus, QUOTATION_STATUSES } from '../../lib/constants';
 import { formatCurrency, formatQuotationNumber } from '../../lib/utils';
 import { LoadingSpinner } from '../../components/feedback/LoadingSpinner';
-import { Plus, Search, Filter, ArrowUpRight, Kanban, List, Building2 } from 'lucide-react';
+import { Plus, Search, Filter, ArrowUpRight, Kanban, List, Building2, Flame } from 'lucide-react';
 import { toast } from 'sonner';
 
 const STATUS_CONFIG: Record<
@@ -53,6 +54,8 @@ export function QuotationsPage() {
   const [searchParams] = useSearchParams();
   const viewMode = searchParams.get('view') === 'pipeline' ? 'pipeline' : 'list';
 
+  const { alerts } = useDashboardAnalytics();
+
   const [statusFilter, setStatusFilter] = useState<string>(() => {
     const s = searchParams.get('status');
     const f = searchParams.get('filter');
@@ -72,6 +75,26 @@ export function QuotationsPage() {
     }
   }, [searchParams]);
 
+  // Match quotation against deal-health alerts
+  const getDealAlert = (q: any) => {
+    if (!alerts || alerts.length === 0) return undefined;
+    return alerts.find((a) => {
+      if (a.quotationId && (a.quotationId === q.id || q.id.includes(a.quotationId) || a.quotationId.includes(q.id))) {
+        return true;
+      }
+      const qCust = (q.customer?.name || '').toLowerCase().trim();
+      const aCust = (a.customerName || '').toLowerCase().trim();
+      return qCust && aCust && (qCust.includes(aCust) || aCust.includes(qCust));
+    });
+  };
+
+  const isQuotationAtRisk = (q: any) => {
+    const alert = getDealAlert(q);
+    if (alert) return true;
+    const score = Number(q.blendedRiskScore || q.riskScore || 0);
+    return score >= 35 || q.status === 'PENDING_FINANCE_APPROVAL';
+  };
+
   const isSpecialFilter = statusFilter === 'AT_RISK' || statusFilter === 'IN_REVIEW';
   const { data: quoteResult, isLoading } = useQuotations({
     status: isSpecialFilter || statusFilter === 'ALL' ? undefined : (statusFilter as QuotationStatus),
@@ -81,11 +104,7 @@ export function QuotationsPage() {
   const rawQuotations = quoteResult?.data || [];
   const quotations = rawQuotations.filter((q) => {
     if (statusFilter === 'AT_RISK') {
-      return (
-        Number(q.blendedRiskScore || 0) > 0 ||
-        q.status === 'PENDING_MANAGER_APPROVAL' ||
-        q.status === 'PENDING_FINANCE_APPROVAL'
-      );
+      return isQuotationAtRisk(q);
     }
     if (statusFilter === 'IN_REVIEW') {
       return q.status === 'PENDING_MANAGER_APPROVAL' || q.status === 'PENDING_FINANCE_APPROVAL';
@@ -255,7 +274,10 @@ export function QuotationsPage() {
                 <div className="space-y-3 flex-1 overflow-y-auto max-h-[640px] pr-1">
                   {colQuotes.length > 0 ? (
                     colQuotes.map((q) => {
-                      const risk = q.riskScore || 15;
+                      const alert = getDealAlert(q);
+                      const rawScore = Number(q.blendedRiskScore || q.riskScore || 0);
+                      const risk = alert?.severity === 'HIGH' ? Math.max(rawScore, 65) : alert?.severity === 'MEDIUM' ? Math.max(rawScore, 48) : rawScore;
+
                       return (
                         <div
                           key={q.id}
@@ -281,15 +303,16 @@ export function QuotationsPage() {
                               Margin: <span className="text-zinc-300 font-mono">{Math.round(q.overallMarginPct || 32)}%</span>
                             </span>
                             <span
-                              className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold border ${
-                                risk >= 70
+                              className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold border inline-flex items-center gap-1 ${
+                                alert || risk >= 60
                                   ? 'bg-rose-500/10 text-rose-400 border-rose-500/20'
-                                  : risk >= 35
+                                  : risk >= 25
                                   ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
                                   : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
                               }`}
                             >
-                              Risk {risk}
+                              {alert && <Flame className="w-2.5 h-2.5 text-rose-400 animate-pulse" />}
+                              <span>Risk: {risk}</span>
                             </span>
                           </div>
                         </div>
@@ -316,7 +339,7 @@ export function QuotationsPage() {
                   <th className="py-3.5 px-5">Customer</th>
                   <th className="py-3.5 px-5">Amount (₹)</th>
                   <th className="py-3.5 px-5">Gross Margin</th>
-                  <th className="py-3.5 px-5">Risk Guardrail</th>
+                  <th className="py-3.5 px-5">Risk</th>
                   <th className="py-3.5 px-5">Lifecycle Status</th>
                   <th className="py-3.5 px-5 text-right">Action</th>
                 </tr>
@@ -324,7 +347,9 @@ export function QuotationsPage() {
               <tbody className="divide-y divide-[#1A1A1A]">
                 {quotations.map((quote) => {
                   const statusConf = STATUS_CONFIG[quote.status] || STATUS_CONFIG.DRAFT;
-                  const risk = quote.riskScore || 15;
+                  const alert = getDealAlert(quote);
+                  const rawScore = Number(quote.blendedRiskScore || quote.riskScore || 0);
+                  const risk = alert?.severity === 'HIGH' ? Math.max(rawScore, 65) : alert?.severity === 'MEDIUM' ? Math.max(rawScore, 48) : rawScore;
 
                   return (
                     <tr
@@ -346,17 +371,36 @@ export function QuotationsPage() {
                         {Math.round(quote.overallMarginPct || 32)}%
                       </td>
                       <td className="py-4 px-5">
-                        <span
-                          className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold border ${
-                            risk >= 70
-                              ? 'bg-rose-500/10 text-rose-400 border-rose-500/20'
-                              : risk >= 35
-                              ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                              : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                          }`}
-                        >
-                          {risk >= 70 ? 'High' : risk >= 35 ? 'Moderate' : 'Healthy'} ({risk})
-                        </span>
+                        {alert || risk >= 35 ? (
+                          <div className="flex flex-col gap-0.5">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-rose-500/10 text-rose-400 border border-rose-500/20 w-fit">
+                              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+                              <span>High Risk ({risk || 65})</span>
+                            </span>
+                            <span className="text-[10px] text-zinc-400 truncate max-w-[170px]">
+                              {alert?.type === 'DISCOUNT_ANOMALY'
+                                ? 'Discount anomaly'
+                                : alert?.type === 'DELIVERY_SLIPPAGE'
+                                ? 'Delivery slippage'
+                                : alert?.type === 'STALLED'
+                                ? `Stalled ${alert.stalledDays || 10}d`
+                                : 'Margin threshold exception'}
+                            </span>
+                          </div>
+                        ) : risk >= 20 ? (
+                          <div className="flex flex-col gap-0.5">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20 w-fit">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                              <span>Moderate ({risk})</span>
+                            </span>
+                            <span className="text-[10px] text-zinc-500">Tier threshold review</span>
+                          </div>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 w-fit">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                            <span>Healthy (0)</span>
+                          </span>
+                        )}
                       </td>
                       <td className="py-4 px-5">
                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold border ${statusConf.badgeClass}`}>

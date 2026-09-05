@@ -27,7 +27,7 @@ export interface DealHealthAlert {
   quotationId: string;
   customerName: string;
   repName: string;
-  type: 'STALLED' | 'ANOMALY' | 'SLIPPAGE' | 'DISCOUNT_RISK';
+  type: 'STALLED' | 'ANOMALY' | 'SLIPPAGE' | 'DISCOUNT_RISK' | 'DISCOUNT_ANOMALY' | 'DELIVERY_SLIPPAGE';
   severity: 'HIGH' | 'MEDIUM' | 'LOW';
   title: string;
   description: string;
