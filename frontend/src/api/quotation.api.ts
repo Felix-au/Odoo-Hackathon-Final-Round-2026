@@ -136,13 +136,24 @@ export const quotationApi = {
     }
   },
 
+  getCustomers: async (token?: string) => {
+    try {
+      const res = await quotationHttp.get('/quotations/customers', {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
+      return res.data?.data || res.data || [];
+    } catch {
+      return [];
+    }
+  },
+
   createQuotation: async (
     customerId: string,
     token?: string
   ): Promise<Quotation> => {
     const res = await quotationHttp.post(
       '/quotations',
-      { customerId, currency: 'USD' },
+      { customerId, currency: 'INR' },
       { headers: token ? { Authorization: `Bearer ${token}` } : undefined }
     );
     return res.data;

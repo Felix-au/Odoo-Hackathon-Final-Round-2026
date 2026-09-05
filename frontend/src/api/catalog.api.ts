@@ -55,6 +55,27 @@ export const catalogApi = {
     return Array.isArray(res.data) ? res.data : (res.data?.data || []);
   },
 
+  getDiscountTiers: async (token?: string): Promise<any[]> => {
+    const res = await catalogHttp.get('/catalog/discount-tiers', {
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    });
+    return Array.isArray(res.data?.data) ? res.data.data : (Array.isArray(res.data) ? res.data : []);
+  },
+
+  getApprovalChains: async (token?: string): Promise<any[]> => {
+    const res = await catalogHttp.get('/catalog/approval-chains', {
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    });
+    return Array.isArray(res.data?.data) ? res.data.data : (Array.isArray(res.data) ? res.data : []);
+  },
+
+  resolveApprovalChain: async (riskScore: number, token?: string): Promise<any> => {
+    const res = await catalogHttp.get(`/catalog/approval-chains/resolve?riskScore=${riskScore}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    });
+    return res.data;
+  },
+
   getDiscountCeilings: async (token?: string): Promise<TierCeilings> => {
     const res = await catalogHttp.get('/catalog/discount-tiers/ceilings', {
       headers: token ? { Authorization: `Bearer ${token}` } : undefined,

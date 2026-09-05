@@ -40,13 +40,31 @@ export function useQuotation(id: string) {
   });
 }
 
+export function useCustomers() {
+  const token = useAuthStore((s) => s.accessToken) || undefined;
+
+  return useQuery({
+    queryKey: ['quotation-customers', token],
+    queryFn: () => quotationApi.getCustomers(token),
+    staleTime: 60_000,
+  });
+}
+
 export function useCreateQuotation() {
   const token = useAuthStore((s) => s.accessToken) || undefined;
 
   return {
     mutateAsync: async (customerId?: string): Promise<Quotation> => {
       if (!token) throw new Error('Authentication required');
-      const targetCustomerId = customerId || 'cust-000000-0000-0000-0000-000000000001';
+      let targetCustomerId: string = customerId || '';
+      if (!targetCustomerId) {
+        const customers = await quotationApi.getCustomers(token);
+        if (customers && customers.length > 0 && customers[0]?.id) {
+          targetCustomerId = customers[0].id;
+        } else {
+          targetCustomerId = 'cust-000000-0000-0000-0000-000000000001';
+        }
+      }
       return await quotationApi.createQuotation(targetCustomerId, token);
     },
     isPending: false,

@@ -31,6 +31,34 @@ export function useCategories() {
   });
 }
 
+export function useDiscountTiers() {
+  const token = useAuthStore((s) => s.accessToken) || undefined;
+
+  return useQuery<any[], Error>({
+    queryKey: ['discount-tiers', token],
+    queryFn: async () => {
+      const res = await catalogApi.getDiscountTiers(token);
+      return res || [];
+    },
+    retry: 1,
+    staleTime: 30_000,
+  });
+}
+
+export function useApprovalChains() {
+  const token = useAuthStore((s) => s.accessToken) || undefined;
+
+  return useQuery<any[], Error>({
+    queryKey: ['approval-chains', token],
+    queryFn: async () => {
+      const res = await catalogApi.getApprovalChains(token);
+      return res || [];
+    },
+    retry: 1,
+    staleTime: 30_000,
+  });
+}
+
 export function useWarehouses() {
   const token = useAuthStore((s) => s.accessToken) || undefined;
 
