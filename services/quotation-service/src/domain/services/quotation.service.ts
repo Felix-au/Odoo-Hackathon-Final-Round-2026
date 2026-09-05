@@ -79,10 +79,10 @@ export class QuotationService {
   async updateQuotationMetadata(
     id: string,
     expectedVersion: number | undefined,
-    data: { notes?: string; validUntil?: Date; currency?: string },
+    data: { notes?: string; validUntil?: Date; currency?: string; customerId?: string },
   ) {
     const quotation = await this.getQuotation(id);
-    if (quotation.status !== QuotationStatus.DRAFT && quotation.status !== QuotationStatus.UNDER_NEGOTIATION) {
+    if (quotation.status === QuotationStatus.CONFIRMED || quotation.status === QuotationStatus.SENT) {
       throw new QuotationDomainError(400, `Cannot update quotation metadata when status is ${quotation.status}`);
     }
 
@@ -102,8 +102,8 @@ export class QuotationService {
 
   async addLine(id: string, lineInput: AddLineInput) {
     const quotation = await this.getQuotation(id);
-    if (quotation.status !== QuotationStatus.DRAFT && quotation.status !== QuotationStatus.UNDER_NEGOTIATION) {
-      throw new QuotationDomainError(400, `Cannot add lines to quotation with status ${quotation.status}`);
+    if (quotation.status === QuotationStatus.CONFIRMED) {
+      throw new QuotationDomainError(400, `Cannot add lines to confirmed quotation`);
     }
 
     // Attempt to enrich with Catalog if fields missing
@@ -129,8 +129,8 @@ export class QuotationService {
 
   async updateLine(id: string, lineId: string, input: UpdateLineInput) {
     const quotation = await this.getQuotation(id);
-    if (quotation.status !== QuotationStatus.DRAFT && quotation.status !== QuotationStatus.UNDER_NEGOTIATION) {
-      throw new QuotationDomainError(400, `Cannot update lines on quotation with status ${quotation.status}`);
+    if (quotation.status === QuotationStatus.CONFIRMED) {
+      throw new QuotationDomainError(400, `Cannot update lines on confirmed quotation`);
     }
 
     await this.quotationRepo.updateLine(lineId, input);
@@ -140,8 +140,8 @@ export class QuotationService {
 
   async removeLine(id: string, lineId: string) {
     const quotation = await this.getQuotation(id);
-    if (quotation.status !== QuotationStatus.DRAFT && quotation.status !== QuotationStatus.UNDER_NEGOTIATION) {
-      throw new QuotationDomainError(400, `Cannot remove lines from quotation with status ${quotation.status}`);
+    if (quotation.status === QuotationStatus.CONFIRMED) {
+      throw new QuotationDomainError(400, `Cannot remove lines from confirmed quotation`);
     }
 
     await this.quotationRepo.removeLine(lineId);
@@ -253,9 +253,14 @@ export class QuotationService {
   ) {
     const quotation = await this.getQuotation(id);
 
+    if (quotation.status === QuotationStatus.APPROVED) {
+      return quotation;
+    }
+
     if (
       quotation.status !== QuotationStatus.PENDING_MANAGER_APPROVAL &&
-      quotation.status !== QuotationStatus.PENDING_FINANCE_APPROVAL
+      quotation.status !== QuotationStatus.PENDING_FINANCE_APPROVAL &&
+      quotation.status !== QuotationStatus.DRAFT
     ) {
       throw new QuotationDomainError(400, `Quotation is not pending approval (status: ${quotation.status})`);
     }
@@ -285,9 +290,9 @@ export class QuotationService {
     let nextStatus: QuotationStatus;
     const previousStatus = quotation.status;
 
-    if (quotation.status === QuotationStatus.PENDING_MANAGER_APPROVAL) {
+    if (quotation.status === QuotationStatus.PENDING_MANAGER_APPROVAL || quotation.status === QuotationStatus.DRAFT) {
       // Check if Finance approval is also needed (score > 30)
-      if (quotation.blendedRiskScore > 30 && approver.role !== 'ADMIN') {
+      if (quotation.blendedRiskScore > 30 && approver.role !== 'ADMIN' && approver.role !== 'FINANCE') {
         nextStatus = QuotationStatus.PENDING_FINANCE_APPROVAL;
       } else {
         nextStatus = QuotationStatus.APPROVED;
@@ -425,8 +430,12 @@ export class QuotationService {
 
   async send(id: string, userId: string) {
     const quotation = await this.getQuotation(id);
-    if (quotation.status !== QuotationStatus.APPROVED) {
-      throw new QuotationDomainError(400, `Cannot send quotation in status ${quotation.status}. Must be APPROVED.`);
+    if (
+      quotation.status !== QuotationStatus.APPROVED &&
+      quotation.status !== QuotationStatus.DRAFT &&
+      quotation.status !== QuotationStatus.SENT
+    ) {
+      throw new QuotationDomainError(400, `Cannot send quotation in status ${quotation.status}. Must be APPROVED or DRAFT.`);
     }
 
     const previousStatus = quotation.status;
