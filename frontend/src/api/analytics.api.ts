@@ -68,11 +68,19 @@ export const analyticsApi = {
       headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     });
     const pb = res.data?.pipelineBreakdown ?? {};
+    const draft = Number(pb.DRAFT ?? 0);
+    const review = Number((pb.PENDING_MANAGER_APPROVAL ?? 0) + (pb.PENDING_FINANCE_APPROVAL ?? 0) + (pb.UNDER_NEGOTIATION ?? 0));
+    const approved = Number(pb.APPROVED ?? 0);
+    const sent = Number(pb.SENT ?? 0);
+    const won = Number((pb.CONFIRMED ?? 0) + (pb.WON ?? 0));
+    const total = draft + review + approved + sent + won || 1;
+
     return [
-      { status: 'DRAFT', label: 'Draft', count: Number(pb.DRAFT ?? 0), totalValue: 0, percentage: 0, colorHex: '#94a3b8' },
-      { status: 'REVIEW', label: 'Review', count: Number(pb.PENDING_MANAGER_APPROVAL ?? 0), totalValue: 0, percentage: 0, colorHex: '#f59e0b' },
-      { status: 'APPROVAL', label: 'Approval', count: Number(pb.PENDING_FINANCE_APPROVAL ?? 0), totalValue: 0, percentage: 0, colorHex: '#3b82f6' },
-      { status: 'WON', label: 'Won', count: Number(pb.CONFIRMED ?? pb.WON ?? 0), totalValue: 0, percentage: 0, colorHex: '#10b981' },
+      { status: 'DRAFT', label: 'Draft', count: draft, totalValue: 0, percentage: Math.round((draft / total) * 100), colorHex: '#52525B' },
+      { status: 'IN_REVIEW', label: 'In Review', count: review, totalValue: 0, percentage: Math.round((review / total) * 100), colorHex: '#F59E0B' },
+      { status: 'APPROVED', label: 'Approved', count: approved, totalValue: 0, percentage: Math.round((approved / total) * 100), colorHex: '#3B82F6' },
+      { status: 'SENT', label: 'Sent to Client', count: sent, totalValue: 0, percentage: Math.round((sent / total) * 100), colorHex: '#8B5CF6' },
+      { status: 'CONFIRMED', label: 'Confirmed / Won', count: won, totalValue: 0, percentage: Math.round((won / total) * 100), colorHex: '#10B981' },
     ];
   },
 

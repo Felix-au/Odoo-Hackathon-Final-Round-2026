@@ -23,7 +23,6 @@ import {
   ShieldCheck,
   ChevronRight,
   Sparkles,
-  ExternalLink,
 } from 'lucide-react';
 
 const STAGE_COLORS: Record<string, string> = {
@@ -609,10 +608,10 @@ export function DashboardPage() {
         </div>
 
         {/* Right Column (lg:col-span-1) */}
-        <div className="space-y-6">
+        <div className="flex flex-col h-full">
           
           {/* Interactive Pipeline Donut/Pie Chart */}
-          <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-2xl p-6 shadow-2xl flex flex-col justify-between">
+          <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-2xl p-6 shadow-2xl flex flex-col justify-between flex-1 h-full">
             <div>
               <div className="flex items-center justify-between mb-2">
                 <div className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
@@ -631,7 +630,7 @@ export function DashboardPage() {
             </div>
 
             {/* Recharts Interactive Pie */}
-            <div className="h-64 w-full relative my-3">
+            <div className="h-64 sm:h-72 w-full relative my-auto">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Tooltip
@@ -668,7 +667,7 @@ export function DashboardPage() {
                     cx="50%"
                     cy="50%"
                     innerRadius={58}
-                    outerRadius={82}
+                    outerRadius={84}
                     paddingAngle={3}
                     activeIndex={activePieIndex !== null ? activePieIndex : undefined}
                     activeShape={renderActiveShape}
@@ -691,14 +690,14 @@ export function DashboardPage() {
             </div>
 
             {/* Interactive Stage Legend */}
-            <div className="space-y-1.5 pt-3 border-t border-[#1F1F1F]">
+            <div className="space-y-1.5 pt-4 border-t border-[#1F1F1F] mt-auto">
               {displayStages.map((st, idx) => (
                 <div
                   key={st.status}
                   onClick={() => navigate('/app/quotations?view=pipeline')}
                   onMouseEnter={() => setActivePieIndex(idx)}
                   onMouseLeave={() => setActivePieIndex(null)}
-                  className={`flex items-center justify-between py-1.5 px-2.5 rounded-lg cursor-pointer transition-all ${
+                  className={`flex items-center justify-between py-2 px-3 rounded-xl cursor-pointer transition-all ${
                     activePieIndex === idx ? 'bg-white/10' : 'hover:bg-white/5'
                   }`}
                 >
@@ -711,47 +710,16 @@ export function DashboardPage() {
                       {st.label}
                     </span>
                   </div>
-                  <span className="text-xs font-bold font-mono text-white">
-                    {st.count}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-mono text-zinc-500">
+                      {st.percentage}%
+                    </span>
+                    <span className="text-xs font-bold font-mono text-white">
+                      {st.count}
+                    </span>
+                  </div>
                 </div>
               ))}
-            </div>
-          </div>
-
-          {/* Role Quick Actions Navigation */}
-          <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-2xl p-5 shadow-2xl space-y-3">
-            <div className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
-              Workspace Shortcuts
-            </div>
-            
-            <div className="space-y-2">
-              <button
-                type="button"
-                onClick={() => navigate('/app/quotations')}
-                className="w-full py-2.5 px-3.5 rounded-xl bg-[#141414] hover:bg-[#1A1A1A] border border-[#242424] hover:border-[#333333] text-xs font-semibold text-zinc-200 hover:text-white flex items-center justify-between transition-all cursor-pointer"
-              >
-                <span>Browse All Quotations</span>
-                <ChevronRight className="w-3.5 h-3.5 text-zinc-500" />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => navigate('/app/quotations?view=pipeline')}
-                className="w-full py-2.5 px-3.5 rounded-xl bg-[#141414] hover:bg-[#1A1A1A] border border-[#242424] hover:border-[#333333] text-xs font-semibold text-zinc-200 hover:text-white flex items-center justify-between transition-all cursor-pointer"
-              >
-                <span>Pipeline Kanban Board</span>
-                <ChevronRight className="w-3.5 h-3.5 text-zinc-500" />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => navigate('/portal/quotations/q-001')}
-                className="w-full py-2.5 px-3.5 rounded-xl bg-white text-black hover:bg-zinc-200 text-xs font-bold flex items-center justify-between transition-all shadow-sm cursor-pointer"
-              >
-                <span>Open Customer Portal</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </button>
             </div>
           </div>
 
