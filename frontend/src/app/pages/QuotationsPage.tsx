@@ -4,8 +4,49 @@ import { useQuotations, useCreateQuotation } from '../../api/hooks/useQuotations
 import { QuotationStatus, QUOTATION_STATUSES } from '../../lib/constants';
 import { formatCurrency } from '../../lib/utils';
 import { LoadingSpinner } from '../../components/feedback/LoadingSpinner';
-import { Plus, Search, Filter, ArrowRight } from 'lucide-react';
+import { Plus, Search, Filter, ArrowUpRight, Kanban, List, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
+
+const STATUS_CONFIG: Record<
+  string,
+  { label: string; dotColor: string; badgeClass: string }
+> = {
+  DRAFT: {
+    label: 'Draft',
+    dotColor: 'bg-zinc-500',
+    badgeClass: 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20',
+  },
+  PENDING_MANAGER_APPROVAL: {
+    label: 'Pending Approval',
+    dotColor: 'bg-amber-400',
+    badgeClass: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+  },
+  PENDING_FINANCE_APPROVAL: {
+    label: 'Finance Review',
+    dotColor: 'bg-orange-400',
+    badgeClass: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
+  },
+  APPROVED: {
+    label: 'Approved',
+    dotColor: 'bg-blue-400',
+    badgeClass: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+  },
+  SENT: {
+    label: 'Sent to Customer',
+    dotColor: 'bg-purple-400',
+    badgeClass: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
+  },
+  CONFIRMED: {
+    label: 'Confirmed / Won',
+    dotColor: 'bg-emerald-400',
+    badgeClass: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+  },
+  REJECTED: {
+    label: 'Rejected',
+    dotColor: 'bg-rose-400',
+    badgeClass: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
+  },
+};
 
 export function QuotationsPage() {
   const navigate = useNavigate();
@@ -26,7 +67,7 @@ export function QuotationsPage() {
   const handleCreateNew = async () => {
     try {
       const newQuote = await createQuotationMutation.mutateAsync();
-      toast.success(`Created draft quotation`);
+      toast.success(`Draft quotation initialized`);
       navigate(`/app/quotations/${newQuote.id || 'new'}`);
     } catch {
       navigate('/app/quotations/new');
@@ -34,91 +75,103 @@ export function QuotationsPage() {
   };
 
   const PIPELINE_COLUMNS: Array<{ status: QuotationStatus; label: string; dotColor: string }> = [
-    { status: QUOTATION_STATUSES.DRAFT, label: 'Draft', dotColor: 'bg-zinc-400' },
-    { status: QUOTATION_STATUSES.PENDING_MANAGER_APPROVAL, label: 'Pending Approval', dotColor: 'bg-amber-400' },
+    { status: QUOTATION_STATUSES.DRAFT, label: 'Draft', dotColor: 'bg-zinc-500' },
+    { status: QUOTATION_STATUSES.PENDING_MANAGER_APPROVAL, label: 'In Review', dotColor: 'bg-amber-400' },
     { status: QUOTATION_STATUSES.APPROVED, label: 'Approved', dotColor: 'bg-blue-400' },
-    { status: QUOTATION_STATUSES.SENT, label: 'Sent to Customer', dotColor: 'bg-purple-400' },
+    { status: QUOTATION_STATUSES.SENT, label: 'Sent to Client', dotColor: 'bg-purple-400' },
     { status: QUOTATION_STATUSES.CONFIRMED, label: 'Confirmed', dotColor: 'bg-emerald-400' },
   ];
+
+  const totalPipelineValue = quotations.reduce((acc, q) => acc + Number(q.totalAmount || 0), 0);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Header & Action Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#1F1F1F]">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">
-            {viewMode === 'pipeline' ? 'Quotation Pipeline' : 'Quotations'}
-          </h1>
-          <p className="text-xs text-zinc-400 mt-1">
-            Manage lifecycle, risk evaluation, approvals, and customer confirmations
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+              {viewMode === 'pipeline' ? 'Quotation Pipeline' : 'Quotations'}
+            </h1>
+            <span className="text-[11px] font-mono font-semibold px-2.5 py-0.5 rounded-full border bg-zinc-800/40 text-zinc-300 border-zinc-700/50">
+              {quotations.length} Deals · ₹{Math.round(totalPipelineValue / 1000)}K Value
+            </span>
+          </div>
+          <p className="text-xs sm:text-sm text-zinc-400 mt-1">
+            Manage lifecycle progression, risk guardrails, tier discounts, and customer acceptance.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="flex items-center bg-[#18181B] border border-[#27272A] rounded-xl p-1">
+          {/* View Mode Toggle */}
+          <div className="flex items-center bg-[#0A0A0A] border border-[#1F1F1F] rounded-xl p-1 shadow-inner">
             <button
               type="button"
               onClick={() => navigate('/app/quotations')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                 viewMode === 'list'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-zinc-400 hover:text-white'
+                  ? 'bg-white/10 text-white shadow-sm'
+                  : 'text-zinc-400 hover:text-white hover:bg-white/5'
               }`}
             >
-              List
+              <List className="w-3.5 h-3.5" />
+              <span>List</span>
             </button>
             <button
               type="button"
               onClick={() => navigate('/app/quotations?view=pipeline')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                 viewMode === 'pipeline'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-zinc-400 hover:text-white'
+                  ? 'bg-white/10 text-white shadow-sm'
+                  : 'text-zinc-400 hover:text-white hover:bg-white/5'
               }`}
             >
-              Pipeline
+              <Kanban className="w-3.5 h-3.5" />
+              <span>Pipeline</span>
             </button>
           </div>
 
+          {/* New Quotation Button */}
           <button
             type="button"
             onClick={handleCreateNew}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-lg shadow-blue-500/20 transition-all"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white hover:bg-zinc-200 text-black text-xs font-bold transition-all shadow-sm cursor-pointer"
           >
-            <Plus className="w-3.5 h-3.5" />
+            <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
             <span>New Quotation</span>
           </button>
         </div>
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="p-3 bg-[#121214] border border-[#27272A] rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+      <div className="p-3 bg-[#0A0A0A] border border-[#1F1F1F] rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xl">
         <div className="flex items-center gap-2 flex-1 max-w-md">
           <div className="relative w-full">
-            <Search className="w-4 h-4 text-zinc-500 absolute left-3 top-2.5" />
+            <Search className="w-4 h-4 text-zinc-500 absolute left-3.5 top-2.5" />
             <input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by quote #, customer, or rep..."
-              className="w-full pl-9 pr-3 py-1.5 text-xs bg-[#0D0D0F] border border-[#27272A] rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 transition-colors"
+              placeholder="Search by quote #, client, or deal owner..."
+              className="w-full pl-9 pr-3 py-1.5 text-xs bg-[#121212] border border-[#222222] rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-400 transition-colors"
             />
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Filter className="w-3.5 h-3.5 text-zinc-500" />
-          <span className="text-xs font-medium text-zinc-400">Status:</span>
+        <div className="flex items-center gap-2.5">
+          <Filter className="w-3.5 h-3.5 text-zinc-400" />
+          <span className="text-xs font-medium text-zinc-400">Lifecycle Status:</span>
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="text-xs bg-[#0D0D0F] border border-[#27272A] rounded-xl px-2.5 py-1.5 text-zinc-200 focus:outline-none focus:border-blue-500 transition-colors"
+            className="text-xs bg-[#121212] border border-[#222222] rounded-xl px-3 py-1.5 text-zinc-200 focus:outline-none focus:border-zinc-400 transition-colors cursor-pointer"
           >
-            <option value="ALL">All Statuses</option>
+            <option value="ALL">All Stages</option>
             <option value="DRAFT">Draft</option>
-            <option value="PENDING_MANAGER_APPROVAL">Pending Approval</option>
+            <option value="PENDING_MANAGER_APPROVAL">In Review (Manager)</option>
+            <option value="PENDING_FINANCE_APPROVAL">In Review (Finance)</option>
             <option value="APPROVED">Approved</option>
-            <option value="SENT">Sent</option>
-            <option value="CONFIRMED">Confirmed</option>
+            <option value="SENT">Sent to Customer</option>
+            <option value="CONFIRMED">Confirmed / Won</option>
             <option value="REJECTED">Rejected</option>
           </select>
         </div>
@@ -126,8 +179,8 @@ export function QuotationsPage() {
 
       {/* Loading state */}
       {isLoading ? (
-        <div className="py-20 flex justify-center">
-          <LoadingSpinner label="Loading quotations..." />
+        <div className="py-24 flex justify-center">
+          <LoadingSpinner label="Querying DealFlow360 quotation engine..." />
         </div>
       ) : viewMode === 'pipeline' ? (
         /* Kanban Pipeline View */
@@ -138,60 +191,81 @@ export function QuotationsPage() {
                 ? q.status === 'PENDING_MANAGER_APPROVAL' || q.status === 'PENDING_FINANCE_APPROVAL'
                 : q.status === col.status
             );
+            const colTotalValue = colQuotes.reduce((acc, q) => acc + Number(q.totalAmount || 0), 0);
 
             return (
               <div
                 key={col.status}
-                className="bg-[#121214] border border-[#27272A] rounded-2xl p-4 flex flex-col min-w-[220px]"
+                className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-2xl p-4 flex flex-col min-w-[250px] shadow-xl"
               >
-                <div className="flex items-center justify-between pb-3 mb-3 border-b border-[#27272A]">
+                {/* Column Header */}
+                <div className="flex items-center justify-between pb-3 mb-3 border-b border-[#1F1F1F]">
                   <div className="flex items-center gap-2">
-                    <span className={`w-2 h-2 rounded-full ${col.dotColor}`} />
-                    <span className="text-xs font-bold text-white">{col.label}</span>
+                    <span className="relative flex h-2 w-2">
+                      {colQuotes.length > 0 && (
+                        <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${col.dotColor} opacity-75`} />
+                      )}
+                      <span className={`relative inline-flex rounded-full h-2 w-2 ${col.dotColor}`} />
+                    </span>
+                    <span className="text-xs font-bold text-white tracking-wide">{col.label}</span>
                   </div>
-                  <span className="text-xs font-mono text-zinc-400">{colQuotes.length}</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] font-mono text-zinc-500">
+                      ₹{Math.round(colTotalValue / 1000)}K
+                    </span>
+                    <span className="px-1.5 py-0.5 rounded-md text-[10px] font-mono font-bold bg-[#161616] border border-[#262626] text-zinc-300">
+                      {colQuotes.length}
+                    </span>
+                  </div>
                 </div>
 
-                <div className="space-y-3 flex-1 overflow-y-auto max-h-[600px]">
+                {/* Quotation Cards in Column */}
+                <div className="space-y-3 flex-1 overflow-y-auto max-h-[640px] pr-1">
                   {colQuotes.length > 0 ? (
-                    colQuotes.map((q) => (
-                      <div
-                        key={q.id}
-                        onClick={() => navigate(`/app/quotations/${q.id}`)}
-                        className="p-3.5 rounded-xl bg-[#18181B] border border-[#27272A] hover:border-blue-500/50 cursor-pointer transition-all space-y-2 group"
-                      >
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="font-bold text-white group-hover:text-blue-400 transition-colors">
-                            {q.quotationNumber}
-                          </span>
-                          <span className="font-mono font-bold text-white">
-                            {formatCurrency(q.totalAmount)}
-                          </span>
-                        </div>
-                        <div className="text-xs text-zinc-400 truncate">
-                          {q.customer?.name || 'Customer'}
-                        </div>
-                        <div className="flex items-center justify-between pt-1 text-[11px] text-zinc-500">
-                          <span>Margin: {Math.round(q.overallMarginPct || 35)}%</span>
-                          {q.riskScore ? (
+                    colQuotes.map((q) => {
+                      const risk = q.riskScore || 15;
+                      return (
+                        <div
+                          key={q.id}
+                          onClick={() => navigate(`/app/quotations/${q.id}`)}
+                          className="p-3.5 rounded-xl bg-[#121212] border border-[#222222] hover:border-emerald-500/40 hover:bg-[#161616] hover:shadow-[0_8px_20px_rgba(16,185,129,0.06)] cursor-pointer transition-all duration-200 space-y-2.5 group"
+                        >
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-bold text-white group-hover:text-emerald-400 transition-colors">
+                              {q.quotationNumber}
+                            </span>
+                            <span className="font-mono font-bold text-white">
+                              {formatCurrency(q.totalAmount)}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 text-xs text-zinc-400">
+                            <Building2 className="w-3 h-3 text-zinc-500 shrink-0" />
+                            <span className="truncate">{q.customer?.name || 'Enterprise Client'}</span>
+                          </div>
+
+                          <div className="flex items-center justify-between pt-2 border-t border-[#1F1F1F] text-[11px]">
+                            <span className="text-zinc-500 font-medium">
+                              Margin: <span className="text-zinc-300 font-mono">{Math.round(q.overallMarginPct || 32)}%</span>
+                            </span>
                             <span
-                              className={`font-semibold ${
-                                q.riskScore >= 70
-                                   ? 'text-orange-400'
-                                  : q.riskScore >= 30
-                                  ? 'text-amber-400'
-                                  : 'text-emerald-400'
+                              className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold border ${
+                                risk >= 70
+                                  ? 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                                  : risk >= 35
+                                  ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                                  : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
                               }`}
                             >
-                              Risk: {q.riskScore}
+                              Risk {risk}
                             </span>
-                          ) : null}
+                          </div>
                         </div>
-                      </div>
-                    ))
+                      );
+                    })
                   ) : (
-                    <div className="py-8 text-center text-xs text-zinc-600">
-                      No quotations
+                    <div className="py-10 text-center text-xs text-zinc-600 border border-dashed border-[#1F1F1F] rounded-xl">
+                      No quotations in stage
                     </div>
                   )}
                 </div>
@@ -201,64 +275,72 @@ export function QuotationsPage() {
         </div>
       ) : (
         /* List View */
-        <div className="bg-[#121214] border border-[#27272A] rounded-2xl overflow-hidden shadow-sm">
+        <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-2xl overflow-hidden shadow-2xl">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="border-b border-[#27272A] text-zinc-400 uppercase tracking-wider font-semibold text-[11px] bg-[#0D0D0F]">
-                  <th className="py-3 px-5">Quote #</th>
-                  <th className="py-3 px-5">Customer</th>
-                  <th className="py-3 px-5">Amount</th>
-                  <th className="py-3 px-5">Margin</th>
-                  <th className="py-3 px-5">Risk</th>
-                  <th className="py-3 px-5">Status</th>
-                  <th className="py-3 px-5 text-right">Action</th>
+                <tr className="border-b border-[#1F1F1F] text-zinc-400 uppercase tracking-wider font-semibold text-[11px] bg-[#0E0E0E]">
+                  <th className="py-3.5 px-5">Quote Number</th>
+                  <th className="py-3.5 px-5">Customer</th>
+                  <th className="py-3.5 px-5">Amount (₹)</th>
+                  <th className="py-3.5 px-5">Gross Margin</th>
+                  <th className="py-3.5 px-5">Risk Guardrail</th>
+                  <th className="py-3.5 px-5">Lifecycle Status</th>
+                  <th className="py-3.5 px-5 text-right">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#1E1E22]">
-                {quotations.map((quote) => (
-                  <tr
-                    key={quote.id}
-                    onClick={() => navigate(`/app/quotations/${quote.id}`)}
-                    className="hover:bg-white/[0.02] cursor-pointer transition-colors"
-                  >
-                    <td className="py-3.5 px-5 font-bold text-white">
-                      {quote.quotationNumber}
-                    </td>
-                    <td className="py-3.5 px-5 text-zinc-300">
-                      {quote.customer?.name || 'Customer'}
-                    </td>
-                    <td className="py-3.5 px-5 font-mono font-bold text-white">
-                      {formatCurrency(quote.totalAmount)}
-                    </td>
-                    <td className="py-3.5 px-5 text-zinc-300 font-mono">
-                      {Math.round(quote.overallMarginPct || 35)}%
-                    </td>
-                    <td className="py-3.5 px-5">
-                      <span
-                        className={`font-semibold ${
-                          (quote.riskScore || 0) >= 70
-                            ? 'text-orange-400'
-                            : (quote.riskScore || 0) >= 30
-                            ? 'text-amber-400'
-                            : 'text-emerald-400'
-                        }`}
-                      >
-                        {quote.riskScore || 20}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-5">
-                      <span className="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-[#1F1F23] text-zinc-300 border border-[#2E2E33]">
-                        {quote.status}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-5 text-right">
-                      <span className="text-blue-400 hover:text-blue-300 inline-flex items-center gap-1 font-semibold">
-                        Edit <ArrowRight className="w-3 h-3" />
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+              <tbody className="divide-y divide-[#1A1A1A]">
+                {quotations.map((quote) => {
+                  const statusConf = STATUS_CONFIG[quote.status] || STATUS_CONFIG.DRAFT;
+                  const risk = quote.riskScore || 15;
+
+                  return (
+                    <tr
+                      key={quote.id}
+                      onClick={() => navigate(`/app/quotations/${quote.id}`)}
+                      className="hover:bg-white/[0.03] cursor-pointer transition-colors group"
+                    >
+                      <td className="py-4 px-5 font-bold text-white group-hover:text-emerald-400 transition-colors">
+                        {quote.quotationNumber}
+                      </td>
+                      <td className="py-4 px-5">
+                        <div className="font-medium text-zinc-200">{quote.customer?.name || 'Enterprise Client'}</div>
+                        <div className="text-[10px] text-zinc-500 mt-0.5">{quote.customer?.email || 'sales@client.com'}</div>
+                      </td>
+                      <td className="py-4 px-5 font-mono font-bold text-white">
+                        {formatCurrency(quote.totalAmount)}
+                      </td>
+                      <td className="py-4 px-5 text-zinc-300 font-mono">
+                        {Math.round(quote.overallMarginPct || 32)}%
+                      </td>
+                      <td className="py-4 px-5">
+                        <span
+                          className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold border ${
+                            risk >= 70
+                              ? 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                              : risk >= 35
+                              ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                              : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                          }`}
+                        >
+                          {risk >= 70 ? 'High' : risk >= 35 ? 'Moderate' : 'Healthy'} ({risk})
+                        </span>
+                      </td>
+                      <td className="py-4 px-5">
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold border ${statusConf.badgeClass}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${statusConf.dotColor}`} />
+                          <span>{statusConf.label}</span>
+                        </span>
+                      </td>
+                      <td className="py-4 px-5 text-right">
+                        <span className="text-zinc-400 group-hover:text-white inline-flex items-center gap-1 font-semibold transition-colors">
+                          <span>Review</span>
+                          <ArrowUpRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
