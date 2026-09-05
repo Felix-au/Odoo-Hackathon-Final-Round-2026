@@ -85,3 +85,19 @@ model FulfillmentSplit {
 // ─────────────────────────────────────────────
 // Backorder
 // ─────────────────────────────────────────────
+
+model BackorderRecord {
+  id                 String    @id @default(uuid())
+  companyId          String    @default("default")
+  fulfillmentSplitId String
+  orderId            String
+  productId          String
+  variantId          String?
+  quantityNeeded     Int
+  warehouseId        String
+  resolvedAt         DateTime?
+  createdAt          DateTime  @default(now())
+
+  @@index([companyId, productId])
+  @@index([orderId])
+}
