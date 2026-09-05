@@ -17,6 +17,7 @@ export class EmailSender {
         host: env.SMTP_HOST,
         port: env.SMTP_PORT,
         secure: false,
+        ignoreTLS: true,
       });
     }
   }
@@ -28,6 +29,7 @@ export class EmailSender {
     }
 
     try {
+      console.log(`[EmailSender] Dispatching SMTP email to ${options.to} via ${env.SMTP_HOST}:${env.SMTP_PORT}`);
       const info = await this.transporter.sendMail({
         from: env.SMTP_FROM,
         to: options.to,
@@ -35,10 +37,10 @@ export class EmailSender {
         text: options.text,
         html: options.html,
       });
-
+      console.log(`[EmailSender] Successfully delivered email. Message ID: ${info.messageId}`);
       return { success: true, messageId: info.messageId };
     } catch (err) {
-      console.warn('[EmailSender] Failed to send email via SMTP:', err);
+      console.error('[EmailSender] Failed to send email via SMTP:', err);
       return { success: false };
     }
   }

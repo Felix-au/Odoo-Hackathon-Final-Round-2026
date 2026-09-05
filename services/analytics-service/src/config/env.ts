@@ -8,7 +8,7 @@ const envSchema = z.object({
   JWT_SECRET: z.string().min(16, 'JWT_SECRET must be at least 16 characters').default('dev_jwt_secret_change_in_prod_must_be_64_chars_minimum_dev_only_x'),
   SERVICE_TOKEN: z.string().default('dev_service_token_for_internal_calls_min_16'),
   QUOTATION_SERVICE_URL: z.string().default('http://localhost:3003'),
-  SMTP_HOST: z.string().default('localhost'),
+  SMTP_HOST: z.string().default(process.env.NODE_ENV === 'production' ? 'smtp.dealflow360.com' : 'mailpit'),
   SMTP_PORT: z.coerce.number().default(1025),
   SMTP_FROM: z.string().default('no-reply@dealflow360.dev'),
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),

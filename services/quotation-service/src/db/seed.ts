@@ -149,7 +149,75 @@ export async function seed() {
     },
   });
 
-  console.log('✅ Seeded 3 sample quotations with lines and approval log');
+  const quote4 = await prisma.quotation.upsert({
+    where: { id: 'quot-000000-0000-0000-0000-000000000004' },
+    update: {},
+    create: {
+      id: 'quot-000000-0000-0000-0000-000000000004',
+      companyId: 'default',
+      customerId: gamma.id,
+      repId: 'rep-000000-0000-0000-0000-000000000001',
+      status: QuotationStatus.PENDING_MANAGER_APPROVAL,
+      blendedRiskScore: 48.5,
+      totalAmount: 88500.00,
+      totalMarginPct: 14.2,
+      currency: 'USD',
+      notes: 'Discount anomaly: 45% applied to Enterprise Server cluster, exceeding Gold tier margin floor',
+      version: 1,
+      lines: {
+        create: [
+          {
+            productId: 'prod-000000-0000-0000-0000-000000000001',
+            productName: 'Enterprise Rack Servers Pro',
+            categoryId: 'cat-hardware',
+            categoryName: 'Hardware',
+            quantity: 10,
+            unitPrice: 12000.00,
+            costPrice: 7500.00,
+            discountPct: 45.0, // High discount violation
+            lineTotal: 66000.00,
+            marginPct: 14.2,
+          },
+        ],
+      },
+    },
+  });
+
+  const quote5 = await prisma.quotation.upsert({
+    where: { id: 'quot-000000-0000-0000-0000-000000000005' },
+    update: {},
+    create: {
+      id: 'quot-000000-0000-0000-0000-000000000005',
+      companyId: 'default',
+      customerId: beta.id,
+      repId: 'rep-000000-0000-0000-0000-000000000001',
+      status: QuotationStatus.SENT,
+      blendedRiskScore: 28.0,
+      totalAmount: 34200.00,
+      totalMarginPct: 24.5,
+      currency: 'USD',
+      notes: 'Delivery commitment slipping by 6 days due to Dallas Hub warehouse backorder',
+      version: 1,
+      lines: {
+        create: [
+          {
+            productId: 'prod-000000-0000-0000-0000-000000000004',
+            productName: 'Managed Optical Routing Switch',
+            categoryId: 'cat-hardware',
+            categoryName: 'Hardware',
+            quantity: 12,
+            unitPrice: 3200.00,
+            costPrice: 2100.00,
+            discountPct: 11.0,
+            lineTotal: 34176.00,
+            marginPct: 24.5,
+          },
+        ],
+      },
+    },
+  });
+
+  console.log('✅ Seeded 5 sample quotations with lines and approval log');
   console.log('✨ quotation_db seed complete');
 }
 

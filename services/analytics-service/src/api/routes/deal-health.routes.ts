@@ -81,7 +81,7 @@ export function dealHealthRoutes(analyticsService: AnalyticsService): FastifyPlu
     // POST /analytics/alerts/:id/nudge (REQ-F-154, REQ-BONUS-004, CHECK-ANA-005)
     fastify.post(
       '/alerts/:id/nudge',
-      { preHandler: [requireRole('ADMIN', 'SALES_MANAGER')] },
+      { preHandler: [requireRole('ADMIN', 'SALES_MANAGER', 'SALES_REP')] },
       async (request, reply) => {
         const { id } = request.params as { id: string };
         const parsed = nudgeSchema.safeParse(request.body);
