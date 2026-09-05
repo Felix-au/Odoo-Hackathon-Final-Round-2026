@@ -1,12 +1,6 @@
 import { useState } from 'react';
 import { useProducts, useCategories, useCreateProduct } from '../../api/hooks/useCatalog';
-import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Card';
-import { Button } from '../../components/ui/Button';
-import { Badge } from '../../components/ui/Badge';
-import { Dialog } from '../../components/ui/Dialog';
-import { Input } from '../../components/ui/Input';
 import { LoadingSpinner } from '../../components/feedback/LoadingSpinner';
-import { EmptyState } from '../../components/feedback/EmptyState';
 import { formatCurrency } from '../../lib/utils';
 import { Plus, Package, Search, RefreshCw, AlertCircle, Layers } from 'lucide-react';
 import { toast } from 'sonner';
@@ -61,48 +55,57 @@ export function CatalogPage() {
   };
 
   return (
-    <div className="space-y-5 pb-8 max-w-6xl mx-auto">
+    <div className="space-y-6 max-w-6xl mx-auto animate-in fade-in duration-300">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-black text-slate-900 tracking-tight">Product & Service Catalog</h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <h1 className="text-2xl font-bold text-white tracking-tight">Product & Service Catalog</h1>
+          <p className="text-xs text-slate-400 mt-0.5">
             Hardware SKUs, services, and subscription plans (Catalog Service — Port 3002)
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => refetch()} isLoading={isLoading}>
-            <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
-            Refresh
-          </Button>
+        <div className="flex items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => refetch()}
+            disabled={isLoading}
+            className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#1C222E] hover:bg-[#252E3E] text-slate-200 border border-[#2A3445] transition-colors flex items-center gap-1.5"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 text-blue-400 ${isLoading ? 'animate-spin' : ''}`} />
+            <span>Refresh</span>
+          </button>
 
-          <Button variant="accent" size="sm" onClick={() => setShowCreateModal(true)}>
-            <Plus className="w-4 h-4 mr-1.5" />
-            Add Product
-          </Button>
+          <button
+            type="button"
+            onClick={() => setShowCreateModal(true)}
+            className="px-4 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/20 transition-all flex items-center gap-1.5"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Add Product</span>
+          </button>
         </div>
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="p-3 bg-white rounded-xl border border-slate-200/80 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="p-3 bg-[#12151C] rounded-2xl border border-[#1E2430] flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
         <div className="relative flex-1 max-w-sm">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-          <Input
+          <Search className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
+          <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search catalog by product name..."
-            className="pl-9 text-xs h-9 bg-slate-50"
+            className="w-full pl-9 pr-3 py-1.5 text-xs bg-[#101319] border border-[#1E2430] rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
           />
         </div>
 
         <div className="flex items-center gap-2">
           <Layers className="w-3.5 h-3.5 text-slate-400" />
-          <span className="text-xs font-semibold text-slate-600">Category:</span>
+          <span className="text-xs font-semibold text-slate-300">Category:</span>
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="text-xs font-medium border border-slate-200 rounded-lg px-2.5 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-primary"
+            className="text-xs font-semibold bg-[#101319] border border-[#283244] rounded-xl px-3 py-1.5 text-slate-200 focus:outline-none focus:border-blue-500"
           >
             <option value="ALL">All Categories ({categories.length})</option>
             {categories.map((c: any) => (
@@ -116,64 +119,59 @@ export function CatalogPage() {
 
       {/* Content Rendering */}
       {isLoading ? (
-        <LoadingSpinner label="Loading products from Catalog database..." />
+        <div className="py-20 flex justify-center">
+          <LoadingSpinner label="Loading products from Catalog database..." />
+        </div>
       ) : isError ? (
-        <div className="p-6 bg-white rounded-xl border border-red-200 text-center space-y-3">
-          <AlertCircle className="w-8 h-8 text-red-500 mx-auto" />
-          <h3 className="text-sm font-bold text-red-800">Unable to Connect to Catalog Service</h3>
-          <p className="text-xs text-slate-500 max-w-md mx-auto">
+        <div className="p-8 bg-[#12151C] rounded-2xl border border-red-500/30 text-center space-y-3">
+          <AlertCircle className="w-8 h-8 text-red-400 mx-auto" />
+          <h3 className="text-base font-bold text-white">Unable to Connect to Catalog Service</h3>
+          <p className="text-xs text-slate-400 max-w-md mx-auto">
             {error?.message || 'Failed to fetch catalog items from http://localhost:3002/catalog/products.'}
           </p>
-          <Button variant="outline" size="sm" onClick={() => refetch()}>
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="px-4 py-2 rounded-xl text-xs font-semibold bg-[#1C222E] hover:bg-[#252E3E] text-slate-200 border border-[#2A3445]"
+          >
             Retry Connection
-          </Button>
+          </button>
         </div>
       ) : filteredProducts.length === 0 ? (
-        <EmptyState
-          title="No products in catalog"
-          description={
-            search
-              ? 'No products match your search query.'
-              : 'The product catalog database contains no items yet. Use "Add Product" to add real records.'
-          }
-          action={
-            <Button variant="primary" size="sm" onClick={() => setShowCreateModal(true)}>
-              <Plus className="w-3.5 h-3.5 mr-1" />
-              Add First Product
-            </Button>
-          }
-        />
+        <div className="py-16 text-center text-xs text-slate-500 bg-[#12151C] rounded-2xl border border-[#1E2430]">
+          {search ? 'No products match your search query.' : 'The product catalog database contains no items yet.'}
+        </div>
       ) : (
-        <Card>
-          <CardHeader className="py-3 px-5 bg-slate-50/75 flex items-center justify-between">
-            <CardTitle className="text-xs font-bold text-slate-800 flex items-center gap-2">
-              <Package className="w-4 h-4 text-slate-500" />
-              Active Catalog Inventory ({filteredProducts.length} items)
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <table className="w-full text-left table-dense">
+        <div className="bg-[#12151C] border border-[#1E2430] rounded-2xl overflow-hidden shadow-sm">
+          <div className="py-3.5 px-5 bg-[#101319] border-b border-[#1E2430] flex items-center justify-between">
+            <div className="text-xs font-bold text-white flex items-center gap-2">
+              <Package className="w-4 h-4 text-slate-400" />
+              <span>Active Catalog Inventory ({filteredProducts.length} items)</span>
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
               <thead>
-                <tr>
-                  <th>Product Name & Description</th>
-                  <th>Category</th>
-                  <th className="text-right">Base Price</th>
-                  <th className="text-right">Unit Cost</th>
-                  <th className="text-right">Margin</th>
-                  <th className="text-center">Tax Rate</th>
-                  <th className="text-center">Unit</th>
+                <tr className="bg-[#101319] border-b border-[#1E2430] text-slate-400 uppercase font-semibold text-[11px]">
+                  <th className="py-3 px-5">Product SKU</th>
+                  <th className="py-3 px-5">Category</th>
+                  <th className="py-3 px-5 text-right">Base Price</th>
+                  <th className="py-3 px-5 text-right">Unit Cost</th>
+                  <th className="py-3 px-5 text-right">Margin</th>
+                  <th className="py-3 px-5 text-center">Tax Rate</th>
+                  <th className="py-3 px-5 text-center">Unit</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[#1A202C]">
                 {filteredProducts.map((p: any) => {
                   const base = Number(p.basePrice) || 0;
                   const cost = Number(p.costPrice) || 0;
                   const margin = base > 0 ? ((base - cost) / base) * 100 : 0;
                   return (
-                    <tr key={p.id}>
-                      <td className="font-bold text-xs text-slate-900">
-                        <div className="flex items-center gap-2">
-                          <Package className="w-4 h-4 text-slate-400 shrink-0" />
+                    <tr key={p.id} className="hover:bg-white/[0.02] transition-colors">
+                      <td className="py-3.5 px-5 font-bold text-white">
+                        <div className="flex items-center gap-2.5">
+                          <Package className="w-4 h-4 text-slate-500 shrink-0" />
                           <span>{p.name}</span>
                         </div>
                         {p.description && (
@@ -182,24 +180,24 @@ export function CatalogPage() {
                           </div>
                         )}
                       </td>
-                      <td className="text-xs text-slate-600">
-                        <Badge variant="outline" size="sm">
+                      <td className="py-3.5 px-5 text-slate-300">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#1C222E] text-slate-300 border border-[#2A3445]">
                           {p.category?.name || 'General'}
-                        </Badge>
+                        </span>
                       </td>
-                      <td className="text-right font-black text-xs text-slate-900">
+                      <td className="py-3.5 px-5 text-right font-mono font-bold text-white">
                         {formatCurrency(p.basePrice)}
                       </td>
-                      <td className="text-right font-medium text-xs text-slate-500">
+                      <td className="py-3.5 px-5 text-right font-mono text-slate-400">
                         {p.costPrice !== undefined ? formatCurrency(p.costPrice) : '—'}
                       </td>
-                      <td className="text-right font-bold text-xs text-emerald-600">
+                      <td className="py-3.5 px-5 text-right font-mono font-bold text-emerald-400">
                         {margin > 0 ? `${margin.toFixed(1)}%` : '—'}
                       </td>
-                      <td className="text-center text-xs text-slate-600">
+                      <td className="py-3.5 px-5 text-center text-slate-300">
                         {p.taxRate !== undefined ? `${p.taxRate}%` : '18%'}
                       </td>
-                      <td className="text-center text-[10px] font-mono text-slate-500 uppercase">
+                      <td className="py-3.5 px-5 text-center text-[10px] font-mono text-slate-400 uppercase">
                         {p.unit || 'UNIT'}
                       </td>
                     </tr>
@@ -207,107 +205,131 @@ export function CatalogPage() {
                 })}
               </tbody>
             </table>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {/* Create Product Modal */}
-      <Dialog
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        title="Create Real Catalog Product"
-        description="Persists directly to the Catalog service PostgreSQL database"
-      >
-        <form onSubmit={handleCreateProduct} className="space-y-4">
-          <Input
-            label="Product Name *"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. Enterprise Storage Array 40TB"
-            required
-          />
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#161B24] border border-[#283244] rounded-2xl max-w-md w-full p-6 shadow-2xl animate-in fade-in zoom-in-95 space-y-4">
+            <h3 className="text-base font-bold text-white">Create Real Catalog Product</h3>
+            <p className="text-xs text-slate-400">
+              Persists directly to the Catalog service PostgreSQL database
+            </p>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">Category *</label>
-            <select
-              value={categoryId}
-              onChange={(e) => setCategoryId(e.target.value)}
-              className="w-full text-xs p-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-1 focus:ring-primary"
-            >
-              <option value="">Select Category</option>
-              {categories.map((c: any) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
+            <form onSubmit={handleCreateProduct} className="space-y-3.5 text-xs">
+              <div>
+                <label className="block font-semibold text-slate-300 mb-1">Product Name *</label>
+                <input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g. Enterprise Storage Array 40TB"
+                  className="w-full bg-[#101319] border border-[#283244] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                  required
+                />
+              </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <Input
-              label="Base Selling Price ($) *"
-              type="number"
-              step="0.01"
-              value={basePrice}
-              onChange={(e) => setBasePrice(e.target.value)}
-              placeholder="0.00"
-              required
-            />
-            <Input
-              label="Unit Cost Price ($)"
-              type="number"
-              step="0.01"
-              value={costPrice}
-              onChange={(e) => setCostPrice(e.target.value)}
-              placeholder="0.00"
-            />
-          </div>
+              <div>
+                <label className="block font-semibold text-slate-300 mb-1">Category *</label>
+                <select
+                  value={categoryId}
+                  onChange={(e) => setCategoryId(e.target.value)}
+                  className="w-full bg-[#101319] border border-[#283244] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                >
+                  <option value="">Select Category</option>
+                  {categories.map((c: any) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <Input
-              label="Tax Rate (%)"
-              type="number"
-              step="0.1"
-              value={taxRate}
-              onChange={(e) => setTaxRate(e.target.value)}
-              placeholder="18"
-            />
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Billing Unit</label>
-              <select
-                value={unit}
-                onChange={(e) => setUnit(e.target.value)}
-                className="w-full text-xs p-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-1 focus:ring-primary"
-              >
-                <option value="UNIT">UNIT</option>
-                <option value="HOUR">HOUR</option>
-                <option value="MONTH">MONTH</option>
-                <option value="YEAR">YEAR</option>
-              </select>
-            </div>
-          </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-300 mb-1">Base Price (₹) *</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={basePrice}
+                    onChange={(e) => setBasePrice(e.target.value)}
+                    placeholder="0.00"
+                    className="w-full bg-[#101319] border border-[#283244] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-300 mb-1">Unit Cost (₹)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={costPrice}
+                    onChange={(e) => setCostPrice(e.target.value)}
+                    placeholder="0.00"
+                    className="w-full bg-[#101319] border border-[#283244] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+              </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">Description</label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={2}
-              placeholder="Hardware specs or service description..."
-              className="w-full text-xs p-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-1 focus:ring-primary"
-            />
-          </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-300 mb-1">Tax Rate (%)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={taxRate}
+                    onChange={(e) => setTaxRate(e.target.value)}
+                    placeholder="18"
+                    className="w-full bg-[#101319] border border-[#283244] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-300 mb-1">Billing Unit</label>
+                  <select
+                    value={unit}
+                    onChange={(e) => setUnit(e.target.value)}
+                    className="w-full bg-[#101319] border border-[#283244] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                  >
+                    <option value="UNIT">UNIT</option>
+                    <option value="HOUR">HOUR</option>
+                    <option value="MONTH">MONTH</option>
+                    <option value="YEAR">YEAR</option>
+                  </select>
+                </div>
+              </div>
 
-          <div className="flex items-center justify-end gap-2 pt-3">
-            <Button variant="ghost" size="sm" type="button" onClick={() => setShowCreateModal(false)}>
-              Cancel
-            </Button>
-            <Button variant="primary" size="sm" type="submit" isLoading={createProductMutation.isPending}>
-              Save to Database
-            </Button>
+              <div>
+                <label className="block font-semibold text-slate-300 mb-1">Description</label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={2}
+                  placeholder="Hardware specs or service description..."
+                  className="w-full bg-[#101319] border border-[#283244] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={createProductMutation.isPending}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition-colors disabled:opacity-50"
+                >
+                  {createProductMutation.isPending ? 'Saving...' : 'Save to Database'}
+                </button>
+              </div>
+            </form>
           </div>
-        </form>
-      </Dialog>
+        </div>
+      )}
     </div>
   );
 }
