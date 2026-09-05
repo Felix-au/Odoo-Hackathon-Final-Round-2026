@@ -17,24 +17,26 @@ export async function buildApp() {
   // ─── Redis ────────────────────────────────────────────────────
   let redis: Redis | null = null;
   let isRedisConnected = false;
-  try {
-    const testRedis = new Redis(env.REDIS_URL, {
-      maxRetriesPerRequest: 1,
-      retryStrategy: () => null,
-      lazyConnect: true,
-      connectTimeout: 500,
-    });
-    testRedis.on('error', () => {});
-    await testRedis.connect()
-      .then(() => {
-        redis = testRedis;
-        isRedisConnected = true;
-      })
-      .catch(() => {
-        redis = null;
+  if (env.NODE_ENV !== 'test') {
+    try {
+      const testRedis = new Redis(env.REDIS_URL, {
+        maxRetriesPerRequest: 1,
+        retryStrategy: () => null,
+        lazyConnect: true,
+        connectTimeout: 500,
       });
-  } catch {
-    redis = null;
+      testRedis.on('error', () => {});
+      await testRedis.connect()
+        .then(() => {
+          redis = testRedis;
+          isRedisConnected = true;
+        })
+        .catch(() => {
+          redis = null;
+        });
+    } catch {
+      redis = null;
+    }
   }
 
   const redisProxy = (redis || {
@@ -44,6 +46,7 @@ export async function buildApp() {
     del: async () => 1,
     keys: async () => [],
     ping: async () => 'PONG',
+    xadd: async () => '1-0',
     disconnect: () => {},
     on: () => {},
   }) as unknown as Redis;
@@ -68,7 +71,7 @@ export async function buildApp() {
     credentials: true,
   });
 
-  if (isRedisConnected && redis) {
+  if (isRedisConnected && redis && env.NODE_ENV !== 'test') {
     await app.register(import('@fastify/rate-limit'), {
       max: 200,
       timeWindow: '1 minute',

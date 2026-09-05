@@ -39,7 +39,7 @@ export function internalAuthRoutes(
 
     // POST /auth/signup — REQ-F-001
     fastify.post('/signup', {
-      config: { rateLimit: { max: 5, timeWindow: '1 minute' } },
+      config: { rateLimit: process.env.NODE_ENV === 'test' ? false : { max: 5, timeWindow: '1 minute' } },
     }, async (request, reply) => {
       const body = SignupSchema.safeParse(request.body);
       if (!body.success) {
@@ -77,7 +77,7 @@ export function internalAuthRoutes(
 
     // POST /auth/login — REQ-F-002
     fastify.post('/login', {
-      config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
+      config: { rateLimit: process.env.NODE_ENV === 'test' ? false : { max: 10, timeWindow: '1 minute' } },
     }, async (request, reply) => {
       const body = LoginSchema.safeParse(request.body);
       if (!body.success) {

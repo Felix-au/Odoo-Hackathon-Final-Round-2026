@@ -88,7 +88,13 @@ export async function buildApp() {
     credentials: true,
   });
 
-  if (isRedisConnected && redis) {
+  if (process.env.NODE_ENV === 'test') {
+    await app.register(fastifyRateLimit, {
+      global: false,
+      max: 10000,
+      timeWindow: '1 minute',
+    });
+  } else if (isRedisConnected && redis) {
     await app.register(fastifyRateLimit, {
       global: true,
       max: 100,
@@ -155,7 +161,9 @@ export async function buildApp() {
   // ─── Graceful Shutdown ───────────────────────────────────
   app.addHook('onClose', async () => {
     await prisma.$disconnect();
-    redis.disconnect();
+    if (redis) {
+      redis.disconnect();
+    }
   });
 
   return app;

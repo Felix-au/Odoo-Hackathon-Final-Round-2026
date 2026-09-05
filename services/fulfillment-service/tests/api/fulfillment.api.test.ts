@@ -40,8 +40,10 @@ const ORDER_1 = '00000001-0000-0000-0000-000000000001';
 const mockPrismaStock = vi.hoisted(() => {
   const db = {
     warehouseStock: {
+      findFirst: vi.fn(),
       findMany: vi.fn(),
       findUnique: vi.fn(),
+      create: vi.fn(),
       upsert: vi.fn(),
       update: vi.fn(),
       updateMany: vi.fn(),
@@ -164,7 +166,8 @@ describe('Role Enforcement', () => {
   });
 
   it('allows PUT /fulfillment/stock with ADMIN role', async () => {
-    mockPrismaStock.warehouseStock.upsert.mockResolvedValueOnce({
+    mockPrismaStock.warehouseStock.findFirst.mockResolvedValueOnce(null);
+    mockPrismaStock.warehouseStock.create.mockResolvedValueOnce({
       id: 'stock-1',
       warehouseId: WH_A,
       productId: PROD_1,
@@ -308,8 +311,8 @@ describe('POST /fulfillment/stock/arrival (CHECK-FULL-004)', () => {
       quantityReserved: 0,
     };
 
-    // adjust uses findUnique then update
-    mockPrismaStock.warehouseStock.findUnique.mockResolvedValueOnce({ id: 'stock-1' });
+    // adjust uses findFirst then update
+    mockPrismaStock.warehouseStock.findFirst.mockResolvedValueOnce({ id: 'stock-1' });
     mockPrismaStock.warehouseStock.update.mockResolvedValueOnce(stockAfterArrival);
 
     // backorder records for this product

@@ -1,6 +1,5 @@
 import { PrismaClient, type User, type Role } from '@prisma/client';
 import bcrypt from 'bcryptjs';
-import { checkDbAvailable } from '../db-status';
 
 export class UserRepository {
   private inMemoryUsers: Map<string, User> = new Map();
@@ -70,26 +69,24 @@ export class UserRepository {
   }
 
   async findById(id: string): Promise<User | null> {
-    if (await checkDbAvailable(this.prisma)) {
-      try {
-        return await this.prisma.user.findUnique({ where: { id } });
-      } catch {}
+    try {
+      return await this.prisma.user.findUnique({ where: { id } });
+    } catch {
+      await this.ensureInitialized();
+      for (const u of this.inMemoryUsers.values()) {
+        if (u.id === id) return u;
+      }
+      return null;
     }
-    await this.ensureInitialized();
-    for (const u of this.inMemoryUsers.values()) {
-      if (u.id === id) return u;
-    }
-    return null;
   }
 
   async findByEmail(email: string): Promise<User | null> {
-    if (await checkDbAvailable(this.prisma)) {
-      try {
-        return await this.prisma.user.findUnique({ where: { email } });
-      } catch {}
+    try {
+      return await this.prisma.user.findUnique({ where: { email } });
+    } catch {
+      await this.ensureInitialized();
+      return this.inMemoryUsers.get(email.toLowerCase().trim()) || null;
     }
-    await this.ensureInitialized();
-    return this.inMemoryUsers.get(email.toLowerCase().trim()) || null;
   }
 
   async create(data: {
@@ -99,89 +96,87 @@ export class UserRepository {
     role: Role;
     companyId?: string;
   }): Promise<User> {
-    if (await checkDbAvailable(this.prisma)) {
-      try {
-        return await this.prisma.user.create({
-          data: {
-            ...data,
-            companyId: data.companyId ?? 'default',
-          },
-        });
-      } catch {}
+    try {
+      return await this.prisma.user.create({
+        data: {
+          ...data,
+          companyId: data.companyId ?? 'default',
+        },
+      });
+    } catch {
+      await this.ensureInitialized();
+      const newUser: User = {
+        id: `usr-${Date.now()}`,
+        email: data.email.toLowerCase().trim(),
+        passwordHash: data.passwordHash,
+        name: data.name,
+        role: data.role,
+        companyId: data.companyId ?? 'default',
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      this.inMemoryUsers.set(newUser.email, newUser);
+      return newUser;
     }
-    await this.ensureInitialized();
-    const newUser: User = {
-      id: `usr-${Date.now()}`,
-      email: data.email.toLowerCase().trim(),
-      passwordHash: data.passwordHash,
-      name: data.name,
-      role: data.role,
-      companyId: data.companyId ?? 'default',
-      isActive: true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    this.inMemoryUsers.set(newUser.email, newUser);
-    return newUser;
   }
 
   async updateRole(id: string, role: Role): Promise<User> {
-    if (await checkDbAvailable(this.prisma)) {
-      try {
-        return await this.prisma.user.update({
-          where: { id },
-          data: { role },
-        });
-      } catch {}
-    }
-    await this.ensureInitialized();
-    for (const u of this.inMemoryUsers.values()) {
-      if (u.id === id) {
-        u.role = role;
-        u.updatedAt = new Date();
-        return u;
+    try {
+      return await this.prisma.user.update({
+        where: { id },
+        data: { role },
+      });
+    } catch {
+      await this.ensureInitialized();
+      for (const u of this.inMemoryUsers.values()) {
+        if (u.id === id) {
+          u.role = role;
+          u.updatedAt = new Date();
+          return u;
+        }
       }
+      throw new Error(`User with id ${id} not found`);
     }
-    throw new Error(`User with id ${id} not found`);
   }
 
   async setActive(id: string, isActive: boolean): Promise<User> {
-    if (await checkDbAvailable(this.prisma)) {
-      try {
-        return await this.prisma.user.update({
-          where: { id },
-          data: { isActive },
-        });
-      } catch {}
-    }
-    await this.ensureInitialized();
-    for (const u of this.inMemoryUsers.values()) {
-      if (u.id === id) {
-        u.isActive = isActive;
-        u.updatedAt = new Date();
-        return u;
+    try {
+      return await this.prisma.user.update({
+        where: { id },
+        data: { isActive },
+      });
+    } catch {
+      await this.ensureInitialized();
+      for (const u of this.inMemoryUsers.values()) {
+        if (u.id === id) {
+          u.isActive = isActive;
+          u.updatedAt = new Date();
+          return u;
+        }
       }
+      throw new Error(`User with id ${id} not found`);
     }
-    throw new Error(`User with id ${id} not found`);
   }
 
   async listAll(page: number, pageSize: number): Promise<{ users: User[]; total: number }> {
-    if (await checkDbAvailable(this.prisma)) {
-      try {
-        const [users, total] = await Promise.all([
-          this.prisma.user.findMany({
-            orderBy: { createdAt: 'desc' },
-            skip: (page - 1) * pageSize,
-            take: pageSize,
-          }),
-          this.prisma.user.count(),
-        ]);
-        return { users, total };
-      } catch {}
+    try {
+      const [users, total] = await Promise.all([
+        this.prisma.user.findMany({
+          orderBy: { createdAt: 'desc' },
+          skip: (page - 1) * pageSize,
+          take: pageSize,
+        }),
+        this.prisma.user.count(),
+      ]);
+      return { users, total };
+    } catch {
+      await this.ensureInitialized();
+      const all = Array.from(this.inMemoryUsers.values());
+      const users = all.slice((page - 1) * pageSize, page * pageSize);
+      return { users, total: all.length };
     }
-    await this.ensureInitialized();
-    const all = Array.from(this.inMemoryUsers.values());
-    const users = all.slice((page - 1) * pageSize, page * pageSize);
-    return { users, total: all.length };
   }
 }
+
+
