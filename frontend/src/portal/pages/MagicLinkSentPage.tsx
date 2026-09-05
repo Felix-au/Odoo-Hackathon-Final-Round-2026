@@ -51,7 +51,7 @@ export function MagicLinkSentPage() {
               </div>
               <div className="text-left">
                 <div className="text-xs font-bold text-zinc-200 group-hover:text-white transition-colors">
-                  Open Local Mailpit Inbox
+                  Open Inbox
                 </div>
                 <div className="text-[11px] text-zinc-500 font-mono">
                   http://localhost:8025
