@@ -79,7 +79,8 @@ export async function buildApp() {
     global: true,
     max: 200,
     timeWindow: '1 minute',
-    redis,
+    // Only use Redis store in non-test environments; mocked Redis lacks defineCommand
+    ...(env.NODE_ENV !== 'test' && { redis }),
     keyGenerator: (req) => req.ip ?? 'unknown',
   });
 

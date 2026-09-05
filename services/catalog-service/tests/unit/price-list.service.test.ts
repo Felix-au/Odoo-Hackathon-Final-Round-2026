@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { PriceListService } from '../../../src/domain/services/price-list.service';
-import type { PriceListRepository } from '../../../src/db/repositories/price-list.repository';
-import type { ProductRepository } from '../../../src/db/repositories/product.repository';
-import type { CatalogCache } from '../../../src/cache/catalog-cache';
+import { PriceListService } from '../../src/domain/services/price-list.service';
+import type { PriceListRepository } from '../../src/db/repositories/price-list.repository';
+import type { ProductRepository } from '../../src/db/repositories/product.repository';
+import type { CatalogCache } from '../../src/cache/catalog-cache';
 import { Decimal } from '@prisma/client/runtime/library';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
