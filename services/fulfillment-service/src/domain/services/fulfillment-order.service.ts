@@ -131,4 +131,77 @@ export class FulfillmentOrderService {
     });
   }
 
+  async manualOverride(
+    fulfillmentOrderId: string,
+    companyId: string,
+    splits: AcceptSplitInput['splits'],
+  ): Promise<FulfillmentOrderWithSplits> {
+    const existing = await this.orderRepo.findById(fulfillmentOrderId);
+    if (!existing) throw new Error(`FulfillmentOrder ${fulfillmentOrderId} not found`);
+
+    return prisma.$transaction(async (tx) => {
+      // Release previously reserved stock
+      for (const oldSplit of existing.splits) {
+        if (oldSplit.status === FulfillmentStatus.RESERVED && oldSplit.quantityRequested > 0) {
+          await this.stockRepo.releaseReserved(
+            companyId,
+            oldSplit.warehouseId,
+            oldSplit.productId,
+            oldSplit.variantId,
+            oldSplit.quantityRequested,
+          );
+        }
+      }
+
+      const newSplitRecords = splits.map((s) => ({
+        warehouseId: s.warehouseId,
+        warehouseName: s.warehouseName,
+        productId: s.productId,
+        variantId: s.variantId ?? null,
+        productName: s.productName,
+        quantityRequested: s.quantity,
+        quantityFulfilled: 0,
+        quantityBackordered: 0,
+        status: FulfillmentStatus.RESERVED as FulfillmentStatus,
+      }));
+
+      const updated = await this.orderRepo.updateOverride(tx, fulfillmentOrderId, newSplitRecords);
+
+      // Reserve new stock
+      for (const s of splits) {
+        if (s.quantity > 0 && s.warehouseId !== 'BACKORDER') {
+          await this.stockRepo.incrementReserved(
+            tx,
+            companyId,
+            s.warehouseId,
+            s.productId,
+            s.variantId ?? null,
+            s.quantity,
+          );
+        }
+      }
+
+      return updated;
+    });
   }
+
+  async getOrderStatus(orderId: string): Promise<FulfillmentOrderWithSplits | null> {
+    return this.orderRepo.findByOrderId(orderId);
+  }
+
+  async consolidateBackorder(
+    fulfillmentOrderId: string,
+    companyId: string,
+  ): Promise<{ resolved: number }> {
+    const order = await this.orderRepo.findById(fulfillmentOrderId);
+    if (!order) throw new Error(`FulfillmentOrder ${fulfillmentOrderId} not found`);
+
+    const openBackorders = await this.backorderRepo.findByOrderId(order.orderId);
+    const ids = openBackorders.map((b) => b.id);
+    if (ids.length > 0) {
+      await this.backorderRepo.resolveMany(ids);
+    }
+
+    return { resolved: ids.length };
+  }
+}
