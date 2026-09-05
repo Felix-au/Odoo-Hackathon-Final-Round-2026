@@ -31,4 +31,41 @@ export class StockService {
     return this.stockRepo.adjust(input);
   }
 
+  async recordArrival(input: StockArrivalInput): Promise<{
+    stock: WarehouseStock;
+    affectedOrderIds: string[];
+  }> {
+    // Increment stock
+    const stock = await this.stockRepo.adjust({
+      companyId: input.companyId,
+      warehouseId: input.warehouseId,
+      productId: input.productId,
+      variantId: input.variantId,
+      delta: input.quantityArrived,
+    });
+
+    // Find open backorders for this product
+    const openBackorders = await this.backorderRepo.findOpenByProduct(
+      input.companyId,
+      input.productId,
+    );
+
+    const affectedOrderIds = [...new Set(openBackorders.map((b) => b.orderId))];
+
+    // Publish event (CHECK-FULL-004)
+    await this.eventPublisher.publish('dealflow360:fulfillment', {
+      eventType: 'fulfillment.stock_arrived',
+      version: '1.0',
+      companyId: input.companyId,
+      payload: {
+        warehouseId: input.warehouseId,
+        productId: input.productId,
+        variantId: input.variantId ?? null,
+        quantityArrived: input.quantityArrived,
+        affectedOrderIds,
+      },
+    });
+
+    return { stock, affectedOrderIds };
   }
+}
