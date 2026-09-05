@@ -14,11 +14,11 @@ export function MagicLinkSentPage() {
 
       <div className="w-full max-w-md flex flex-col items-center relative z-10 animate-in fade-in zoom-in-95 duration-500">
         {/* Pure Black Card */}
-        <div className="w-full bg-[#0A0A0A] border border-[#1F1F1F] rounded-2xl p-6 sm:p-8 shadow-2xl space-y-6">
+        <div className="w-full bg-black border border-[#1F1F1F] rounded-2xl p-6 sm:p-8 shadow-2xl space-y-6">
           
           {/* Header & Logo replacing old email icon */}
           <div className="text-center space-y-4">
-            <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-2xl flex items-center justify-center p-0.5 border border-white/10 bg-black mx-auto">
+            <div className="w-20 h-20 rounded-2xl overflow-hidden flex items-center justify-center bg-black mx-auto">
               <img
                 src={dealflowLogo}
                 alt="DealFlow360 Logo"
