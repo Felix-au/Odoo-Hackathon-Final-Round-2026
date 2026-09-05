@@ -26,6 +26,18 @@ async function seed() {
     });
 
     await tx.user.upsert({
+      where: { email: 'manager@dealflow360.com' },
+      update: { passwordHash: managerHash },
+      create: {
+        email: 'manager@dealflow360.com',
+        passwordHash: managerHash,
+        name: 'Sales Manager Lead',
+        role: 'SALES_MANAGER',
+        companyId: 'default',
+      },
+    });
+
+    await tx.user.upsert({
       where: { email: 'manager1@dealflow360.com' },
       update: {},
       create: {
@@ -57,6 +69,18 @@ async function seed() {
         passwordHash: financeHash,
         name: 'Carol Finance',
         role: 'FINANCE',
+        companyId: 'default',
+      },
+    });
+
+    await tx.user.upsert({
+      where: { email: 'rep@dealflow360.com' },
+      update: { passwordHash: repHash },
+      create: {
+        email: 'rep@dealflow360.com',
+        passwordHash: repHash,
+        name: 'Sales Representative Lead',
+        role: 'SALES_REP',
         companyId: 'default',
       },
     });
