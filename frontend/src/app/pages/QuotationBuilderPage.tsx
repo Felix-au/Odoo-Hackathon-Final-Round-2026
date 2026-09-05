@@ -516,10 +516,11 @@ export function QuotationBuilderPage() {
             {/* Dark Sleek Column Header Bar */}
             <div className="bg-[#111111] border-b border-[#1A1A1A] text-zinc-400 font-semibold text-[11px] uppercase tracking-wider px-6 py-2.5 flex items-center justify-between select-none">
               <span className="flex-1">Product Details</span>
-              <div className="flex items-center gap-6 sm:gap-8 shrink-0">
+              <div className="flex items-center gap-4 sm:gap-6 shrink-0">
                 <span className="w-16 text-center">Qty</span>
                 <span className="w-24 text-right">Unit Price</span>
                 <span className="w-16 text-right">Disc. %</span>
+                <span className="w-20 text-center">Risk</span>
                 <span className="w-24 text-right">Total</span>
                 <span className="w-14 text-right">Action</span>
               </div>
@@ -569,7 +570,7 @@ export function QuotationBuilderPage() {
                       </div>
 
                       {/* Numeric Columns */}
-                      <div className="flex items-center gap-6 sm:gap-8 shrink-0">
+                      <div className="flex items-center gap-4 sm:gap-6 shrink-0">
                         {/* QTY Input */}
                         <div className="w-16 text-center">
                           <input
@@ -581,7 +582,7 @@ export function QuotationBuilderPage() {
                               setInlineEdits((prev) => ({
                                 ...prev,
                                 [line.id]: {
-                                  ...prev[line.id],
+                                   ...prev[line.id],
                                   quantity: val,
                                   isDirty: true,
                                 },
@@ -635,6 +636,23 @@ export function QuotationBuilderPage() {
                             }}
                             className="w-16 bg-[#141414] border border-[#262626] focus:border-zinc-400 rounded-lg px-2 py-1 text-xs font-mono text-white text-right focus:outline-none transition-colors"
                           />
+                        </div>
+
+                        {/* LINE RISK Column */}
+                        <div className="w-20 flex items-center justify-center">
+                          {edit.discountPct >= 30 ? (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                              High ({edit.discountPct}%)
+                            </span>
+                          ) : edit.discountPct >= 15 ? (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                              Med ({edit.discountPct}%)
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                              Low (0)
+                            </span>
+                          )}
                         </div>
 
                         {/* TOTAL */}
