@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuotation } from '../../api/hooks/useQuotationBuilder';
 import { useApprovalActions } from '../../api/hooks/useApproval';
 import { useAuthStore } from '../../stores/auth.store';
+import { formatCurrency } from '../../lib/utils';
 import { LoadingSpinner } from '../../components/feedback/LoadingSpinner';
 import { ArrowLeft, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
@@ -140,23 +141,23 @@ export function QuotationApprovalPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-[#12151C] border border-[#1E2430] rounded-2xl p-4">
           <span className="text-[11px] font-semibold uppercase text-slate-400">Total Value</span>
-          <div className="text-2xl font-bold text-white mt-1">
-            ${Number(quotation.totalAmount).toLocaleString()}
+          <div className="text-2xl font-bold text-white mt-1 font-mono">
+            {formatCurrency(quotation.totalAmount)}
           </div>
           <span className="text-xs text-slate-500">Net quotation amount</span>
         </div>
 
         <div className="bg-[#12151C] border border-[#1E2430] rounded-2xl p-4">
           <span className="text-[11px] font-semibold uppercase text-slate-400">Blended Margin</span>
-          <div className="text-2xl font-bold text-emerald-400 mt-1">
+          <div className="text-2xl font-bold text-emerald-400 mt-1 font-mono">
             {Math.round(quotation.overallMarginPct || 37)}%
           </div>
-          <span className="text-xs text-slate-500">Cost: ${Number(quotation.totalCost || 3800).toLocaleString()}</span>
+          <span className="text-xs text-slate-500 font-mono">Cost: {formatCurrency(quotation.totalCost || 3800)}</span>
         </div>
 
         <div className="bg-[#12151C] border border-[#1E2430] rounded-2xl p-4">
           <span className="text-[11px] font-semibold uppercase text-slate-400">Risk Score</span>
-          <div className="text-2xl font-bold text-orange-500 mt-1">
+          <div className="text-2xl font-bold text-orange-500 mt-1 font-mono">
             {quotation.riskScore || 82}
           </div>
           <span className="text-xs text-orange-400">High discount exception</span>
@@ -190,7 +191,7 @@ export function QuotationApprovalPage() {
           <div className="py-3 flex items-center justify-between">
             <div>
               <div className="font-semibold text-white">Customer Tier Compliance</div>
-              <div className="text-slate-400 text-[11px]">Enterprise tier requires double sign-off for quotes &gt; $5,000</div>
+              <div className="text-slate-400 text-[11px]">Enterprise tier requires double sign-off for quotes &gt; ₹50,000</div>
             </div>
             <span className="font-mono font-semibold text-orange-400">+21 risk</span>
           </div>

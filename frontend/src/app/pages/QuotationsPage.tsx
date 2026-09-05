@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuotations, useCreateQuotation } from '../../api/hooks/useQuotations';
 import { QuotationStatus, QUOTATION_STATUSES } from '../../lib/constants';
+import { formatCurrency } from '../../lib/utils';
 import { LoadingSpinner } from '../../components/feedback/LoadingSpinner';
 import { Plus, Search, Filter, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
@@ -24,7 +25,7 @@ export function QuotationsPage() {
 
   const handleCreateNew = async () => {
     try {
-      const newQuote = await createQuotationMutation.mutateAsync('c1000000-0000-0000-0000-000000000001');
+      const newQuote = await createQuotationMutation.mutateAsync();
       toast.success(`Created draft quotation`);
       navigate(`/app/quotations/${newQuote.id || 'new'}`);
     } catch {
@@ -163,8 +164,8 @@ export function QuotationsPage() {
                           <span className="font-bold text-white group-hover:text-blue-400 transition-colors">
                             {q.quotationNumber}
                           </span>
-                          <span className="font-mono text-slate-300">
-                            ${Number(q.totalAmount).toLocaleString()}
+                          <span className="font-mono font-bold text-white">
+                            {formatCurrency(q.totalAmount)}
                           </span>
                         </div>
                         <div className="text-xs text-slate-400 truncate">
@@ -227,8 +228,8 @@ export function QuotationsPage() {
                     <td className="py-3.5 px-5 text-slate-300">
                       {quote.customer?.name || 'Customer'}
                     </td>
-                    <td className="py-3.5 px-5 font-mono text-white">
-                      ${Number(quote.totalAmount).toLocaleString()}
+                    <td className="py-3.5 px-5 font-mono font-bold text-white">
+                      {formatCurrency(quote.totalAmount)}
                     </td>
                     <td className="py-3.5 px-5 text-slate-300 font-mono">
                       {Math.round(quote.overallMarginPct || 35)}%

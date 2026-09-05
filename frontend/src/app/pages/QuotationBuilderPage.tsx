@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuotation, useQuotationBuilder, useUpsellSuggestions } from '../../api/hooks/useQuotationBuilder';
 import { useProducts } from '../../api/hooks/useCatalog';
 import { LoadingSpinner } from '../../components/feedback/LoadingSpinner';
+import { formatCurrency } from '../../lib/utils';
 import { Plus, Trash2, Sparkles, AlertTriangle, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -138,10 +139,10 @@ export function QuotationBuilderPage() {
         <div className="flex items-center justify-between mt-2">
           <div>
             <h1 className="text-3xl font-bold text-white tracking-tight">
-              New quotation
+              Quotation Builder
             </h1>
             <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
-              Acme Corporation · Gold Tier
+              {quote?.customer?.name || 'Acme Corporation'} · {quote?.customer?.tier || 'Gold'} Tier
             </p>
           </div>
           <div>
@@ -163,7 +164,7 @@ export function QuotationBuilderPage() {
                 Line items
               </div>
               <div className="text-xs sm:text-sm text-slate-300 mt-1">
-                Pricing reflects Acme Corporation's Gold Tier agreement.
+                Pricing reflects {quote?.customer?.name || 'Acme Corporation'}'s Gold Tier agreement.
               </div>
             </div>
 
@@ -172,9 +173,9 @@ export function QuotationBuilderPage() {
               <span>Product</span>
               <div className="flex items-center gap-6 sm:gap-10">
                 <span className="w-12 text-center">Qty</span>
-                <span className="w-16 text-right">Price</span>
+                <span className="w-20 text-right">Price</span>
                 <span className="w-14 text-right">Disc.</span>
-                <span className="w-20 text-right">Total</span>
+                <span className="w-24 text-right">Total</span>
                 <span className="w-5"></span>
               </div>
             </div>
@@ -183,6 +184,7 @@ export function QuotationBuilderPage() {
             <div className="divide-y divide-[#1B222F]">
               {lines.map((line: any) => {
                 const isEditing = editingLineId === line.id;
+                const lineTotalCalculated = line.lineTotal || (line.unitPrice * line.quantity * (1 - (line.discountPct || 0) / 100));
                 return (
                   <div
                     key={line.id}
@@ -226,8 +228,8 @@ export function QuotationBuilderPage() {
                       </div>
 
                       {/* PRICE */}
-                      <div className="w-16 text-right text-xs text-slate-300 font-medium">
-                        ${line.unitPrice}
+                      <div className="w-20 text-right text-xs text-slate-300 font-medium font-mono">
+                        {formatCurrency(line.unitPrice)}
                       </div>
 
                       {/* DISC */}
@@ -257,8 +259,8 @@ export function QuotationBuilderPage() {
                       </div>
 
                       {/* TOTAL */}
-                      <div className="w-20 text-right text-xs font-bold text-white">
-                        ${(line.lineTotal || (line.unitPrice * line.quantity * (1 - (line.discountPct || 0) / 100))).toLocaleString()}
+                      <div className="w-24 text-right text-xs font-bold text-white font-mono">
+                        {formatCurrency(lineTotalCalculated)}
                       </div>
 
                       {/* Actions */}
@@ -358,22 +360,22 @@ export function QuotationBuilderPage() {
             <div className="space-y-2 text-xs">
               <div className="flex items-center justify-between text-slate-300">
                 <span>Subtotal</span>
-                <span className="font-medium">${subtotal.toLocaleString()}</span>
+                <span className="font-medium font-mono">{formatCurrency(subtotal)}</span>
               </div>
               <div className="flex items-center justify-between text-slate-300">
                 <span>Discount</span>
-                <span className="font-medium text-emerald-400">-${discountTotal.toLocaleString()}</span>
+                <span className="font-medium text-emerald-400 font-mono">-{formatCurrency(discountTotal)}</span>
               </div>
               <div className="flex items-center justify-between text-slate-300">
-                <span>Tax</span>
-                <span className="font-medium">${tax.toLocaleString()}</span>
+                <span>Tax (10%)</span>
+                <span className="font-medium font-mono">{formatCurrency(tax)}</span>
               </div>
             </div>
 
             <div className="border-t border-[#1E2430] pt-3 flex items-center justify-between">
               <span className="text-sm font-bold text-white">Total</span>
-              <span className="text-xl font-bold text-white tracking-tight">
-                ${total.toLocaleString()}
+              <span className="text-xl font-bold text-white tracking-tight font-mono">
+                {formatCurrency(total)}
               </span>
             </div>
 
@@ -410,7 +412,7 @@ export function QuotationBuilderPage() {
                       {sugg.reason}
                     </p>
                     <div className="pt-1 flex items-center justify-between">
-                      <span className="text-slate-300 font-medium">${sugg.unitPrice || 450}</span>
+                      <span className="text-slate-300 font-medium font-mono">{formatCurrency(sugg.unitPrice || 450)}</span>
                       <button
                         type="button"
                         onClick={() =>
@@ -459,7 +461,7 @@ export function QuotationBuilderPage() {
                   <option value="">Select a product...</option>
                   {catalogProducts.map((p) => (
                     <option key={p.id} value={p.id}>
-                      {p.name} — ${p.basePrice} ({p.category?.name || 'Hardware'})
+                      {p.name} — {formatCurrency(p.basePrice)} ({p.category?.name || 'Hardware'})
                     </option>
                   ))}
                 </select>
