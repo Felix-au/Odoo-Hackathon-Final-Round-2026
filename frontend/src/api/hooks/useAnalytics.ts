@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { analyticsApi } from '../analytics.api';
-import { KPIData, PipelineStageCount, DealHealthAlert } from '../../types/analytics.types';
+import { KPIData, PipelineStageCount, DealHealthAlert, TopRepPerformance } from '../../types/analytics.types';
 import { useAuthStore } from '../../stores/auth.store';
 import { toast } from 'sonner';
 
@@ -25,6 +25,13 @@ export function useDashboardAnalytics() {
   const alertsQuery = useQuery<DealHealthAlert[], Error>({
     queryKey: ['deal-health-alerts', token],
     queryFn: () => analyticsApi.getDealHealth(token),
+    retry: false,
+    staleTime: 30_000,
+  });
+
+  const topRepsQuery = useQuery<TopRepPerformance[], Error>({
+    queryKey: ['analytics-top-reps', token],
+    queryFn: () => analyticsApi.getTopReps(token),
     retry: false,
     staleTime: 30_000,
   });
@@ -69,6 +76,7 @@ export function useDashboardAnalytics() {
     kpis: kpiQuery.data || null,
     stages: stagesQuery.data || [],
     alerts: alertsQuery.data || [],
+    topReps: topRepsQuery.data || [],
     isLoading: kpiQuery.isLoading || stagesQuery.isLoading || alertsQuery.isLoading,
     nudge: nudgeMutation.mutate,
     escalate: escalateMutation.mutate,

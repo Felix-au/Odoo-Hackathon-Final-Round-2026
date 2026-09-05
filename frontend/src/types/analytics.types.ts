@@ -44,3 +44,14 @@ export interface ReportFilter {
   repId?: string;
   status?: string;
 }
+
+export interface TopRepPerformance {
+  repId: string;
+  repName: string;
+  role: string;
+  deals: number;
+  volume: string;
+  winRate: string;
+  status: string;
+}
+

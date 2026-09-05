@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuotations, useCreateQuotation } from '../../api/hooks/useQuotations';
 import { QuotationStatus, QUOTATION_STATUSES } from '../../lib/constants';
@@ -53,15 +53,45 @@ export function QuotationsPage() {
   const [searchParams] = useSearchParams();
   const viewMode = searchParams.get('view') === 'pipeline' ? 'pipeline' : 'list';
 
-  const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [statusFilter, setStatusFilter] = useState<string>(() => {
+    const s = searchParams.get('status');
+    const f = searchParams.get('filter');
+    if (f === 'at-risk') return 'AT_RISK';
+    if (s) return s;
+    return 'ALL';
+  });
   const [searchQuery, setSearchQuery] = useState('');
 
+  useEffect(() => {
+    const s = searchParams.get('status');
+    const f = searchParams.get('filter');
+    if (f === 'at-risk') {
+      setStatusFilter('AT_RISK');
+    } else if (s) {
+      setStatusFilter(s);
+    }
+  }, [searchParams]);
+
+  const isSpecialFilter = statusFilter === 'AT_RISK' || statusFilter === 'IN_REVIEW';
   const { data: quoteResult, isLoading } = useQuotations({
-    status: statusFilter === 'ALL' ? undefined : (statusFilter as QuotationStatus),
+    status: isSpecialFilter || statusFilter === 'ALL' ? undefined : (statusFilter as QuotationStatus),
     search: searchQuery,
   });
 
-  const quotations = quoteResult?.data || [];
+  const rawQuotations = quoteResult?.data || [];
+  const quotations = rawQuotations.filter((q) => {
+    if (statusFilter === 'AT_RISK') {
+      return (
+        Number(q.blendedRiskScore || 0) > 0 ||
+        q.status === 'PENDING_MANAGER_APPROVAL' ||
+        q.status === 'PENDING_FINANCE_APPROVAL'
+      );
+    }
+    if (statusFilter === 'IN_REVIEW') {
+      return q.status === 'PENDING_MANAGER_APPROVAL' || q.status === 'PENDING_FINANCE_APPROVAL';
+    }
+    return true;
+  });
   const createQuotationMutation = useCreateQuotation();
 
   const handleCreateNew = async () => {
@@ -167,11 +197,13 @@ export function QuotationsPage() {
           >
             <option value="ALL">All Stages</option>
             <option value="DRAFT">Draft</option>
+            <option value="IN_REVIEW">In Review (All)</option>
             <option value="PENDING_MANAGER_APPROVAL">In Review (Manager)</option>
             <option value="PENDING_FINANCE_APPROVAL">In Review (Finance)</option>
             <option value="APPROVED">Approved</option>
             <option value="SENT">Sent to Customer</option>
             <option value="CONFIRMED">Confirmed / Won</option>
+            <option value="AT_RISK">🔥 At-Risk Deals</option>
             <option value="REJECTED">Rejected</option>
           </select>
         </div>

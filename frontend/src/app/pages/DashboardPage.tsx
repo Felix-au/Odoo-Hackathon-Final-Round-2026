@@ -71,16 +71,7 @@ const renderActiveShape = (props: any) => {
 export function DashboardPage() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const { kpis, stages, alerts, isLoading, nudge, escalate } = useDashboardAnalytics();
-  const [activePieIndex, setActivePieIndex] = useState<number | null>(null);
-
-  if (isLoading && !kpis) {
-    return (
-      <div className="py-24 flex justify-center">
-        <LoadingSpinner label="Loading DealFlow360 intelligence..." />
-      </div>
-    );
-  }
+  const { kpis, stages, alerts, topReps, isLoading, nudge, escalate } = useDashboardAnalytics();
 
   const role = user?.role || 'SALES_REP';
   const userName = user?.name ? user.name.split(' ')[0] : (user?.email ? user.email.split('@')[0] : 'Team Member');
@@ -94,6 +85,24 @@ export function DashboardPage() {
     { status: 'SENT', label: 'Sent to Client', count: 4, totalValue: 94000, percentage: 20, colorHex: STAGE_COLORS.SENT },
     { status: 'CONFIRMED', label: 'Confirmed / Won', count: 6, totalValue: 180000, percentage: 32, colorHex: STAGE_COLORS.CONFIRMED },
   ];
+
+  // In Review index (default highlighted slice and legend item)
+  const inReviewIndex = Math.max(
+    0,
+    displayStages.findIndex(
+      (s) => s.status === 'IN_REVIEW' || s.label.toLowerCase().includes('in review') || s.status === 'PENDING_MANAGER_APPROVAL'
+    )
+  );
+  const [hoveredPieIndex, setHoveredPieIndex] = useState<number | null>(null);
+  const activePieIndex = hoveredPieIndex !== null ? hoveredPieIndex : inReviewIndex;
+
+  if (isLoading && !kpis) {
+    return (
+      <div className="py-24 flex justify-center">
+        <LoadingSpinner label="Loading DealFlow360 intelligence..." />
+      </div>
+    );
+  }
 
   const totalQuotesCount = displayStages.reduce((acc, s) => acc + s.count, 0);
 
@@ -175,10 +184,13 @@ export function DashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {role === 'SALES_REP' ? (
           <>
-            <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-2xl p-5 hover:border-[#2E2E2E] transition-all group">
+            <div
+              onClick={() => navigate('/app/quotations')}
+              className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-2xl p-5 hover:border-[#333333] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_24px_rgba(0,0,0,0.6)] group cursor-pointer"
+            >
               <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
                 <span>My Active Pipeline</span>
-                <TrendingUp className="w-3.5 h-3.5 text-zinc-500 group-hover:text-emerald-400 transition-colors" />
+                <TrendingUp className="w-3.5 h-3.5 text-zinc-500 group-hover:text-emerald-400 group-hover:scale-110 transition-all duration-300" />
               </div>
               <div className="text-3xl font-bold text-white tracking-tight mt-2">
                 ₹{Math.round((kpis?.activePipeline || 480000) / 1000)}K
@@ -188,10 +200,13 @@ export function DashboardPage() {
               </div>
             </div>
 
-            <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-2xl p-5 hover:border-[#2E2E2E] transition-all group">
+            <div
+              onClick={() => navigate('/app/quotations?filter=at-risk')}
+              className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-2xl p-5 hover:border-[#333333] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_24px_rgba(0,0,0,0.6)] group cursor-pointer"
+            >
               <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
                 <span>Attention Required</span>
-                <Flame className="w-3.5 h-3.5 text-amber-400" />
+                <Flame className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform duration-300" />
               </div>
               <div className="text-3xl font-bold text-amber-400 tracking-tight mt-2">
                 {filteredAlerts.length}
@@ -201,10 +216,10 @@ export function DashboardPage() {
               </div>
             </div>
 
-            <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-2xl p-5 hover:border-[#2E2E2E] transition-all group">
+            <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-2xl p-5 hover:border-[#333333] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_24px_rgba(0,0,0,0.6)] group">
               <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
                 <span>Win Rate</span>
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 group-hover:scale-110 transition-transform duration-300" />
               </div>
               <div className="text-3xl font-bold text-white tracking-tight mt-2">
                 68.4%
@@ -214,10 +229,10 @@ export function DashboardPage() {
               </div>
             </div>
 
-            <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-2xl p-5 hover:border-[#2E2E2E] transition-all group">
+            <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-2xl p-5 hover:border-[#333333] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_24px_rgba(0,0,0,0.6)] group">
               <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
                 <span>Monthly Target</span>
-                <Sparkles className="w-3.5 h-3.5 text-zinc-500" />
+                <Sparkles className="w-3.5 h-3.5 text-zinc-500 group-hover:scale-110 group-hover:text-amber-400 transition-all duration-300" />
               </div>
               <div className="text-3xl font-bold text-white tracking-tight mt-2">
                 82%
@@ -229,13 +244,16 @@ export function DashboardPage() {
           </>
         ) : role === 'FINANCE' ? (
           <>
-            <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-2xl p-5 hover:border-[#2E2E2E] transition-all group">
+            <div
+              onClick={() => navigate('/app/quotations?status=PENDING_FINANCE_APPROVAL')}
+              className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-2xl p-5 hover:border-[#333333] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_24px_rgba(0,0,0,0.6)] group cursor-pointer"
+            >
               <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
                 <span>Financial Approvals</span>
-                <Clock className="w-3.5 h-3.5 text-amber-400" />
+                <Clock className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform duration-300" />
               </div>
               <div className="text-3xl font-bold text-amber-400 tracking-tight mt-2">
-                {kpis?.pendingApprovalsFinanceCount || 7}
+                {kpis?.pendingApprovalsFinanceCount || 1}
               </div>
               <div className="text-xs text-zinc-400 mt-1">
                 Awaiting CFO / Finance signoff
@@ -283,7 +301,10 @@ export function DashboardPage() {
           </>
         ) : (
           <>
-            <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-2xl p-5 hover:border-[#333333] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_24px_rgba(0,0,0,0.6)] group cursor-default">
+            <div
+              onClick={() => navigate('/app/quotations')}
+              className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-2xl p-5 hover:border-[#333333] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_24px_rgba(0,0,0,0.6)] group cursor-pointer"
+            >
               <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
                 <span>Active Pipeline</span>
                 <TrendingUp className="w-3.5 h-3.5 text-emerald-400 group-hover:scale-110 transition-transform duration-300" />
@@ -296,7 +317,10 @@ export function DashboardPage() {
               </div>
             </div>
 
-            <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-2xl p-5 hover:border-[#333333] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_24px_rgba(0,0,0,0.6)] group cursor-default">
+            <div
+              onClick={() => navigate('/app/quotations?status=IN_REVIEW')}
+              className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-2xl p-5 hover:border-[#333333] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_24px_rgba(0,0,0,0.6)] group cursor-pointer"
+            >
               <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
                 <span>Pending Approvals</span>
                 <Clock className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform duration-300" />
@@ -309,7 +333,10 @@ export function DashboardPage() {
               </div>
             </div>
 
-            <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-2xl p-5 hover:border-[#333333] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_24px_rgba(0,0,0,0.6)] group cursor-default">
+            <div
+              onClick={() => navigate('/app/quotations?filter=at-risk')}
+              className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-2xl p-5 hover:border-[#333333] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_24px_rgba(0,0,0,0.6)] group cursor-pointer"
+            >
               <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
                 <span>At-Risk Deals</span>
                 <Flame className="w-3.5 h-3.5 text-rose-400 group-hover:scale-110 transition-transform duration-300" />
@@ -376,7 +403,8 @@ export function DashboardPage() {
                 filteredAlerts.map((item) => (
                   <div
                     key={item.id}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl bg-[#121212] hover:bg-[#161616] border border-[#222222] hover:border-[#383838] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(0,0,0,0.5)] group"
+                    onClick={() => navigate(`/app/quotations/${item.quotationId || 'quot-000000-0000-0000-0000-000000000001'}`)}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl bg-[#121212] hover:bg-[#161616] border border-[#222222] hover:border-[#383838] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(0,0,0,0.5)] group cursor-pointer"
                   >
                     <div className="flex items-start gap-3">
                       <span
@@ -389,8 +417,7 @@ export function DashboardPage() {
                       <div>
                         <div className="flex items-center gap-2">
                           <span
-                            onClick={() => navigate(`/app/quotations/${item.quotationId || 'q-001'}`)}
-                            className="text-sm font-semibold text-white group-hover:text-emerald-400 cursor-pointer transition-colors"
+                            className="text-sm font-semibold text-white group-hover:text-emerald-400 transition-colors"
                           >
                             {item.customerName}
                           </span>
@@ -413,40 +440,45 @@ export function DashboardPage() {
                       {item.actionRequired === 'Needs approval' ? (
                         <button
                           type="button"
-                          onClick={() =>
-                            navigate(`/app/quotations/${item.quotationId || 'q-001'}/approval`)
-                          }
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/app/quotations/${item.quotationId || 'quot-000000-0000-0000-0000-000000000001'}/approval`);
+                          }}
                           className="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-white text-black hover:bg-zinc-200 transition-all duration-200 hover:scale-[1.03] active:scale-[0.98] shadow-sm cursor-pointer"
                         >
                           Review Approval
                         </button>
                       ) : (
                         <>
-                          {/* Nudge Button (Visible to Managers, Admin, or Rep collaboration) */}
-                          <button
-                            type="button"
-                            onClick={() =>
-                              nudge({
-                                alertId: item.id,
-                                message: `Immediate attention needed on ${item.customerName}: ${item.title}`,
-                              })
-                            }
-                            className="px-3 py-1.5 rounded-xl text-xs font-medium bg-[#1A1A1A] hover:bg-[#242424] border border-[#2C2C2C] hover:border-zinc-500 text-zinc-200 hover:text-white transition-all duration-200 hover:scale-[1.03] active:scale-[0.98] flex items-center gap-1.5 cursor-pointer shadow-sm"
-                            title="Send automated email notice to sales rep via Mailpit"
-                          >
-                            <Mail className="w-3.5 h-3.5 text-zinc-400 group-hover:text-emerald-400 transition-colors" />
-                            <span>Nudge Rep</span>
-                          </button>
+                          {/* Nudge Button (Hidden for Sales Reps, visible to Managers and Admin) */}
+                          {role !== 'SALES_REP' && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                nudge({
+                                  alertId: item.id,
+                                  message: `Immediate attention needed on ${item.customerName}: ${item.title}`,
+                                });
+                              }}
+                              className="px-3 py-1.5 rounded-xl text-xs font-medium bg-[#1A1A1A] hover:bg-[#242424] border border-[#2C2C2C] hover:border-zinc-500 text-zinc-200 hover:text-white transition-all duration-200 hover:scale-[1.03] active:scale-[0.98] flex items-center gap-1.5 cursor-pointer shadow-sm"
+                              title="Send automated email notice to sales rep via Mailpit"
+                            >
+                              <Mail className="w-3.5 h-3.5 text-zinc-400 group-hover:text-emerald-400 transition-colors" />
+                              <span>Nudge Rep</span>
+                            </button>
+                          )}
 
                           {(role === 'SALES_MANAGER' || role === 'ADMIN') && (
                             <button
                               type="button"
-                              onClick={() =>
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 escalate({
                                   alertId: item.id,
                                   message: `Executive escalation triggered for ${item.customerName}`,
-                                })
-                              }
+                                });
+                              }}
                               className="px-2.5 py-1.5 rounded-xl text-xs font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-500/15 border border-rose-500/20 hover:border-rose-500/40 transition-all duration-200 hover:scale-[1.03] active:scale-[0.98] cursor-pointer shadow-sm"
                               title="Escalate deal to sales director"
                             >
@@ -526,27 +558,43 @@ export function DashboardPage() {
                 Sales Representative Leaderboard
               </h3>
               <div className="space-y-2.5">
-                {[
-                  { name: 'Sarah Jenkins', role: 'Enterprise Rep', deals: 8, volume: '₹340,000', winRate: '72%', status: 'Leading' },
-                  { name: 'Michael Chang', role: 'Mid-Market Rep', deals: 5, volume: '₹210,000', winRate: '65%', status: 'On Target' },
-                  { name: 'Alex Rivera', role: 'Commercial Rep', deals: 4, volume: '₹165,000', winRate: '58%', status: 'Nudge Sent' },
-                ].map((rep) => (
-                  <div key={rep.name} className="flex items-center justify-between p-3 rounded-xl bg-[#121212] border border-[#222222]">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-xs font-bold text-white">
-                        {rep.name.split(' ').map(n => n[0]).join('')}
+                {(topReps && topReps.length > 0
+                  ? topReps
+                  : [
+                      { repId: '1', repName: 'Sales Rep', role: 'Enterprise Rep', deals: 3, volume: '₹2,87,500', winRate: '72%', status: 'Leading' },
+                      { repId: '2', repName: 'Sarah Jenkins', role: 'Mid-Market Rep', deals: 4, volume: '₹45,000', winRate: '65%', status: 'On Target' },
+                      { repId: '3', repName: 'Michael Chang', role: 'Commercial Rep', deals: 3, volume: '₹78,000', winRate: '58%', status: 'Nudge Sent' },
+                    ]
+                ).map((rep) => {
+                  const initials = rep.repName
+                    .split(' ')
+                    .map((n) => n[0])
+                    .join('')
+                    .slice(0, 2)
+                    .toUpperCase();
+                  return (
+                    <div
+                      key={rep.repId || rep.repName}
+                      className="flex items-center justify-between p-3 rounded-xl bg-[#121212] hover:bg-[#161616] border border-[#222222] hover:border-[#333333] transition-all duration-200"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-xs font-bold text-white uppercase">
+                          {initials}
+                        </div>
+                        <div>
+                          <div className="text-xs font-semibold text-white">{rep.repName}</div>
+                          <div className="text-[10px] text-zinc-400">
+                            {rep.role} · {rep.deals} Active Deals
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <div className="text-xs font-semibold text-white">{rep.name}</div>
-                        <div className="text-[10px] text-zinc-400">{rep.role} · {rep.deals} Active Deals</div>
+                      <div className="text-right">
+                        <div className="text-xs font-mono font-bold text-white">{rep.volume}</div>
+                        <div className="text-[10px] font-semibold text-emerald-400">{rep.winRate} Win Rate</div>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-xs font-mono font-bold text-white">{rep.volume}</div>
-                      <div className="text-[10px] font-semibold text-emerald-400">{rep.winRate} Win Rate</div>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           ) : role === 'FINANCE' ? (
@@ -687,11 +735,14 @@ export function DashboardPage() {
                     innerRadius={58}
                     outerRadius={84}
                     paddingAngle={3}
-                    activeIndex={activePieIndex !== null ? activePieIndex : undefined}
+                    activeIndex={activePieIndex !== null ? activePieIndex : inReviewIndex}
                     activeShape={renderActiveShape}
-                    onMouseEnter={(_, index) => setActivePieIndex(index)}
-                    onMouseLeave={() => setActivePieIndex(null)}
-                    onClick={() => navigate('/app/quotations?view=pipeline')}
+                    onMouseEnter={(_, index) => setHoveredPieIndex(index)}
+                    onMouseLeave={() => setHoveredPieIndex(null)}
+                    onClick={(entry: any) => {
+                      const status = entry?.status || (activePieIndex !== null ? displayStages[activePieIndex]?.status : '');
+                      navigate(status ? `/app/quotations?status=${status}` : '/app/quotations');
+                    }}
                     cursor="pointer"
                   >
                     {displayStages.map((entry) => (
@@ -712,9 +763,9 @@ export function DashboardPage() {
               {displayStages.map((st, idx) => (
                 <div
                   key={st.status}
-                  onClick={() => navigate('/app/quotations?view=pipeline')}
-                  onMouseEnter={() => setActivePieIndex(idx)}
-                  onMouseLeave={() => setActivePieIndex(null)}
+                  onClick={() => navigate(st.status ? `/app/quotations?status=${st.status}` : '/app/quotations')}
+                  onMouseEnter={() => setHoveredPieIndex(idx)}
+                  onMouseLeave={() => setHoveredPieIndex(null)}
                   className={`flex items-center justify-between py-2 px-3 rounded-xl cursor-pointer transition-all duration-200 ${
                     activePieIndex === idx ? 'bg-white/10 translate-x-1.5 shadow-sm' : 'hover:bg-white/5 hover:translate-x-1'
                   }`}

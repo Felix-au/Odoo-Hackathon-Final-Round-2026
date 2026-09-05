@@ -22,12 +22,12 @@ export async function seed() {
   // ─── DRAFT STAGE (2 quotes) ───
   await prisma.quotationSnapshot.upsert({
     where: { id: 'quot-ana-005' },
-    update: { status: 'DRAFT' },
+    update: { status: 'DRAFT', repId: 'rep-001', repName: 'Sarah Jenkins' },
     create: {
       id: 'quot-ana-005',
       companyId: 'default',
-      repId: 'rep-000000-0000-0000-0000-000000000001',
-      repName: 'Sales Representative Lead',
+      repId: 'rep-001',
+      repName: 'Sarah Jenkins',
       customerId: 'cust-001',
       customerName: 'Acme Corporation',
       customerTier: 'GOLD',
@@ -43,7 +43,7 @@ export async function seed() {
 
   await prisma.quotationSnapshot.upsert({
     where: { id: 'quot-ana-006' },
-    update: { status: 'DRAFT' },
+    update: { status: 'DRAFT', repId: 'rep-002', repName: 'Michael Chang' },
     create: {
       id: 'quot-ana-006',
       companyId: 'default',
@@ -65,12 +65,12 @@ export async function seed() {
   // ─── IN REVIEW / PENDING APPROVAL (2 quotes) ───
   const q3 = await prisma.quotationSnapshot.upsert({
     where: { id: 'quot-ana-003' },
-    update: { status: 'PENDING_MANAGER_APPROVAL' },
+    update: { status: 'PENDING_MANAGER_APPROVAL', repId: 'rep-000000-0000-0000-0000-000000000001', repName: 'Sales Rep' },
     create: {
       id: 'quot-ana-003',
       companyId: 'default',
       repId: 'rep-000000-0000-0000-0000-000000000001',
-      repName: 'Sales Representative Lead',
+      repName: 'Sales Rep',
       customerId: 'cust-003',
       customerName: 'Gamma Innovations',
       customerTier: 'BRONZE',
@@ -86,12 +86,12 @@ export async function seed() {
 
   await prisma.quotationSnapshot.upsert({
     where: { id: 'quot-ana-007' },
-    update: { status: 'PENDING_MANAGER_APPROVAL' },
+    update: { status: 'PENDING_MANAGER_APPROVAL', repId: 'rep-000000-0000-0000-0000-000000000001', repName: 'Sales Rep' },
     create: {
       id: 'quot-ana-007',
       companyId: 'default',
       repId: 'rep-000000-0000-0000-0000-000000000001',
-      repName: 'Sales Representative Lead',
+      repName: 'Sales Rep',
       customerId: 'cust-005',
       customerName: 'Wayne Enterprises',
       customerTier: 'GOLD',
@@ -105,15 +105,37 @@ export async function seed() {
     },
   });
 
+  // ─── PENDING FINANCE APPROVAL (1 quote - CFO / Finance Review) ───
+  await prisma.quotationSnapshot.upsert({
+    where: { id: 'quot-ana-012' },
+    update: { status: 'PENDING_FINANCE_APPROVAL', repId: 'rep-000000-0000-0000-0000-000000000001', repName: 'Sales Rep' },
+    create: {
+      id: 'quot-ana-012',
+      companyId: 'default',
+      repId: 'rep-000000-0000-0000-0000-000000000001',
+      repName: 'Sales Rep',
+      customerId: 'cust-001',
+      customerName: 'Acme Corporation',
+      customerTier: 'GOLD',
+      status: 'PENDING_FINANCE_APPROVAL',
+      totalAmount: new Prisma.Decimal(145000),
+      totalMarginPct: 11.8,
+      blendedRiskScore: 65.0,
+      currency: 'USD',
+      lastActivityAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
+      createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+    },
+  });
+
   // ─── APPROVED STAGE (2 quotes) ───
   await prisma.quotationSnapshot.upsert({
     where: { id: 'quot-ana-008' },
-    update: { status: 'APPROVED' },
+    update: { status: 'APPROVED', repId: 'rep-001', repName: 'Sarah Jenkins' },
     create: {
       id: 'quot-ana-008',
       companyId: 'default',
-      repId: 'rep-002',
-      repName: 'Michael Chang',
+      repId: 'rep-001',
+      repName: 'Sarah Jenkins',
       customerId: 'cust-006',
       customerName: 'Stark Industries',
       customerTier: 'GOLD',
@@ -129,12 +151,12 @@ export async function seed() {
 
   await prisma.quotationSnapshot.upsert({
     where: { id: 'quot-ana-009' },
-    update: { status: 'APPROVED' },
+    update: { status: 'APPROVED', repId: 'rep-003', repName: 'Alex Rivera' },
     create: {
       id: 'quot-ana-009',
       companyId: 'default',
-      repId: 'rep-000000-0000-0000-0000-000000000001',
-      repName: 'Sales Representative Lead',
+      repId: 'rep-003',
+      repName: 'Alex Rivera',
       customerId: 'cust-007',
       customerName: 'Initech Systems',
       customerTier: 'SILVER',
@@ -151,7 +173,7 @@ export async function seed() {
   // ─── SENT TO CLIENT (3 quotes) ───
   const q2 = await prisma.quotationSnapshot.upsert({
     where: { id: 'quot-ana-002' },
-    update: { status: 'SENT' },
+    update: { status: 'SENT', repId: 'rep-002', repName: 'Michael Chang' },
     create: {
       id: 'quot-ana-002',
       companyId: 'default',
@@ -172,12 +194,12 @@ export async function seed() {
 
   const q4 = await prisma.quotationSnapshot.upsert({
     where: { id: 'quot-ana-004' },
-    update: { status: 'SENT' },
+    update: { status: 'SENT', repId: 'rep-003', repName: 'Alex Rivera' },
     create: {
       id: 'quot-ana-004',
       companyId: 'default',
-      repId: 'rep-000000-0000-0000-0000-000000000001',
-      repName: 'Sales Representative Lead',
+      repId: 'rep-003',
+      repName: 'Alex Rivera',
       customerId: 'cust-002',
       customerName: 'Beta Logistics',
       customerTier: 'SILVER',
@@ -193,12 +215,12 @@ export async function seed() {
 
   await prisma.quotationSnapshot.upsert({
     where: { id: 'quot-ana-010' },
-    update: { status: 'SENT' },
+    update: { status: 'SENT', repId: 'rep-001', repName: 'Sarah Jenkins' },
     create: {
       id: 'quot-ana-010',
       companyId: 'default',
-      repId: 'rep-000000-0000-0000-0000-000000000001',
-      repName: 'Sales Representative Lead',
+      repId: 'rep-001',
+      repName: 'Sarah Jenkins',
       customerId: 'cust-008',
       customerName: 'Hooli Cloud Services',
       customerTier: 'GOLD',
@@ -215,12 +237,12 @@ export async function seed() {
   // ─── CONFIRMED / WON (2 quotes) ───
   await prisma.quotationSnapshot.upsert({
     where: { id: 'quot-ana-001' },
-    update: { status: 'CONFIRMED' },
+    update: { status: 'CONFIRMED', repId: 'rep-001', repName: 'Sarah Jenkins' },
     create: {
       id: 'quot-ana-001',
       companyId: 'default',
-      repId: 'rep-000000-0000-0000-0000-000000000001',
-      repName: 'Sales Representative Lead',
+      repId: 'rep-001',
+      repName: 'Sarah Jenkins',
       customerId: 'cust-001',
       customerName: 'Acme Corporation',
       customerTier: 'GOLD',
@@ -237,7 +259,7 @@ export async function seed() {
 
   await prisma.quotationSnapshot.upsert({
     where: { id: 'quot-ana-011' },
-    update: { status: 'CONFIRMED' },
+    update: { status: 'CONFIRMED', repId: 'rep-002', repName: 'Michael Chang' },
     create: {
       id: 'quot-ana-011',
       companyId: 'default',

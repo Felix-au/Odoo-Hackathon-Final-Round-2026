@@ -217,7 +217,41 @@ export async function seed() {
     },
   });
 
-  console.log('✅ Seeded 5 sample quotations with lines and approval log');
+  const quote6 = await prisma.quotation.upsert({
+    where: { id: 'quot-000000-0000-0000-0000-000000000006' },
+    update: {},
+    create: {
+      id: 'quot-000000-0000-0000-0000-000000000006',
+      companyId: 'default',
+      customerId: acme.id,
+      repId: 'rep-000000-0000-0000-0000-000000000001',
+      status: QuotationStatus.PENDING_FINANCE_APPROVAL,
+      blendedRiskScore: 65.0,
+      totalAmount: 145000.00,
+      totalMarginPct: 11.8,
+      currency: 'USD',
+      notes: 'Requires Finance / CFO review: Deal value exceeds ₹100K threshold with non-standard payment term (Net-90) and margin floor waiver (11.8%)',
+      version: 1,
+      lines: {
+        create: [
+          {
+            productId: 'prod-000000-0000-0000-0000-000000000001',
+            productName: 'Enterprise Cloud Datacenter Pod',
+            categoryId: 'cat-hardware',
+            categoryName: 'Hardware',
+            quantity: 5,
+            unitPrice: 32000.00,
+            costPrice: 28000.00,
+            discountPct: 9.38,
+            lineTotal: 145000.00,
+            marginPct: 11.8,
+          },
+        ],
+      },
+    },
+  });
+
+  console.log('✅ Seeded 6 sample quotations with lines and approval log (including finance review deal)');
   console.log('✨ quotation_db seed complete');
 }
 

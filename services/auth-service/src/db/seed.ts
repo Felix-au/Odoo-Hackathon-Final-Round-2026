@@ -13,13 +13,63 @@ async function seed() {
     const financeHash = await bcrypt.hash('FinanceP@ss123', 12);
     const repHash = await bcrypt.hash('RepP@ss123', 12);
 
-    const admin = await tx.user.upsert({
+    // 1. Primary Seeded Users Requested
+    await tx.user.upsert({
+      where: { email: 'harshit.admin@dealflow360.com' },
+      update: { name: 'Harshit Admin', passwordHash: adminHash, role: 'ADMIN' },
+      create: {
+        email: 'harshit.admin@dealflow360.com',
+        passwordHash: adminHash,
+        name: 'Harshit Admin',
+        role: 'ADMIN',
+        companyId: 'default',
+      },
+    });
+
+    await tx.user.upsert({
+      where: { email: 'atharva.manager@dealflow360.com' },
+      update: { name: 'Atharva Manager', passwordHash: managerHash, role: 'SALES_MANAGER' },
+      create: {
+        email: 'atharva.manager@dealflow360.com',
+        passwordHash: managerHash,
+        name: 'Atharva Manager',
+        role: 'SALES_MANAGER',
+        companyId: 'default',
+      },
+    });
+
+    await tx.user.upsert({
+      where: { email: 'madhab.cfo@dealflow360.com' },
+      update: { name: 'Madhab CFO', passwordHash: financeHash, role: 'FINANCE' },
+      create: {
+        email: 'madhab.cfo@dealflow360.com',
+        passwordHash: financeHash,
+        name: 'Madhab CFO',
+        role: 'FINANCE',
+        companyId: 'default',
+      },
+    });
+
+    await tx.user.upsert({
+      where: { email: 'sales.rep@dealflow360.com' },
+      update: { name: 'Sales Rep', passwordHash: repHash, role: 'SALES_REP' },
+      create: {
+        email: 'sales.rep@dealflow360.com',
+        passwordHash: repHash,
+        name: 'Sales Rep',
+        role: 'SALES_REP',
+        companyId: 'default',
+      },
+    });
+
+    // Backwards-compatible aliases for automated tests
+    await tx.user.upsert({
       where: { email: 'admin@dealflow360.com' },
-      update: {},
+      update: { name: 'Harshit Admin' },
       create: {
         email: 'admin@dealflow360.com',
         passwordHash: adminHash,
-        name: 'Platform Admin',
+        name: 'Harshit Admin',
         role: 'ADMIN',
         companyId: 'default',
       },
@@ -27,35 +77,11 @@ async function seed() {
 
     await tx.user.upsert({
       where: { email: 'manager@dealflow360.com' },
-      update: { passwordHash: managerHash },
+      update: { name: 'Atharva Manager', passwordHash: managerHash },
       create: {
         email: 'manager@dealflow360.com',
         passwordHash: managerHash,
-        name: 'Sales Manager Lead',
-        role: 'SALES_MANAGER',
-        companyId: 'default',
-      },
-    });
-
-    await tx.user.upsert({
-      where: { email: 'manager1@dealflow360.com' },
-      update: {},
-      create: {
-        email: 'manager1@dealflow360.com',
-        passwordHash: managerHash,
-        name: 'Alice Johnson',
-        role: 'SALES_MANAGER',
-        companyId: 'default',
-      },
-    });
-
-    await tx.user.upsert({
-      where: { email: 'manager2@dealflow360.com' },
-      update: {},
-      create: {
-        email: 'manager2@dealflow360.com',
-        passwordHash: managerHash,
-        name: 'Bob Chen',
+        name: 'Atharva Manager',
         role: 'SALES_MANAGER',
         companyId: 'default',
       },
@@ -63,11 +89,11 @@ async function seed() {
 
     await tx.user.upsert({
       where: { email: 'finance@dealflow360.com' },
-      update: {},
+      update: { name: 'Madhab CFO' },
       create: {
         email: 'finance@dealflow360.com',
         passwordHash: financeHash,
-        name: 'Carol Finance',
+        name: 'Madhab CFO',
         role: 'FINANCE',
         companyId: 'default',
       },
@@ -75,11 +101,11 @@ async function seed() {
 
     await tx.user.upsert({
       where: { email: 'rep@dealflow360.com' },
-      update: { passwordHash: repHash },
+      update: { name: 'Sales Rep', passwordHash: repHash },
       create: {
         email: 'rep@dealflow360.com',
         passwordHash: repHash,
-        name: 'Sales Representative Lead',
+        name: 'Sales Rep',
         role: 'SALES_REP',
         companyId: 'default',
       },

@@ -85,7 +85,7 @@ export const UnifiedAuthPage: React.FC<UnifiedAuthPageProps> = ({
   const { requestMagicLink, loginWithPassword, registerCustomer, isLoading: isPortalLoading } = usePortalAuthStore();
 
   // Workspace Login state
-  const [wsEmail, setWsEmail] = useState('admin@dealflow360.com');
+  const [wsEmail, setWsEmail] = useState('harshit.admin@dealflow360.com');
   const [wsPassword, setWsPassword] = useState('AdminP@ss123');
   const [wsLoginError, setWsLoginError] = useState<string | null>(null);
   const [activeWsRole, setActiveWsRole] = useState<string>('ADMIN');
@@ -201,10 +201,10 @@ export const UnifiedAuthPage: React.FC<UnifiedAuthPageProps> = ({
   };
 
   const quickFillRoles = [
-    { key: 'ADMIN', title: 'System Admin', email: 'admin@dealflow360.com', pass: 'AdminP@ss123', icon: Shield },
-    { key: 'MANAGER', title: 'Sales Manager', email: 'manager@dealflow360.com', pass: 'ManagerP@ss123', icon: Users },
-    { key: 'REP', title: 'Sales Rep', email: 'rep@dealflow360.com', pass: 'RepP@ss123', icon: FileSpreadsheet },
-    { key: 'FINANCE', title: 'Finance Lead', email: 'finance@dealflow360.com', pass: 'FinanceP@ss123', icon: Landmark },
+    { key: 'ADMIN', title: 'Harshit Admin', email: 'harshit.admin@dealflow360.com', pass: 'AdminP@ss123', icon: Shield },
+    { key: 'MANAGER', title: 'Atharva Manager', email: 'atharva.manager@dealflow360.com', pass: 'ManagerP@ss123', icon: Users },
+    { key: 'REP', title: 'Sales Rep', email: 'sales.rep@dealflow360.com', pass: 'RepP@ss123', icon: FileSpreadsheet },
+    { key: 'FINANCE', title: 'Madhab CFO', email: 'madhab.cfo@dealflow360.com', pass: 'FinanceP@ss123', icon: Landmark },
   ];
 
   const quickFillProfiles = [

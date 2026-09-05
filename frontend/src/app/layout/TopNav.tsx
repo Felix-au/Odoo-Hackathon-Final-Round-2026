@@ -102,17 +102,6 @@ export function TopNav() {
             <NavLink to="/app/quotations" className={getNavLinkClass('/app/quotations', false)}>
               Quotations
             </NavLink>
-            <NavLink
-              to="/app/quotations?view=pipeline"
-              className={cn(
-                'text-xs font-semibold px-3.5 py-1.5 rounded-lg transition-all duration-150',
-                location.search.includes('view=pipeline')
-                  ? 'text-white bg-white/10 shadow-sm'
-                  : 'text-zinc-400 hover:text-white hover:bg-white/5'
-              )}
-            >
-              Pipeline
-            </NavLink>
             <NavLink to="/app/reports" className={getNavLinkClass('/app/reports', false)}>
               Reports
             </NavLink>
