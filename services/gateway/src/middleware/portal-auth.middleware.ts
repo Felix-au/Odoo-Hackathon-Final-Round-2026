@@ -101,6 +101,7 @@ export async function portalAuthMiddleware(
 
   // Inject customer context headers for upstream services
   request.headers['x-customer-id'] = sessionData.customerId;
+  request.headers['x-portal-customer-id'] = sessionData.customerId;
   request.headers['x-customer-email'] = sessionData.email;
   request.headers['x-customer-name'] = sessionData.name ?? '';
 
