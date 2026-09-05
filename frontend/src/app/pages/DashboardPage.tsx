@@ -597,13 +597,28 @@ export function DashboardPage() {
                   { name: 'Analytics Service', port: '3006', status: 'Healthy' },
                   { name: 'Mail Engine (Mailpit)', port: '1025', status: 'Healthy' },
                 ].map((svc) => (
-                  <div key={svc.name} className="p-2.5 rounded-xl bg-[#121212] border border-[#222222] text-center hover:border-[#333333] transition-all">
-                    <div className="flex items-center justify-center gap-1.5 mb-1.5">
-                      <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]" />
-                      <span className="text-[10px] font-mono text-emerald-400 font-medium">ONLINE</span>
+                  <div
+                    key={svc.name}
+                    className="p-3 rounded-xl bg-[#121212] border border-[#222222] text-center transition-all duration-300 hover:-translate-y-1 hover:border-emerald-500/40 hover:bg-[#161616] hover:shadow-[0_8px_20px_rgba(16,185,129,0.08)] group cursor-default"
+                  >
+                    <div className="flex items-center justify-center gap-2 mb-2">
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]"></span>
+                      </span>
+                      <span className="text-[10px] font-mono text-emerald-400 font-semibold tracking-wider group-hover:text-emerald-300 transition-colors">
+                        ONLINE
+                      </span>
                     </div>
-                    <div className="text-xs font-semibold text-white truncate" title={svc.name}>{svc.name}</div>
-                    <div className="text-[10px] font-mono text-zinc-500 mt-0.5">:{svc.port}</div>
+                    <div
+                      className="text-xs font-semibold text-zinc-200 group-hover:text-white truncate transition-colors"
+                      title={svc.name}
+                    >
+                      {svc.name}
+                    </div>
+                    <div className="text-[10px] font-mono text-zinc-500 group-hover:text-zinc-400 mt-1 transition-colors">
+                      :{svc.port}
+                    </div>
                   </div>
                 ))}
               </div>
