@@ -104,6 +104,9 @@ export const useAuthStore = create<AuthState>((set, get) => {
       refreshTokenString: null,
       isAuthenticated: false,
     });
+    if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+      window.location.href = '/login';
+    }
   },
 
   refreshToken: async () => {

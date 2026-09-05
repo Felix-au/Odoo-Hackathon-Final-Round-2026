@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../../stores/auth.store';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -78,6 +78,13 @@ export function SignupPage() {
               <Button type="submit" variant="primary" className="w-full py-2.5 mt-2" isLoading={isLoading}>
                 Register Account
               </Button>
+
+              <div className="text-center pt-2">
+                <span className="text-xs text-slate-500">Already registered? </span>
+                <Link to="/login" className="text-xs font-bold text-primary hover:underline">
+                  Sign in
+                </Link>
+              </div>
             </form>
           </CardContent>
         </Card>

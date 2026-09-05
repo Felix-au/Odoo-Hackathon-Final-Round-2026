@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../../stores/auth.store';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -9,7 +9,7 @@ import { ShieldCheck } from 'lucide-react';
 
 export function LoginPage() {
   const navigate = useNavigate();
-  const { login, enterOfflineMode, isLoading } = useAuthStore();
+  const { login, isLoading } = useAuthStore();
   const [email, setEmail] = useState('admin@dealflow360.com');
   const [password, setPassword] = useState('AdminP@ss123');
   const [error, setError] = useState<string | null>(null);
@@ -81,6 +81,13 @@ export function LoginPage() {
               <Button type="submit" variant="primary" className="w-full py-2.5 mt-2" isLoading={isLoading}>
                 Sign In to Workspace
               </Button>
+
+              <div className="text-center pt-2">
+                <span className="text-xs text-slate-500">Need a new organization account? </span>
+                <Link to="/signup" className="text-xs font-bold text-primary hover:underline">
+                  Sign up
+                </Link>
+              </div>
             </form>
 
             {/* Quick Demo Credentials */}

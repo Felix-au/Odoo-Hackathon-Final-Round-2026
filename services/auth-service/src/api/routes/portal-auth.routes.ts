@@ -37,7 +37,8 @@ export function portalAuthRoutes(
     fastify.post('/magic-link', {
       config: { rateLimit: { max: 3, timeWindow: '1 minute', keyGenerator: (req) => {
         const body = req.body as { email?: string };
-        return `magic_link:${body?.email ?? req.ip}`;
+        const ip = (req.headers['x-forwarded-for'] as string) || (req.headers['x-real-ip'] as string) || 'anon';
+        return `magic_link:${body?.email ?? ip}`;
       }}},
     }, async (request, reply) => {
       const body = MagicLinkRequestSchema.safeParse(request.body);

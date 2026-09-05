@@ -8,6 +8,15 @@ export async function buildApp() {
   const app = fastify({
     logger: {
       level: 'info',
+      serializers: {
+        req(request) {
+          return {
+            method: request.method,
+            url: request.url,
+            hostname: request.hostname,
+          };
+        },
+      },
     },
     trustProxy: true, // needed for accurate IP in rate limiting behind Docker network
   });
