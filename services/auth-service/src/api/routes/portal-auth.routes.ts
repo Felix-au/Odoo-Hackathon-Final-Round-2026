@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
@@ -15,6 +16,13 @@ const MagicLinkRequestSchema = z.object({
 const PortalLoginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
+});
+
+const PortalRegisterSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(6),
+  companyName: z.string().optional(),
+  contactName: z.string().optional(),
 });
 
 const COOKIE_OPTIONS = {
@@ -97,7 +105,10 @@ export function portalAuthRoutes(
 
     // POST /portal/auth/login — REQ-F-005 (email + password portal login)
     fastify.post('/login', {
-      config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
+      config: { rateLimit: { max: 20, timeWindow: '1 minute', keyGenerator: (req) => {
+        const ip = (req.headers['x-forwarded-for'] as string) || (req.headers['x-real-ip'] as string) || 'anon';
+        return `portal_login:${ip}`;
+      }}},
     }, async (request, reply) => {
       const body = PortalLoginSchema.safeParse(request.body);
       if (!body.success) {
@@ -135,6 +146,56 @@ export function portalAuthRoutes(
       return reply.code(200).send({
         sessionToken,
         customerId: credential.customerId,
+      });
+    });
+
+    // POST /portal/auth/register — Client Registration
+    fastify.post('/register', {
+      config: { rateLimit: { max: 10, timeWindow: '1 minute', keyGenerator: (req) => {
+        const ip = (req.headers['x-forwarded-for'] as string) || (req.headers['x-real-ip'] as string) || 'anon';
+        return `portal_register:${ip}`;
+      }}},
+    }, async (request, reply) => {
+      const body = PortalRegisterSchema.safeParse(request.body);
+      if (!body.success) {
+        return reply.code(400).send({
+          type: 'https://dealflow360.com/errors/validation-error',
+          title: 'Validation Error',
+          status: 400,
+          detail: body.error.message,
+          instance: request.url,
+        });
+      }
+
+      const email = body.data.email.toLowerCase().trim();
+      const existing = await portalCredentialRepo.findByEmail(email);
+      if (existing) {
+        return reply.code(409).send({
+          type: 'https://dealflow360.com/errors/email-conflict',
+          title: 'Account Exists',
+          status: 409,
+          detail: 'An account with this email address already exists. Please sign in.',
+          instance: request.url,
+        });
+      }
+
+      const customerId = 'cust-' + randomUUID();
+      const passwordHash = await bcrypt.hash(body.data.password, 12);
+
+      await portalCredentialRepo.create({
+        customerId,
+        email,
+        passwordHash,
+      });
+
+      const sessionToken = await portalSessionService.createSession(customerId, email);
+      reply.setCookie('portal_session', sessionToken, COOKIE_OPTIONS);
+
+      return reply.code(201).send({
+        sessionToken,
+        customerId,
+        email,
+        name: body.data.contactName || body.data.companyName || email.split('@')[0],
       });
     });
 

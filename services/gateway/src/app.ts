@@ -112,6 +112,13 @@ export async function buildApp() {
     }
   });
 
+  // Handle portal magic link verification redirect to frontend
+  app.get('/portal/auth/verify', async (request, reply) => {
+    const query = request.raw.url?.split('?')[1] || '';
+    const frontendUrl = process.env['FRONTEND_URL'] || 'http://localhost:5173';
+    return reply.redirect(`${frontendUrl}/portal/auth/verify${query ? '?' + query : ''}`);
+  });
+
   // ─── Proxy Routes ────────────────────────────────────────────────────────────
   await registerProxyRoutes(app);
 

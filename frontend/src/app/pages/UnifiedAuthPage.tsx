@@ -82,7 +82,7 @@ export const UnifiedAuthPage: React.FC<UnifiedAuthPageProps> = ({
 
   // Auth stores
   const { login: workspaceLogin, signup: workspaceSignup, isLoading: isWorkspaceLoading } = useAuthStore();
-  const { requestMagicLink, loginWithPassword, isLoading: isPortalLoading } = usePortalAuthStore();
+  const { requestMagicLink, loginWithPassword, registerCustomer, isLoading: isPortalLoading } = usePortalAuthStore();
 
   // Workspace Login state
   const [wsEmail, setWsEmail] = useState('admin@dealflow360.com');
@@ -159,8 +159,9 @@ export const UnifiedAuthPage: React.FC<UnifiedAuthPageProps> = ({
       await loginWithPassword(portalEmail, portalPassword);
       toast.success('Signed in to Customer Portal');
       window.location.href = '/portal/quotations/q-001';
-    } catch {
-      toast.error('Invalid customer credentials');
+    } catch (err: any) {
+      const msg = err.response?.data?.detail || err.message || 'Invalid customer credentials';
+      toast.error(msg);
     }
   };
 
@@ -169,7 +170,7 @@ export const UnifiedAuthPage: React.FC<UnifiedAuthPageProps> = ({
     e.preventDefault();
     try {
       await requestMagicLink(portalEmail);
-      window.location.href = '/portal/auth/magic-link-sent';
+      window.location.href = `/portal/auth/magic-link-sent?email=${encodeURIComponent(portalEmail)}`;
     } catch {
       toast.error('Unable to send magic link');
     }
@@ -180,11 +181,20 @@ export const UnifiedAuthPage: React.FC<UnifiedAuthPageProps> = ({
     e.preventDefault();
     setIsPortalSigningUp(true);
     try {
-      await new Promise((r) => setTimeout(r, 600));
+      await registerCustomer({
+        email: portalSignEmail,
+        password: portalSignPass,
+        companyName,
+        contactName,
+      });
       setIsPortalSignSuccess(true);
-      toast.success('Customer profile registered!');
-    } catch {
-      toast.error('Registration failed');
+      toast.success('Customer profile registered! Redirecting to portal...');
+      setTimeout(() => {
+        window.location.href = '/portal/quotations/q-001';
+      }, 600);
+    } catch (err: any) {
+      const msg = err.response?.data?.detail || err.message || 'Registration failed';
+      toast.error(msg);
     } finally {
       setIsPortalSigningUp(false);
     }
@@ -199,7 +209,7 @@ export const UnifiedAuthPage: React.FC<UnifiedAuthPageProps> = ({
 
   const quickFillProfiles = [
     { key: 'ACME', company: 'Acme Corp', email: 'acme@example.com', pass: 'CustomerP@ss123', icon: Building2 },
-    { key: 'APEX', company: 'Apex Solutions', email: 'procurement@apexsolutions.com', pass: 'CustomerP@ss123', icon: Briefcase },
+    { key: 'BETA', company: 'Beta Industries', email: 'beta@example.com', pass: 'CustomerP@ss123', icon: Briefcase },
   ];
 
   // 1. Workspace Login Form

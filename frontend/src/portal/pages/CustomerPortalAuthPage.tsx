@@ -51,7 +51,7 @@ export const CustomerPortalAuthPage: React.FC<CustomerPortalAuthPageProps> = ({
     window.history.pushState({}, '', newMode === 'signup' ? '/portal/auth/signup' : '/portal/auth/login');
   };
 
-  const { requestMagicLink, loginWithPassword, isLoading } = usePortalAuthStore();
+  const { requestMagicLink, loginWithPassword, registerCustomer, isLoading } = usePortalAuthStore();
 
   // Login Tabs: PASSWORD vs MAGIC_LINK
   const [activeTab, setActiveTab] = useState<'PASSWORD' | 'MAGIC_LINK'>('PASSWORD');
@@ -76,7 +76,7 @@ export const CustomerPortalAuthPage: React.FC<CustomerPortalAuthPageProps> = ({
     e.preventDefault();
     try {
       await requestMagicLink(loginEmail);
-      window.location.href = '/portal/auth/magic-link-sent';
+      window.location.href = `/portal/auth/magic-link-sent?email=${encodeURIComponent(loginEmail)}`;
     } catch {
       toast.error('Unable to dispatch login link');
     }
@@ -89,8 +89,9 @@ export const CustomerPortalAuthPage: React.FC<CustomerPortalAuthPageProps> = ({
       await loginWithPassword(loginEmail, loginPassword);
       toast.success('Signed in to Customer Portal');
       window.location.href = '/portal/quotations/q-001';
-    } catch {
-      toast.error('Invalid customer credentials');
+    } catch (err: any) {
+      const msg = err.response?.data?.detail || err.message || 'Invalid customer credentials';
+      toast.error(msg);
     }
   };
 
@@ -99,11 +100,20 @@ export const CustomerPortalAuthPage: React.FC<CustomerPortalAuthPageProps> = ({
     e.preventDefault();
     setIsSigningUp(true);
     try {
-      await new Promise((r) => setTimeout(r, 600));
+      await registerCustomer({
+        email: signupEmail,
+        password: signupPassword,
+        companyName,
+        contactName,
+      });
       setIsSignupSuccess(true);
-      toast.success('Registration submitted! You can now sign in to your client portal.');
-    } catch {
-      toast.error('Registration failed. Please contact your account manager.');
+      toast.success('Registration successful! Redirecting to client portal...');
+      setTimeout(() => {
+        window.location.href = '/portal/quotations/q-001';
+      }, 600);
+    } catch (err: any) {
+      const msg = err.response?.data?.detail || err.message || 'Registration failed. Please contact your account manager.';
+      toast.error(msg);
     } finally {
       setIsSigningUp(false);
     }
@@ -119,9 +129,9 @@ export const CustomerPortalAuthPage: React.FC<CustomerPortalAuthPageProps> = ({
       icon: Building2,
     },
     {
-      key: 'APEX',
-      company: 'Apex Solutions',
-      email: 'procurement@apexsolutions.com',
+      key: 'BETA',
+      company: 'Beta Industries',
+      email: 'beta@example.com',
       pass: 'CustomerP@ss123',
       icon: Briefcase,
     },

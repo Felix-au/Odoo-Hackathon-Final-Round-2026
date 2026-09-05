@@ -57,7 +57,8 @@ export class MagicLinkService {
       env.MAGIC_LINK_TTL_SECONDS,
     );
 
-    const verifyUrl = `${env.APP_BASE_URL}/portal/auth/verify?token=${token}`;
+    const baseUrl = process.env['FRONTEND_URL'] || (env.NODE_ENV === 'development' ? 'http://localhost:5173' : env.APP_BASE_URL);
+    const verifyUrl = `${baseUrl}/portal/auth/verify?token=${token}`;
     await this.emailClient.sendMagicLink(credential.email, verifyUrl);
   }
 

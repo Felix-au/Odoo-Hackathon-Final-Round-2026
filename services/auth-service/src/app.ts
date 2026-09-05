@@ -101,14 +101,14 @@ export async function buildApp() {
       max: 100,
       timeWindow: '1 minute',
       redis,
-      keyGenerator: (req) => (req.headers['x-forwarded-for'] as string) || req.ip || 'unknown',
+      keyGenerator: (req) => (req.headers['x-forwarded-for'] as string) || (req.headers['x-real-ip'] as string) || 'unknown',
     });
   } else {
     await app.register(fastifyRateLimit, {
       global: true,
       max: 100,
       timeWindow: '1 minute',
-      keyGenerator: (req) => (req.headers['x-forwarded-for'] as string) || req.ip || 'unknown',
+      keyGenerator: (req) => (req.headers['x-forwarded-for'] as string) || (req.headers['x-real-ip'] as string) || 'unknown',
     });
   }
 

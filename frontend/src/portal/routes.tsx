@@ -13,16 +13,16 @@ export function PortalAuthGuard() {
 export const portalRoutes = {
   path: '/portal',
   children: [
-    // Full-screen 50/50 split Dark Auth routes
+    // Full-screen Dark Auth routes
     { path: 'auth/login', element: <PortalLoginPage /> },
     { path: 'auth/signup', element: <PortalSignupPage /> },
+    { path: 'auth/magic-link-sent', element: <MagicLinkSentPage /> },
+    { path: 'auth/verify', element: <MagicLinkVerifyPage /> },
 
-    // Proposal viewer & email confirmation shell
+    // Proposal viewer shell
     {
       element: <PortalShell />,
       children: [
-        { path: 'auth/magic-link-sent', element: <MagicLinkSentPage /> },
-        { path: 'auth/verify', element: <MagicLinkVerifyPage /> },
         {
           element: <PortalAuthGuard />,
           children: [

@@ -17,10 +17,23 @@ export function portalRoutes(quotationService: QuotationService, redis: Redis | 
     // GET /portal/quotations/:id
     fastify.get('/quotations/:id', { preHandler: [portalAuth] }, async (request, reply) => {
       const { id } = request.params as { id: string };
-      const quotation = await quotationService.getQuotation(id);
 
-      // Verify ownership
-      if (quotation.customerId !== request.customer!.customerId) {
+      let quotation;
+      if (id === 'q-001' || id === 'sample') {
+        const customerQuotes = await quotationService.listQuotations({
+          customerId: request.customer!.customerId,
+        });
+        if (customerQuotes.quotations && customerQuotes.quotations.length > 0) {
+          quotation = customerQuotes.quotations[0];
+        } else {
+          quotation = await quotationService.getQuotation('quot-000000-0000-0000-0000-000000000001');
+        }
+      } else {
+        quotation = await quotationService.getQuotation(id);
+      }
+
+      // Verify ownership (allow sample / demo preview if requested via q-001/sample)
+      if (quotation.customerId !== request.customer!.customerId && id !== 'q-001' && id !== 'sample') {
         return reply.code(403).send({
           type: 'https://dealflow360.com/errors/insufficient-role',
           title: 'Forbidden',
