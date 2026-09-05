@@ -55,3 +55,31 @@ export function formatDateTime(dateString: string | undefined | null): string {
     return dateString;
   }
 }
+
+export function formatQuotationNumber(quote?: { quotationNumber?: string; id?: string } | string | null): string {
+  if (!quote) return 'QTN-0001';
+  if (typeof quote === 'string') {
+    if (quote.startsWith('quot-')) {
+      const parts = quote.split('-');
+      const last = parts[parts.length - 1];
+      if (/^\d+$/.test(last)) {
+        return `QTN-${last.slice(-4).padStart(4, '0')}`;
+      }
+    }
+    return `QTN-${quote.slice(0, 6).toUpperCase()}`;
+  }
+  if (quote.quotationNumber && quote.quotationNumber.trim() !== '') {
+    return quote.quotationNumber;
+  }
+  if (quote.id) {
+    if (quote.id.startsWith('quot-')) {
+      const parts = quote.id.split('-');
+      const last = parts[parts.length - 1];
+      if (/^\d+$/.test(last)) {
+        return `QTN-${last.slice(-4).padStart(4, '0')}`;
+      }
+    }
+    return `QTN-${quote.id.slice(0, 6).toUpperCase()}`;
+  }
+  return 'QTN-0001';
+}

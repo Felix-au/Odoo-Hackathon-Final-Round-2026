@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuotations, useCreateQuotation } from '../../api/hooks/useQuotations';
 import { QuotationStatus, QUOTATION_STATUSES } from '../../lib/constants';
-import { formatCurrency } from '../../lib/utils';
+import { formatCurrency, formatQuotationNumber } from '../../lib/utils';
 import { LoadingSpinner } from '../../components/feedback/LoadingSpinner';
 import { Plus, Search, Filter, ArrowUpRight, Kanban, List, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -263,8 +263,8 @@ export function QuotationsPage() {
                           className="p-3.5 rounded-xl bg-[#121212] border border-[#222222] hover:border-emerald-500/40 hover:bg-[#161616] hover:shadow-[0_8px_20px_rgba(16,185,129,0.06)] cursor-pointer transition-all duration-200 space-y-2.5 group"
                         >
                           <div className="flex items-center justify-between text-xs">
-                            <span className="font-bold text-white group-hover:text-emerald-400 transition-colors">
-                              {q.quotationNumber}
+                            <span className="font-bold text-white group-hover:text-emerald-400 transition-colors font-mono">
+                              {formatQuotationNumber(q)}
                             </span>
                             <span className="font-mono font-bold text-white">
                               {formatCurrency(q.totalAmount)}
@@ -332,8 +332,8 @@ export function QuotationsPage() {
                       onClick={() => navigate(`/app/quotations/${quote.id}`)}
                       className="hover:bg-white/[0.03] cursor-pointer transition-colors group"
                     >
-                      <td className="py-4 px-5 font-bold text-white group-hover:text-emerald-400 transition-colors">
-                        {quote.quotationNumber}
+                      <td className="py-4 px-5 font-bold text-white group-hover:text-emerald-400 transition-colors font-mono">
+                        {formatQuotationNumber(quote)}
                       </td>
                       <td className="py-4 px-5">
                         <div className="font-medium text-zinc-200">{quote.customer?.name || 'Enterprise Client'}</div>
