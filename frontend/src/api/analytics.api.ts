@@ -161,5 +161,51 @@ export const analyticsApi = {
     });
     return res.data;
   },
+
+  downloadExportFile: async (
+    downloadUrl: string,
+    fallbackFilename?: string,
+    token?: string
+  ): Promise<string> => {
+    let targetUrl = downloadUrl;
+    if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
+      const cleanPath = targetUrl.startsWith('/') ? targetUrl : `/${targetUrl}`;
+      targetUrl = `${GATEWAY_API_URL}${cleanPath}`;
+    }
+
+    const response = await fetch(targetUrl, {
+      method: 'GET',
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to download report file from server: ${response.status}`);
+    }
+
+    let filename = fallbackFilename;
+    const disposition = response.headers.get('content-disposition');
+    if (disposition) {
+      const match = disposition.match(/filename="?([^";]+)"?/);
+      if (match && match[1]) {
+        filename = match[1];
+      }
+    }
+    if (!filename) {
+      const isPdf = response.headers.get('content-type')?.includes('pdf');
+      filename = `report-export-${Date.now()}.${isPdf ? 'pdf' : 'xlsx'}`;
+    }
+
+    const blob = await response.blob();
+    const objectUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = objectUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => window.URL.revokeObjectURL(objectUrl), 1000);
+
+    return filename;
+  },
 };
 

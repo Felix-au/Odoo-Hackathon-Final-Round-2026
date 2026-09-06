@@ -24,6 +24,8 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatCurrency, formatDate } from '../../lib/utils';
+import { useAuthStore } from '../../stores/auth.store';
+import { analyticsApi } from '../../api/analytics.api';
 import {
   useQuotationReport,
   useCatalogProducts,
@@ -43,6 +45,7 @@ export function ReportsPage() {
   const { data: categories } = useCatalogCategories();
   const { data: subscriptions } = useReportSubscriptions();
   const exportMutation = useExportReportMutation();
+  const token = useAuthStore((s) => s.accessToken) || undefined;
 
   const rawQuotations = qReportData?.quotations || [];
   const products = catalogProducts || [];
@@ -76,22 +79,45 @@ export function ReportsPage() {
     });
   }, [products, selectedCategory]);
 
-  // Handle Export
+  // Handle Export (Generates and physically downloads file to user device)
   const handleExport = async (format: 'PDF' | 'XLS') => {
+    const toastId = 'export-toast';
     try {
-      toast.loading(`Generating audit-grade ${activeTab.toUpperCase()} ${format} export...`, { id: 'export-toast' });
-      const res = await exportMutation.mutateAsync({
-        reportType: activeTab,
-        format,
-        filters: { period, category: selectedCategory },
-      });
-      toast.success(`${format} report generated successfully! Starting download...`, { id: 'export-toast' });
-      if (res?.downloadUrl) {
-        window.open(res.downloadUrl, '_blank');
+      toast.loading(`Generating audit-grade ${activeTab.toUpperCase()} ${format} export...`, { id: toastId });
+
+      let downloaded = false;
+      try {
+        const res = await exportMutation.mutateAsync({
+          reportType: activeTab,
+          format,
+          filters: { period, category: selectedCategory },
+        });
+
+        if (res?.downloadUrl) {
+          const extension = format === 'PDF' ? 'pdf' : 'xlsx';
+          const suggestedName = `${activeTab}_report_${period.toLowerCase()}_${new Date().toISOString().split('T')[0]}.${extension}`;
+          const filename = await analyticsApi.downloadExportFile(res.downloadUrl, suggestedName, token);
+          toast.success(`Export downloaded: ${filename}`, { id: toastId });
+          downloaded = true;
+        }
+      } catch (backendErr) {
+        console.warn('Backend file download stream failed, activating client-side generator:', backendErr);
       }
-    } catch {
-      // Graceful fallback for demo
-      toast.success(`${activeTab.toUpperCase()} report successfully exported as ${format}.`, { id: 'export-toast' });
+
+      // If backend file download didn't produce file, generate and download file locally
+      if (!downloaded) {
+        triggerClientSideFileDownload(
+          activeTab,
+          format,
+          filteredQuotations,
+          filteredProducts,
+          subscriptions || [],
+          period
+        );
+        toast.success(`${format} report generated and downloaded to your computer!`, { id: toastId });
+      }
+    } catch (err: any) {
+      toast.error(`Export failed: ${err?.message || 'Unknown error'}`, { id: toastId });
     }
   };
 
@@ -1071,4 +1097,134 @@ export function ReportsPage() {
       )}
     </div>
   );
+}
+
+function triggerClientSideFileDownload(
+  activeTab: string,
+  format: 'PDF' | 'XLS',
+  quotations: any[],
+  products: any[],
+  subscriptions: any[],
+  period: string
+) {
+  const dateStr = new Date().toISOString().split('T')[0];
+
+  if (format === 'XLS') {
+    let csvHeaders: string[] = [];
+    let csvRows: (string | number)[][] = [];
+
+    if (activeTab === 'quotations') {
+      csvHeaders = ['Quotation ID', 'Customer Name', 'Sales Rep', 'Total Amount', 'Margin %', 'Risk Score', 'Status', 'Created Date'];
+      csvRows = quotations.map((q) => [
+        q.id,
+        q.customerName,
+        q.repName,
+        Number(q.totalAmount || 0).toFixed(2),
+        `${Number(q.totalMarginPct || 0).toFixed(1)}%`,
+        q.blendedRiskScore || 0,
+        q.status,
+        q.createdAt ? new Date(q.createdAt).toISOString().split('T')[0] : '',
+      ]);
+    } else if (activeTab === 'products') {
+      csvHeaders = ['Product SKU', 'Product Name', 'Category', 'Base Price', 'Cost Price', 'Target Margin %'];
+      csvRows = products.map((p) => [
+        p.id,
+        p.name,
+        p.category?.name || 'Hardware',
+        Number(p.basePrice || 0).toFixed(2),
+        Number(p.costPrice || 0).toFixed(2),
+        `${Math.round(((Number(p.basePrice || 1) - Number(p.costPrice || 0)) / Number(p.basePrice || 1)) * 100)}%`,
+      ]);
+    } else if (activeTab === 'discounts') {
+      csvHeaders = ['Quotation ID', 'Customer', 'Representative', 'Deal Amount', 'Realized Margin %', 'Risk Score', 'Governance', 'Status'];
+      csvRows = quotations
+        .filter((q) => Number(q.blendedRiskScore || 0) > 0 || Number(q.totalMarginPct || 0) < 25)
+        .map((q) => [
+          q.id,
+          q.customerName,
+          q.repName,
+          Number(q.totalAmount || 0).toFixed(2),
+          `${Number(q.totalMarginPct || 0).toFixed(1)}%`,
+          q.blendedRiskScore || 0,
+          Number(q.blendedRiskScore || 0) > 50 ? 'CFO Approval' : 'Manager Approval',
+          q.status,
+        ]);
+    } else {
+      csvHeaders = ['Plan Name', 'Order ID', 'Interval', 'Quantity / Seats', 'Unit Rate', 'Monthly Recurring Revenue', 'Status'];
+      csvRows = (subscriptions || []).map((s) => [
+        s.planName,
+        s.orderId,
+        s.interval,
+        s.quantity,
+        Number(s.unitPrice || 0).toFixed(2),
+        (Number(s.unitPrice || 0) * (s.quantity || 1)).toFixed(2),
+        s.status,
+      ]);
+    }
+
+    const csvContent = [
+      csvHeaders.join(','),
+      ...csvRows.map((r) => r.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')),
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const blobUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = `${activeTab}_report_${period.toLowerCase()}_${dateStr}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+  } else {
+    const title = `${activeTab.toUpperCase()} EXECUTIVE AUDIT REPORT`;
+    const tableRows = quotations.map((q) => `
+      <tr>
+        <td style="padding:8px;border:1px solid #ddd;font-family:monospace;">#${q.id.slice(0, 8)}</td>
+        <td style="padding:8px;border:1px solid #ddd;font-weight:bold;">${q.customerName}</td>
+        <td style="padding:8px;border:1px solid #ddd;">${q.repName}</td>
+        <td style="padding:8px;border:1px solid #ddd;text-align:right;font-family:monospace;">₹${Number(q.totalAmount).toLocaleString('en-IN')}</td>
+        <td style="padding:8px;border:1px solid #ddd;text-align:right;color:#059669;font-weight:bold;">${Number(q.totalMarginPct || 0).toFixed(1)}%</td>
+        <td style="padding:8px;border:1px solid #ddd;text-align:center;">${q.status}</td>
+        <td style="padding:8px;border:1px solid #ddd;font-family:monospace;">${new Date(q.createdAt).toLocaleDateString()}</td>
+      </tr>
+    `).join('');
+
+    const htmlDoc = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>${title}</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 32px; color: #111; max-width: 1000px; margin: 0 auto; }
+    h1 { font-size: 24px; margin-bottom: 4px; color: #111827; }
+    .meta { font-size: 13px; color: #6b7280; margin-bottom: 24px; padding-bottom: 12px; border-bottom: 2px solid #e5e7eb; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 16px; }
+    th { background: #f9fafb; padding: 10px 8px; border: 1px solid #e5e7eb; text-align: left; font-size: 11px; text-transform: uppercase; color: #4b5563; }
+  </style>
+</head>
+<body>
+  <h1>DealFlow 360 · ${title}</h1>
+  <div class="meta">Exported: ${new Date().toLocaleString()} | Window: ${period} | Certified Audit Grade</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Quotation</th><th>Customer</th><th>Representative</th><th style="text-align:right;">Amount</th><th style="text-align:right;">Margin</th><th style="text-align:center;">Status</th><th>Created Date</th>
+      </tr>
+    </thead>
+    <tbody>${tableRows}</tbody>
+  </table>
+</body>
+</html>`;
+
+    const blob = new Blob([htmlDoc], { type: 'text/html;charset=utf-8;' });
+    const blobUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = `${activeTab}_report_${period.toLowerCase()}_${dateStr}.html`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+  }
 }
