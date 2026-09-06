@@ -1,100 +1,110 @@
-import { PrismaClient, FulfillmentStatus } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+function padId(prefix: string, num: number): string {
+  const numStr = String(num).padStart(12, '0');
+  return `${prefix}-000000-0000-0000-0000-${numStr}`;
+}
+
 async function seed() {
-  console.log('🌱 Seeding fulfillment-service database...');
+  console.log('🌱 Seeding fulfillment-service database comprehensively...');
 
   const COMPANY_ID = 'default';
-  const WH_A = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
-  const WH_B = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
-  const WH_C = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
-  const PROD_1 = '11111111-1111-1111-1111-111111111111';
-  const PROD_2 = '22222222-2222-2222-2222-222222222222';
+  const warehouses = [
+    { id: 'wh-000000-0000-0000-0000-000000000001', altId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', name: 'Main Warehouse' },
+    { id: 'wh-000000-0000-0000-0000-000000000002', altId: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', name: 'East Depot' },
+    { id: 'wh-000000-0000-0000-0000-000000000003', altId: 'cccccccc-cccc-cccc-cccc-cccccccccccc', name: 'West Coast Hub' },
+    { id: 'wh-000000-0000-0000-0000-000000000004', altId: 'dddddddd-dddd-dddd-dddd-dddddddddddd', name: 'Southern Logistics Center' },
+  ];
 
-  async function upsertStock(data: {
-    companyId: string;
-    warehouseId: string;
-    warehouseName: string;
-    productId: string;
-    variantId?: string | null;
-    quantityOnHand: number;
-    reorderPoint?: number;
-    reorderQty?: number;
-  }) {
-    const existing = await prisma.warehouseStock.findFirst({
-      where: {
-        companyId: data.companyId,
-        warehouseId: data.warehouseId,
-        productId: data.productId,
-        variantId: data.variantId ?? null,
-      },
-    });
+  // Prepare warehouse stock entries for the 521 products
+  const stockRows: any[] = [];
 
-    if (existing) {
-      await prisma.warehouseStock.update({
-        where: { id: existing.id },
-        data: {
-          warehouseName: data.warehouseName,
-          quantityOnHand: data.quantityOnHand,
-          ...(data.reorderPoint !== undefined ? { reorderPoint: data.reorderPoint } : {}),
-          ...(data.reorderQty !== undefined ? { reorderQty: data.reorderQty } : {}),
-        },
+  for (let i = 1; i <= 521; i++) {
+    const prodId = padId('prod', i);
+    // Each warehouse gets stock
+    for (const wh of warehouses) {
+      const baseQty = 40 + ((i * 7) % 180);
+      const resQty = (i % 5 === 0) ? (i % 15) : 0;
+      stockRows.push({
+        companyId: COMPANY_ID,
+        warehouseId: wh.id,
+        warehouseName: wh.name,
+        productId: prodId,
+        variantId: null,
+        quantityOnHand: baseQty,
+        quantityReserved: resQty,
+        reorderPoint: 15,
+        reorderQty: 50,
+        updatedAt: new Date(),
       });
-    } else {
-      await prisma.warehouseStock.create({
-        data: {
-          companyId: data.companyId,
-          warehouseId: data.warehouseId,
-          warehouseName: data.warehouseName,
-          productId: data.productId,
-          variantId: data.variantId ?? null,
-          quantityOnHand: data.quantityOnHand,
-          reorderPoint: data.reorderPoint ?? 10,
-          reorderQty: data.reorderQty ?? 50,
-        },
+      // Also insert with legacy UUID for compatibility
+      stockRows.push({
+        companyId: COMPANY_ID,
+        warehouseId: wh.altId,
+        warehouseName: wh.name,
+        productId: prodId,
+        variantId: null,
+        quantityOnHand: baseQty,
+        quantityReserved: resQty,
+        reorderPoint: 15,
+        reorderQty: 50,
+        updatedAt: new Date(),
       });
     }
   }
 
-  // Warehouse A: Main Warehouse
-  await upsertStock({
-    companyId: COMPANY_ID,
-    warehouseId: WH_A,
-    warehouseName: 'Main Warehouse',
-    productId: PROD_1,
-    quantityOnHand: 50,
-    reorderPoint: 10,
-    reorderQty: 50,
-  });
+  // Also include canonical UUID aliases
+  const canonicalAliases = [
+    { id: '11111111-1111-1111-1111-111111111111', name: 'Enterprise Laptop Pro' },
+    { id: '22222222-2222-2222-2222-222222222222', name: '4K UHD Monitor 27"' },
+    { id: '33333333-3333-3333-3333-333333333333', name: 'Dell PowerEdge Server' },
+    { id: '44444444-4444-4444-4444-444444444444', name: 'Managed Network Switch 24-port' },
+  ];
+  for (const alias of canonicalAliases) {
+    for (const wh of warehouses) {
+      stockRows.push({
+        companyId: COMPANY_ID,
+        warehouseId: wh.id,
+        warehouseName: wh.name,
+        productId: alias.id,
+        variantId: null,
+        quantityOnHand: 85,
+        quantityReserved: 5,
+        reorderPoint: 15,
+        reorderQty: 50,
+        updatedAt: new Date(),
+      });
+      stockRows.push({
+        companyId: COMPANY_ID,
+        warehouseId: wh.altId,
+        warehouseName: wh.name,
+        productId: alias.id,
+        variantId: null,
+        quantityOnHand: 85,
+        quantityReserved: 5,
+        reorderPoint: 15,
+        reorderQty: 50,
+        updatedAt: new Date(),
+      });
+    }
+  }
 
-  await upsertStock({
-    companyId: COMPANY_ID,
-    warehouseId: WH_A,
-    warehouseName: 'Main Warehouse',
-    productId: PROD_2,
-    quantityOnHand: 30,
-  });
+  // Clear existing stocks and insert in chunks
+  await prisma.warehouseStock.deleteMany({ where: { companyId: COMPANY_ID } });
 
-  // Warehouse B: East Depot
-  await upsertStock({
-    companyId: COMPANY_ID,
-    warehouseId: WH_B,
-    warehouseName: 'East Depot',
-    productId: PROD_1,
-    quantityOnHand: 20,
-  });
+  const chunkSize = 200;
+  for (let i = 0; i < stockRows.length; i += chunkSize) {
+    const chunk = stockRows.slice(i, i + chunkSize);
+    await prisma.warehouseStock.createMany({
+      skipDuplicates: true,
+      data: chunk,
+    });
+  }
 
-  // Warehouse C: West Depot
-  await upsertStock({
-    companyId: COMPANY_ID,
-    warehouseId: WH_C,
-    warehouseName: 'West Depot',
-    productId: PROD_2,
-    quantityOnHand: 15,
-  });
-
-  console.log('✅ Fulfillment seed complete');
+  const count = await prisma.warehouseStock.count({ where: { companyId: COMPANY_ID } });
+  console.log(`✅ Fulfillment seed complete: ${count} warehouse stock records populated!`);
   await prisma.$disconnect();
 }
 
