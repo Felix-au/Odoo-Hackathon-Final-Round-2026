@@ -488,9 +488,10 @@ export class QuotationService {
 
     if (
       quotation.status !== QuotationStatus.APPROVED &&
+      quotation.status !== QuotationStatus.SENT &&
       quotation.status !== QuotationStatus.UNDER_NEGOTIATION
     ) {
-      throw new QuotationDomainError(400, `Cannot confirm quotation in status ${quotation.status}. Must be APPROVED or UNDER_NEGOTIATION.`);
+      throw new QuotationDomainError(400, `Cannot confirm quotation in status ${quotation.status}. Must be SENT, APPROVED or UNDER_NEGOTIATION.`);
     }
 
     const confirmedAt = new Date();
@@ -649,6 +650,60 @@ export class QuotationService {
     }
 
     return this.confirm(id, customerId, idempotencyKey);
+  }
+
+  async portalReject(id: string, customerId: string, reason?: string) {
+    const quotation = await this.getQuotation(id);
+    if (quotation.customerId !== customerId) {
+      throw new QuotationDomainError(403, 'Customer does not own this quotation', 'FORBIDDEN');
+    }
+
+    if (
+      quotation.status !== QuotationStatus.SENT &&
+      quotation.status !== QuotationStatus.UNDER_NEGOTIATION &&
+      quotation.status !== QuotationStatus.APPROVED
+    ) {
+      throw new QuotationDomainError(400, `Cannot decline quotation in status ${quotation.status}`);
+    }
+
+    const previousStatus = quotation.status;
+    const noteEntry = reason ? `[Customer Declined]: ${reason}` : '[Customer Declined]';
+    const updatedNotes = quotation.notes ? `${quotation.notes}\n${noteEntry}` : noteEntry;
+
+    const updated = await this.quotationRepo.update(id, {
+      status: QuotationStatus.REJECTED,
+      notes: updatedNotes,
+    });
+
+    await this.approvalLogRepo.create({
+      quotationId: id,
+      approverId: customerId,
+      approverName: quotation.customer?.name || 'Customer',
+      approverRole: 'CUSTOMER',
+      action: ApprovalAction.REJECT,
+      reason: reason || 'Declined by customer via portal',
+      riskScore: quotation.blendedRiskScore,
+    });
+
+    await this.eventPublisher.publishQuotationRejected({
+      quotationId: id,
+      customerId: quotation.customerId,
+      repId: quotation.repId,
+      companyId: quotation.companyId,
+      reason: reason || 'Declined by customer via portal',
+    });
+
+    await this.eventPublisher.publishQuotationStatusChanged({
+      quotationId: id,
+      customerId: quotation.customerId,
+      companyId: quotation.companyId,
+      previousStatus,
+      newStatus: QuotationStatus.REJECTED,
+      changedBy: customerId,
+      changedAt: new Date().toISOString(),
+    });
+
+    return updated;
   }
 
   async getUpsellSuggestions(id: string) {

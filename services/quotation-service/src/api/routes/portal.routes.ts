@@ -14,6 +14,20 @@ export function portalRoutes(quotationService: QuotationService, redis: Redis | 
   const portalAuth = createPortalAuthMiddleware(redis);
 
   return async function (fastify: FastifyInstance) {
+    // GET /portal/quotations — list all quotations for the customer
+    fastify.get('/quotations', { preHandler: [portalAuth] }, async (request, reply) => {
+      const customerId = request.customer!.customerId;
+      const statusParam = (request.query as any)?.status;
+
+      const result = await quotationService.listQuotations({
+        customerId,
+        status: statusParam || undefined,
+        pageSize: 100,
+      });
+
+      return reply.code(200).send(result);
+    });
+
     // GET /portal/quotations/:id
     fastify.get('/quotations/:id', { preHandler: [portalAuth] }, async (request, reply) => {
       const { id } = request.params as { id: string };
@@ -85,6 +99,24 @@ export function portalRoutes(quotationService: QuotationService, redis: Redis | 
         status: result!.status,
         confirmedAt: result!.confirmedAt,
         message: 'Order confirmed. You will receive fulfillment and billing information shortly.',
+      });
+    });
+
+    // POST /portal/quotations/:id/reject — decline proposal
+    fastify.post('/quotations/:id/reject', { preHandler: [portalAuth] }, async (request, reply) => {
+      const { id } = request.params as { id: string };
+      const { reason } = (request.body as { reason?: string }) || {};
+
+      const result = await quotationService.portalReject(
+        id,
+        request.customer!.customerId,
+        reason,
+      );
+
+      return reply.code(200).send({
+        id: result!.id,
+        status: result!.status,
+        message: 'Quotation declined. Your feedback was sent to your sales representative.',
       });
     });
   };
