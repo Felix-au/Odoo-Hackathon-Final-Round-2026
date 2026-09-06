@@ -10,8 +10,18 @@ export const fulfillmentHttp = axios.create({
 });
 
 export const fulfillmentApi = {
-  getSplitRecommendation: async (orderId: string, token?: string): Promise<SplitRecommendation> => {
-    const res = await fulfillmentHttp.get(`/fulfillment/split-recommendation?orderId=${orderId}`, {
+  getSplitRecommendation: async (orderId: string, token?: string, lines?: any[]): Promise<SplitRecommendation> => {
+    let url = `/fulfillment/split-recommendation?orderId=${orderId}`;
+    if (lines && lines.length > 0) {
+      const sanitizedLines = lines.map((l) => ({
+        productId: l.productId,
+        productName: l.productName || 'Product',
+        quantityNeeded: Number(l.quantityNeeded || l.quantity || 1),
+        variantId: l.variantId || null,
+      }));
+      url += `&lines=${encodeURIComponent(JSON.stringify(sanitizedLines))}`;
+    }
+    const res = await fulfillmentHttp.get(url, {
       headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     });
     const d = res.data;
@@ -20,12 +30,12 @@ export const fulfillmentApi = {
       const groups: Record<string, WarehouseSplit> = {};
 
       for (const s of d.splits) {
-        const wid = s.warehouseId || 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+        const wid = s.warehouseId || 'unassigned';
         if (!groups[wid]) {
           groups[wid] = {
             warehouseId: wid,
-            warehouseName: s.warehouseName || 'Main Distribution Warehouse',
-            isPrimary: wid.startsWith('a') || Object.keys(groups).length === 0,
+            warehouseName: s.warehouseName || 'Warehouse Depot',
+            isPrimary: Object.keys(groups).length === 0,
             shippingCostWeight: s.shippingCostWeight ?? 1,
             estimatedCost: (s.shippingCostWeight ?? 1) * 35,
             items: [],
@@ -33,10 +43,10 @@ export const fulfillmentApi = {
         }
 
         groups[wid].items.push({
-          productId: s.productId || '11111111-1111-1111-1111-111111111111',
-          productName: s.productName || 'Enterprise Laptop Pro',
+          productId: s.productId,
+          productName: s.productName || 'Product SKU',
           quantity: s.quantityFromHere ?? s.quantity ?? 1,
-          availableStock: (s.quantityFromHere ?? 1) + 20,
+          availableStock: (s.quantityFromHere ?? 1) + 15,
           isBackorder: (s.quantityBackordered || 0) > 0,
         });
       }

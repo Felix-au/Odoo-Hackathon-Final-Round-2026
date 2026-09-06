@@ -85,13 +85,31 @@ export async function fulfillmentOrderRoutes(
       }
 
       if (lines.length === 0) {
-        lines = [
-          {
-            productId: '11111111-1111-1111-1111-111111111111',
-            productName: 'Enterprise Laptop Pro',
-            quantityNeeded: 2,
-          },
-        ];
+        try {
+          const quotationUrl = process.env.QUOTATION_SERVICE_URL || 'http://quotation-service:3003';
+          const serviceToken = process.env.SERVICE_TOKEN || 'dev_service_token_for_internal_calls_min_16';
+          const qRes = await fetch(`${quotationUrl}/quotations/${orderId}`, {
+            headers: {
+              'x-service-token': serviceToken,
+              'x-company-id': companyId,
+            },
+          });
+          if (qRes.ok) {
+            const qData: any = await qRes.json();
+            if (qData.lines && qData.lines.length > 0) {
+              lines = qData.lines
+                .filter((l: any) => !l.isRecurring)
+                .map((l: any) => ({
+                  productId: l.productId,
+                  productName: l.productName || 'Product Item',
+                  quantityNeeded: Number(l.quantity || 1),
+                  variantId: l.variantId || null,
+                }));
+            }
+          }
+        } catch {
+          // If quotation service call fails, proceed with empty lines
+        }
       }
 
       const recommendation = await fulfillmentOrderService.getSplitRecommendation(

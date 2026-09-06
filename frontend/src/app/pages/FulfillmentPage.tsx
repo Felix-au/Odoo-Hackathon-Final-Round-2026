@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useFulfillmentSplit, useAcceptSplit, useWarehouseStock, useFulfillmentOrders } from '../../api/hooks/useFulfillment';
 import { useQuotations } from '../../api/hooks/useQuotations';
+import { useProducts } from '../../api/hooks/useCatalog';
 import { fulfillmentApi } from '../../api/fulfillment.api';
 import { quotationApi } from '../../api/quotation.api';
 import { useAuthStore } from '../../stores/auth.store';
@@ -30,20 +31,51 @@ export function FulfillmentPage() {
   const queryClient = useQueryClient();
   const token = useAuthStore((s) => s.accessToken) || undefined;
 
+  // Catalog products for display names
+  const { data: catalogProducts } = useProducts();
+  const productMap = useMemo(() => {
+    const map = new Map<string, string>();
+    map.set('prod-000000-0000-0000-0000-000000000001', 'Enterprise Laptop Pro');
+    map.set('11111111-1111-1111-1111-111111111111', 'Enterprise Laptop Pro');
+    map.set('prod-000000-0000-0000-0000-000000000002', '4K UHD Monitor 27"');
+    map.set('22222222-2222-2222-2222-222222222222', '4K UHD Monitor 27"');
+    map.set('prod-000000-0000-0000-0000-000000000003', 'Dell PowerEdge Server');
+    map.set('33333333-3333-3333-3333-333333333333', 'Dell PowerEdge Server');
+    map.set('prod-000000-0000-0000-0000-000000000004', 'Managed Network Switch 24-port');
+    map.set('44444444-4444-4444-4444-444444444444', 'Managed Network Switch 24-port');
+    if (catalogProducts) {
+      for (const p of catalogProducts) {
+        map.set(p.id, p.name);
+      }
+    }
+    return map;
+  }, [catalogProducts]);
+
   // Active quotations to select from
   const { data: quotationsData } = useQuotations({ pageSize: 50 });
   const quotations = quotationsData?.data || [];
 
   // Eligible orders: approved, sent, confirmed, or any draft with lines
   const eligibleOrders = useMemo(() => {
-    return quotations.filter((q) =>
+    const list = quotations.filter((q) =>
       ['CONFIRMED', 'APPROVED', 'SENT', 'PENDING_MANAGER_APPROVAL', 'PENDING_FINANCE_APPROVAL', 'DRAFT'].includes(q.status)
     );
+    return list.sort((a, b) => {
+      const aLines = a.lines?.length || 0;
+      const bLines = b.lines?.length || 0;
+      if (aLines > 0 && bLines === 0) return -1;
+      if (bLines > 0 && aLines === 0) return 1;
+      return new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime();
+    });
   }, [quotations]);
 
-  // Default selected order
+  // Default selected order (prefer quotes that have physical lines)
   const defaultOrderId = useMemo(() => {
     if (id) return id;
+    const withLines = eligibleOrders.find((q) => (q.lines?.length || 0) > 0 && (q.status === 'CONFIRMED' || q.status === 'APPROVED' || q.status === 'SENT'));
+    if (withLines) return withLines.id;
+    const anyWithLines = eligibleOrders.find((q) => (q.lines?.length || 0) > 0);
+    if (anyWithLines) return anyWithLines.id;
     const confirmed = eligibleOrders.find((q) => q.status === 'CONFIRMED' || q.status === 'APPROVED' || q.status === 'SENT');
     return confirmed ? confirmed.id : (eligibleOrders[0]?.id || 'quot-000000-0000-0000-0000-000000000001');
   }, [id, eligibleOrders]);
@@ -65,8 +97,21 @@ export function FulfillmentPage() {
     return quotations.find((q) => q.id === targetOrderId);
   }, [quotations, targetOrderId]);
 
-  // Split Recommendation query for target order
-  const { data: split, isLoading: isLoadingSplit } = useFulfillmentSplit(targetOrderId);
+  // Extract non-recurring physical order lines
+  const orderLines = useMemo(() => {
+    if (!activeQuotation?.lines?.length) return [];
+    return activeQuotation.lines
+      .filter((l: any) => !l.isRecurring)
+      .map((l: any) => ({
+        productId: l.productId,
+        productName: l.productName || productMap.get(l.productId) || 'Product Item',
+        quantityNeeded: Number(l.quantity || 1),
+        variantId: l.variantId || null,
+      }));
+  }, [activeQuotation, productMap]);
+
+  // Split Recommendation query for target order with real order lines
+  const { data: split, isLoading: isLoadingSplit } = useFulfillmentSplit(targetOrderId, orderLines);
   const acceptSplitMutation = useAcceptSplit(
     targetOrderId,
     split,
@@ -224,14 +269,19 @@ export function FulfillmentPage() {
             <select
               value={targetOrderId}
               onChange={(e) => setSelectedOrderId(e.target.value)}
-              className="bg-[#181818] border border-[#2E2E2E] rounded-lg px-2.5 py-1 text-white font-mono text-xs focus:outline-none focus:border-blue-500 cursor-pointer max-w-xs truncate"
+              className="bg-[#181818] border border-[#2E2E2E] rounded-lg px-2.5 py-1 text-white font-mono text-xs focus:outline-none focus:border-blue-500 cursor-pointer max-w-md truncate"
             >
-              {eligibleOrders.map((q) => (
-                <option key={q.id} value={q.id}>
-                  {q.quotationNumber ? `#${q.quotationNumber}` : q.id.slice(0, 8)} •{' '}
-                  {(q as any).dealTitle || q.customer?.name || (q as any).title || 'Deal'} ({q.status})
-                </option>
-              ))}
+              {eligibleOrders.map((q) => {
+                const quoteRef = q.quotationNumber ? `#${q.quotationNumber}` : `#QT-${q.id.slice(0, 6).toUpperCase()}`;
+                const itemsCount = q.lines?.length ?? 0;
+                const itemsStr = itemsCount > 0 ? `${itemsCount} item${itemsCount > 1 ? 's' : ''}` : 'No items';
+                const amtStr = Number(q.totalAmount || 0) > 0 ? ` • ${formatCurrency(Number(q.totalAmount))}` : '';
+                return (
+                  <option key={q.id} value={q.id}>
+                    {quoteRef} • {q.customer?.name || 'Customer'} ({q.status}) • {itemsStr}{amtStr}
+                  </option>
+                );
+              })}
             </select>
           </div>
 
@@ -461,11 +511,18 @@ export function FulfillmentPage() {
               <div className="pt-2">
                 <button
                   type="button"
-                  onClick={() => setSelectedOrderId('quot-000000-0000-0000-0000-000000000001')}
+                  onClick={() => {
+                    const withLines = eligibleOrders.find((q) => (q.lines?.length || 0) > 0);
+                    if (withLines) {
+                      setSelectedOrderId(withLines.id);
+                    } else {
+                      setSelectedOrderId('quot-000000-0000-0000-0000-000000000001');
+                    }
+                  }}
                   className="px-4 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition-all cursor-pointer inline-flex items-center gap-1.5"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
-                  <span>Inspect Enterprise Laptop Bundle (Order #quot-000001)</span>
+                  <span>Switch To An Order With Physical Line Items</span>
                 </button>
               </div>
             </div>
@@ -606,12 +663,8 @@ export function FulfillmentPage() {
                         className="p-3 rounded-xl bg-[#121212] border border-[#222222] space-y-2 text-xs"
                       >
                         <div className="flex items-center justify-between">
-                          <span className="font-semibold text-white truncate max-w-[180px]">
-                            {item.productId.startsWith('1111')
-                              ? 'Enterprise Laptop Pro'
-                              : item.productId.startsWith('2222')
-                              ? '4K UHD Monitor 27"'
-                              : `SKU-${item.productId.slice(0, 6)}`}
+                          <span className="font-semibold text-white truncate max-w-[200px]">
+                            {productMap.get(item.productId) || item.productId.slice(0, 8)}
                           </span>
                           <span
                             className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
