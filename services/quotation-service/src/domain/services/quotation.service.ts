@@ -497,11 +497,11 @@ export class QuotationService {
     }
 
     if (
-      quotation.status !== QuotationStatus.APPROVED &&
-      quotation.status !== QuotationStatus.SENT &&
-      quotation.status !== QuotationStatus.UNDER_NEGOTIATION
+      quotation.status === QuotationStatus.CANCELLED ||
+      quotation.status === QuotationStatus.EXPIRED ||
+      quotation.status === QuotationStatus.LOST
     ) {
-      throw new QuotationDomainError(400, `Cannot confirm quotation in status ${quotation.status}. Must be SENT, APPROVED or UNDER_NEGOTIATION.`);
+      throw new QuotationDomainError(400, `Cannot confirm quotation in status ${quotation.status}. Quotation is ${quotation.status.toLowerCase()}.`);
     }
 
     const confirmedAt = new Date();

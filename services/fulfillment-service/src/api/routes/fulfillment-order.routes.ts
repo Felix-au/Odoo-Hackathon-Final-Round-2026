@@ -4,8 +4,8 @@ import { FulfillmentOrderService } from '../../domain/services/fulfillment-order
 import { jwtAuthMiddleware } from '../middleware/jwt-auth.middleware';
 
 const orderLineSchema = z.object({
-  productId: z.string().uuid(),
-  variantId: z.string().uuid().optional().nullable(),
+  productId: z.string().min(1),
+  variantId: z.string().min(1).optional().nullable(),
   productName: z.string().min(1),
   quantityNeeded: z.number().int().min(1),
 });
@@ -13,14 +13,14 @@ const orderLineSchema = z.object({
 const acceptSplitLineSchema = z.object({
   warehouseId: z.string().min(1),
   warehouseName: z.string().min(1),
-  productId: z.string().uuid(),
-  variantId: z.string().uuid().optional().nullable(),
+  productId: z.string().min(1),
+  variantId: z.string().min(1).optional().nullable(),
   productName: z.string().min(1),
   quantity: z.number().int().min(0),
 });
 
 const acceptSplitSchema = z.object({
-  orderId: z.string().uuid(),
+  orderId: z.string().min(1),
   companyId: z.string().default('default'),
   customerId: z.string().min(1),
   currency: z.string().length(3).default('USD'),

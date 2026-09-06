@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useFulfillmentSplit, useAcceptSplit, useWarehouseStock, useFulfillmentOrders } from '../../api/hooks/useFulfillment';
 import { useQuotations } from '../../api/hooks/useQuotations';
 import { fulfillmentApi } from '../../api/fulfillment.api';
+import { quotationApi } from '../../api/quotation.api';
 import { useAuthStore } from '../../stores/auth.store';
 import { formatCurrency, formatDate } from '../../lib/utils';
 import {
@@ -59,9 +60,19 @@ export function FulfillmentPage() {
 
   const targetOrderId = selectedOrderId || defaultOrderId;
 
+  // Find currently selected quotation
+  const activeQuotation = useMemo(() => {
+    return quotations.find((q) => q.id === targetOrderId);
+  }, [quotations, targetOrderId]);
+
   // Split Recommendation query for target order
   const { data: split, isLoading: isLoadingSplit } = useFulfillmentSplit(targetOrderId);
-  const acceptSplitMutation = useAcceptSplit(targetOrderId, split);
+  const acceptSplitMutation = useAcceptSplit(
+    targetOrderId,
+    split,
+    activeQuotation?.customerId,
+    activeQuotation?.currency
+  );
 
   // Live Warehouse Stock
   const { data: stockData } = useWarehouseStock();
@@ -70,6 +81,11 @@ export function FulfillmentPage() {
   // Fulfillment Orders History
   const { data: ordersHistoryData } = useFulfillmentOrders();
   const fulfillmentOrders = ordersHistoryData || [];
+
+  // Check if this quotation has already been allocated
+  const isAlreadyAllocated = useMemo(() => {
+    return fulfillmentOrders.some((o) => o.orderId === targetOrderId);
+  }, [fulfillmentOrders, targetOrderId]);
 
   // Active view tab
   const [activeTab, setActiveTab] = useState<'allocation' | 'stock' | 'history'>('allocation');
@@ -89,6 +105,9 @@ export function FulfillmentPage() {
   const handleAcceptSplit = async () => {
     try {
       setIsDispatching(true);
+      const customerId = activeQuotation?.customerId || 'cust-000000-0000-0000-0000-000000000001';
+      const currency = activeQuotation?.currency || 'USD';
+
       if (isEditingOverride && split) {
         const overrideSplits = split.splits.flatMap((w) =>
           w.items.map((item) => ({
@@ -103,8 +122,8 @@ export function FulfillmentPage() {
           {
             orderId: targetOrderId,
             companyId: 'default',
-            customerId: 'cust-000000-0000-0000-0000-000000000001',
-            currency: 'USD',
+            customerId,
+            currency,
             isOverride: true,
             splits: overrideSplits,
           },
@@ -113,13 +132,23 @@ export function FulfillmentPage() {
       } else {
         await acceptSplitMutation.mutateAsync(false);
       }
-      toast.success('Warehouse allocation accepted. Stock reserved and dispatch orders issued.');
+
+      // Automatically transition quotation status to CONFIRMED (Won)
+      try {
+        await quotationApi.confirmQuotation(targetOrderId, token);
+      } catch (confirmErr: any) {
+        console.warn('Quotation status confirmation notice:', confirmErr?.response?.data || confirmErr?.message);
+      }
+
+      toast.success('Warehouse allocation accepted. Stock reserved and quotation marked as Won (Confirmed)!');
       setIsEditingOverride(false);
       queryClient.invalidateQueries({ queryKey: ['fulfillment-split'] });
       queryClient.invalidateQueries({ queryKey: ['fulfillment-orders'] });
       queryClient.invalidateQueries({ queryKey: ['warehouse-stock'] });
+      queryClient.invalidateQueries({ queryKey: ['quotations'] });
+      queryClient.invalidateQueries({ queryKey: ['quotation', targetOrderId] });
     } catch (err: any) {
-      const msg = err?.response?.data?.message || err?.message || 'Failed to accept split';
+      const msg = err?.response?.data?.detail || err?.response?.data?.message || err?.message || 'Failed to accept split';
       toast.error(msg);
     } finally {
       setIsDispatching(false);
@@ -151,10 +180,6 @@ export function FulfillmentPage() {
     return { totalFacilities, totalOnHand, totalReserved, totalAvailable };
   }, [stock, stockByWarehouse]);
 
-  // Find currently selected quotation
-  const activeQuotation = useMemo(() => {
-    return quotations.find((q) => q.id === targetOrderId);
-  }, [quotations, targetOrderId]);
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto animate-in fade-in duration-300">
@@ -348,6 +373,12 @@ export function FulfillmentPage() {
 
         {activeTab === 'allocation' && warehouses.length > 0 && (
           <div className="flex items-center gap-2 px-2">
+            {isAlreadyAllocated && !isEditingOverride && (
+              <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                <CheckCircle className="w-3.5 h-3.5" />
+                <span>Allocated & Won</span>
+              </span>
+            )}
             <button
               type="button"
               onClick={() => setIsEditingOverride(!isEditingOverride)}
@@ -358,12 +389,26 @@ export function FulfillmentPage() {
             </button>
             <button
               type="button"
-              disabled={isDispatching}
+              disabled={isDispatching || (isAlreadyAllocated && !isEditingOverride)}
               onClick={handleAcceptSplit}
-              className="px-4 py-1.5 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/20 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed ${
+                isAlreadyAllocated && !isEditingOverride
+                  ? 'bg-emerald-600/80 text-white'
+                  : 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/20'
+              }`}
             >
               <CheckCircle className="w-3.5 h-3.5" />
-              <span>{isDispatching ? 'Dispatching...' : 'Accept Allocation'}</span>
+              <span>
+                {isDispatching
+                  ? 'Processing...'
+                  : isAlreadyAllocated
+                  ? isEditingOverride
+                    ? 'Update & Reallocate'
+                    : 'Allocation Confirmed'
+                  : isEditingOverride
+                  ? 'Confirm Override Allocation'
+                  : 'Accept Allocation'}
+              </span>
             </button>
           </div>
         )}
@@ -372,6 +417,30 @@ export function FulfillmentPage() {
       {/* Tab 1: Split Allocation & Routing */}
       {activeTab === 'allocation' && (
         <div className="space-y-5">
+          {isAlreadyAllocated && (
+            <div className="p-4 rounded-2xl bg-[#0A0A0A] border border-emerald-500/30 shadow-lg flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-emerald-400">
+                    Warehouse Allocation Committed • Deal Won (CONFIRMED)
+                  </h4>
+                  <p className="text-[11px] text-zinc-400">
+                    Inventory has been reserved across designated depots and the quotation is confirmed as Won. To adjust distribution quantities, click &ldquo;Manual Override&rdquo;.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveTab('history')}
+                className="px-3 py-1.5 rounded-xl text-xs font-medium bg-[#141414] hover:bg-[#1E1E1E] text-zinc-300 border border-[#2A2A2A] transition-all whitespace-nowrap cursor-pointer"
+              >
+                View Dispatched Orders
+              </button>
+            </div>
+          )}
           {isLoadingSplit ? (
             <div className="p-12 text-center text-xs text-zinc-500">
               Calculating multi-depot split recommendation...

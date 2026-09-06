@@ -72,6 +72,14 @@ export class FulfillmentOrderService {
   }
 
   async acceptSplit(input: AcceptSplitInput): Promise<FulfillmentOrderWithSplits> {
+    const existingOrder = await this.orderRepo.findByOrderId(input.orderId);
+    if (existingOrder) {
+      if (input.isOverride) {
+        return this.manualOverride(existingOrder.id, input.companyId, input.splits);
+      }
+      return existingOrder;
+    }
+
     return prisma.$transaction(async (tx) => {
       // Build split records and reserve stock
       const splitRecords = input.splits.map((s) => {

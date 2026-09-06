@@ -150,6 +150,15 @@ export const quotationApi = {
     return res.data;
   },
 
+  confirmQuotation: async (quotationId: string, token?: string): Promise<Quotation> => {
+    const res = await quotationHttp.post(
+      `/quotations/${quotationId}/confirm`,
+      {},
+      { headers: token ? { Authorization: `Bearer ${token}` } : undefined }
+    );
+    return res.data?.quotation || res.data;
+  },
+
   updateQuotationMetadata: async (
     quotationId: string,
     data: { notes?: string; currency?: string; validUntil?: string; customerId?: string; version?: number },

@@ -21,7 +21,12 @@ export function useFulfillmentSplit(orderId: string) {
   });
 }
 
-export function useAcceptSplit(orderId: string, currentSplits?: SplitRecommendation | null) {
+export function useAcceptSplit(
+  orderId: string,
+  currentSplits?: SplitRecommendation | null,
+  customerId?: string,
+  currency?: string,
+) {
   const token = useAuthStore((s) => s.accessToken) || undefined;
 
   return {
@@ -50,8 +55,8 @@ export function useAcceptSplit(orderId: string, currentSplits?: SplitRecommendat
       return await fulfillmentApi.acceptSplit({
         orderId,
         companyId: 'default',
-        customerId: 'cust-000000-0000-0000-0000-000000000001',
-        currency: 'USD',
+        customerId: customerId || 'cust-000000-0000-0000-0000-000000000001',
+        currency: currency || 'USD',
         isOverride,
         splits,
       }, token);
