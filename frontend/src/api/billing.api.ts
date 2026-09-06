@@ -134,6 +134,29 @@ export const billingApi = {
     return res.data;
   },
 
+  previewSubscriptionProration: async (
+    subscriptionId: string,
+    newQuantity: number,
+    token?: string
+  ): Promise<{
+    subscriptionId: string;
+    oldQuantity: number;
+    newQuantity: number;
+    unitPrice: number;
+    periodDays: number;
+    remainingDays: number;
+    creditAmount: number;
+    chargeAmount: number;
+    netAmount: number;
+    creditNote: boolean;
+  }> => {
+    const res = await billingHttp.get(
+      `/billing/subscriptions/${subscriptionId}/proration-preview?newQuantity=${newQuantity}`,
+      { headers: token ? { Authorization: `Bearer ${token}` } : undefined }
+    );
+    return res.data;
+  },
+
   updateSubscriptionQuantity: async (subscriptionId: string, newQuantity: number, token?: string) => {
     const res = await billingHttp.put(`/billing/subscriptions/${subscriptionId}/quantity`, {
       newQuantity,

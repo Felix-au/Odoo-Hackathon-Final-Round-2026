@@ -72,6 +72,30 @@ export function subscriptionsRoutes(
       return reply.code(200).send(subscription);
     });
 
+    // GET /billing/subscriptions/:id/proration-preview - Preview proration before applying (read-only)
+    fastify.get('/:id/proration-preview', async (request, reply) => {
+      const { id } = request.params as { id: string };
+      const queryQty = (request.query as any)?.newQuantity;
+      const newQuantity = queryQty !== undefined ? parseInt(queryQty, 10) : NaN;
+
+      if (isNaN(newQuantity) || newQuantity <= 0) {
+        return reply.code(400).send({
+          type: 'https://dealflow360.com/errors/validation-error',
+          title: 'Validation Error',
+          status: 400,
+          detail: 'newQuantity query parameter must be a positive integer',
+          instance: request.url,
+        });
+      }
+
+      const preview = await billingService.previewSubscriptionQuantityProration(
+        id,
+        newQuantity,
+      );
+
+      return reply.code(200).send(preview);
+    });
+
     // PUT /billing/subscriptions/:id/quantity - Mid-cycle quantity change (REQ-F-132, CHECK-BILL-004)
     fastify.put('/:id/quantity', async (request, reply) => {
       const { id } = request.params as { id: string };

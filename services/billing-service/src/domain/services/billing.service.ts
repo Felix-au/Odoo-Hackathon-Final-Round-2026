@@ -249,6 +249,54 @@ export class BillingService {
   }
 
   /**
+   * Preview mid-cycle quantity change proration without modifying subscription or creating invoices.
+   */
+  async previewSubscriptionQuantityProration(
+    subscriptionId: string,
+    newQuantity: number,
+    changeDateStr?: string,
+  ) {
+    const sub = await this.subscriptionRepo.findById(subscriptionId);
+    if (!sub) {
+      throw new BillingDomainError(404, `Subscription with ID ${subscriptionId} not found`, 'NOT_FOUND');
+    }
+
+    const changeDate = changeDateStr ? new Date(changeDateStr) : new Date();
+
+    const proration = computeProration({
+      subscriptionLineId: sub.id,
+      currentPeriodStart: sub.currentPeriodStart,
+      currentPeriodEnd: sub.currentPeriodEnd,
+      changeDate,
+      oldQuantity: sub.quantity,
+      newQuantity,
+      unitPrice: Number(sub.unitPrice),
+      prorationMode: 'DAILY',
+    });
+
+    const periodDays = daysBetween(sub.currentPeriodStart, sub.currentPeriodEnd);
+    const remainingDays = Math.max(
+      0,
+      Math.round((sub.currentPeriodEnd.getTime() - changeDate.getTime()) / (1000 * 60 * 60 * 24)),
+    );
+
+    return {
+      subscriptionId: sub.id,
+      planName: sub.planName,
+      oldQuantity: sub.quantity,
+      newQuantity,
+      unitPrice: Number(sub.unitPrice),
+      periodDays,
+      remainingDays,
+      creditAmount: proration.creditAmount,
+      chargeAmount: proration.chargeAmount,
+      netAmount: proration.netAmount,
+      creditNote: proration.creditNote,
+      proration,
+    };
+  }
+
+  /**
    * REQ-F-132, REQ-BR-011, CHECK-BILL-004:
    * Mid-cycle quantity change triggers proration and adjustment invoice.
    */

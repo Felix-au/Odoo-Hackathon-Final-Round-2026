@@ -109,6 +109,18 @@ export function useProrationPreview() {
   return {
     mutateAsync: async (params: { subscriptionId: string; newQty: number }) => {
       if (!token) throw new Error('Authentication required');
+      return await billingApi.previewSubscriptionProration(params.subscriptionId, params.newQty, token);
+    },
+    isPending: false,
+  };
+}
+
+export function useUpdateSubscriptionQuantity() {
+  const token = useAuthStore((s) => s.accessToken) || undefined;
+
+  return {
+    mutateAsync: async (params: { subscriptionId: string; newQty: number }) => {
+      if (!token) throw new Error('Authentication required');
       return await billingApi.updateSubscriptionQuantity(params.subscriptionId, params.newQty, token);
     },
     isPending: false,

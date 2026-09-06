@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAllInvoices, useAllSubscriptions, useRecordInvoicePayment, useProrationPreview } from '../../api/hooks/useBilling';
+import { useAllInvoices, useAllSubscriptions, useRecordInvoicePayment, useProrationPreview, useUpdateSubscriptionQuantity } from '../../api/hooks/useBilling';
 import { useQuotations } from '../../api/hooks/useQuotations';
 import { useAuthStore } from '../../stores/auth.store';
 import { formatDate, formatCurrency } from '../../lib/utils';
@@ -16,6 +16,7 @@ import {
   Filter,
   Search,
   Sparkles,
+  RefreshCw,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
@@ -59,10 +60,20 @@ export function BillingPage() {
   const [showSubModal, setShowSubModal] = useState(false);
   const [targetSub, setTargetSub] = useState<SubscriptionLine | null>(null);
   const [newSubQty, setNewSubQty] = useState(1);
-  const [prorationData, setProrationData] = useState<any>(null);
+  const [prorationData, setProrationData] = useState<{
+    creditAmount: number;
+    chargeAmount: number;
+    netAmount: number;
+    creditNote: boolean;
+    periodDays: number;
+    remainingDays: number;
+  } | null>(null);
+  const [isUpdatingSub, setIsUpdatingSub] = useState(false);
+  const [isCalculatingProration, setIsCalculatingProration] = useState(false);
 
   const recordPaymentMutation = useRecordInvoicePayment();
-  const prorationMutation = useProrationPreview();
+  const prorationPreviewMutation = useProrationPreview();
+  const updateSubQuantityMutation = useUpdateSubscriptionQuantity();
 
   const isFinance = user?.role === 'FINANCE' || user?.role === 'ADMIN';
 
@@ -140,29 +151,74 @@ export function BillingPage() {
     }
   };
 
-  const handleOpenSubModal = async (sub: SubscriptionLine) => {
-    setTargetSub(sub);
-    setNewSubQty(sub.quantity + 1);
-    setShowSubModal(true);
+  const computeProrationLocally = (sub: SubscriptionLine, newQty: number) => {
+    const periodStart = sub.currentPeriodStart ? new Date(sub.currentPeriodStart).getTime() : Date.now() - 15 * 86400000;
+    const periodEnd = sub.currentPeriodEnd ? new Date(sub.currentPeriodEnd).getTime() : Date.now() + 15 * 86400000;
+    const periodDays = Math.max(1, Math.round((periodEnd - periodStart) / (1000 * 60 * 60 * 24)));
+    const remainingDays = Math.max(0, Math.round((periodEnd - Date.now()) / (1000 * 60 * 60 * 24)));
+    const dailyRate = Number(sub.unitPrice) / periodDays;
+    const creditAmount = Math.round(dailyRate * remainingDays * sub.quantity * 100) / 100;
+    const chargeAmount = Math.round(dailyRate * remainingDays * newQty * 100) / 100;
+    const netAmount = Math.round((chargeAmount - creditAmount) * 100) / 100;
+    return {
+      creditAmount,
+      chargeAmount,
+      netAmount,
+      creditNote: netAmount < 0,
+      periodDays,
+      remainingDays,
+    };
+  };
+
+  const fetchProrationPreview = async (sub: SubscriptionLine, newQty: number) => {
+    // Instant reactive local calculation
+    setProrationData(computeProrationLocally(sub, newQty));
+    setIsCalculatingProration(true);
     try {
-      const data = await prorationMutation.mutateAsync({
+      const data = await prorationPreviewMutation.mutateAsync({
         subscriptionId: sub.id,
-        newQty: sub.quantity + 1,
+        newQty,
       });
-      setProrationData(data);
-    } catch {
       setProrationData({
-        credit: (Number(sub.unitPrice) * 0.25).toFixed(2),
-        charge: (Number(sub.unitPrice) * 0.75).toFixed(2),
-        net: (Number(sub.unitPrice) * 0.5).toFixed(2),
+        creditAmount: Number((data as any).creditAmount ?? (data as any).proration?.creditAmount ?? 0),
+        chargeAmount: Number((data as any).chargeAmount ?? (data as any).proration?.chargeAmount ?? 0),
+        netAmount: Number((data as any).netAmount ?? (data as any).proration?.netAmount ?? 0),
+        creditNote: Boolean((data as any).creditNote ?? (data as any).proration?.creditNote ?? false),
+        periodDays: (data as any).periodDays ?? 30,
+        remainingDays: (data as any).remainingDays ?? 15,
       });
+    } catch {
+      // Fallback is already initialized by computeProrationLocally
+    } finally {
+      setIsCalculatingProration(false);
     }
+  };
+
+  const handleOpenSubModal = (sub: SubscriptionLine) => {
+    setTargetSub(sub);
+    setNewSubQty(sub.quantity);
+    setShowSubModal(true);
+    fetchProrationPreview(sub, sub.quantity);
+  };
+
+  const handleSeatQtyChange = (val: number) => {
+    const qty = Math.max(1, isNaN(val) ? 1 : val);
+    setNewSubQty(qty);
+    if (targetSub) {
+      setProrationData(computeProrationLocally(targetSub, qty));
+    }
+  };
+
+  const handleRecalculate = () => {
+    if (!targetSub) return;
+    fetchProrationPreview(targetSub, newSubQty);
   };
 
   const handleUpdateSeats = async () => {
     if (!targetSub) return;
     try {
-      await prorationMutation.mutateAsync({
+      setIsUpdatingSub(true);
+      await updateSubQuantityMutation.mutateAsync({
         subscriptionId: targetSub.id,
         newQty: newSubQty,
       });
@@ -170,9 +226,13 @@ export function BillingPage() {
       setShowSubModal(false);
       queryClient.invalidateQueries({ queryKey: ['billing-all-subscriptions'] });
       queryClient.invalidateQueries({ queryKey: ['billing-subscriptions'] });
+      queryClient.invalidateQueries({ queryKey: ['billing-all-invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['billing-invoice'] });
     } catch (err: any) {
-      const msg = err?.response?.data?.message || err?.message || 'Failed to update seats';
+      const msg = err?.response?.data?.detail || err?.response?.data?.message || err?.message || 'Failed to update seats';
       toast.error(msg);
+    } finally {
+      setIsUpdatingSub(false);
     }
   };
 
@@ -701,93 +761,138 @@ export function BillingPage() {
 
       {/* Subscription Proration Modal */}
       {showSubModal && targetSub && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#121214] border border-[#27272A] rounded-2xl max-w-md w-full p-6 shadow-2xl animate-in fade-in zoom-in-95 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-[#27272A]">
-              <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-emerald-400" />
-                <h3 className="text-base font-bold text-white">Adjust Subscription Seats</h3>
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-2xl max-w-lg w-full p-6 shadow-2xl animate-in fade-in zoom-in-95 space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-[#1F1F1F]">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                  <Calendar className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">Adjust Subscription Seats</h3>
+                  <p className="text-[11px] text-zinc-500 font-mono">Contract: #{targetSub.id.slice(0, 8)}</p>
+                </div>
               </div>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              <span className="text-xs font-mono px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold">
                 {targetSub.planName}
               </span>
             </div>
 
-            <p className="text-xs text-slate-400">
-              Live proration preview calculated for immediate billing adjustment on this contract.
-            </p>
-
-            <div className="space-y-3 text-xs">
+            {/* Current Contract Details */}
+            <div className="p-3.5 rounded-xl bg-[#111111] border border-[#222222] flex items-center justify-between text-xs">
               <div>
-                <label className="block text-slate-300 font-semibold mb-1">New Seat Quantity</label>
+                <span className="text-zinc-400 block text-[11px]">Contract Plan Rate</span>
+                <span className="font-mono text-white font-bold">
+                  {formatCurrency(Number(targetSub.unitPrice))} / seat / {targetSub.interval.toLowerCase()}
+                </span>
+              </div>
+              <div className="text-right">
+                <span className="text-zinc-400 block text-[11px]">Active Registered Seats</span>
+                <span className="font-mono text-emerald-400 font-bold text-sm">
+                  {targetSub.quantity} Seat{targetSub.quantity !== 1 ? 's' : ''}
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-4 text-xs">
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-zinc-300 font-semibold">New Seat Quantity</label>
+                  <span className="text-[11px] text-zinc-500 font-mono">
+                    {newSubQty > targetSub.quantity ? (
+                      <span className="text-emerald-400 font-semibold">+{newSubQty - targetSub.quantity} additional seats</span>
+                    ) : newSubQty < targetSub.quantity ? (
+                      <span className="text-amber-400 font-semibold">-{targetSub.quantity - newSubQty} seats reduced</span>
+                    ) : (
+                      <span className="text-zinc-500">Same as current</span>
+                    )}
+                  </span>
+                </div>
                 <div className="flex items-center gap-2">
                   <input
                     type="number"
                     min="1"
                     value={newSubQty}
-                    onChange={(e) => setNewSubQty(Math.max(1, Number(e.target.value)))}
-                    className="w-full bg-[#0D0D0F] border border-[#27272A] rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-emerald-500"
+                    onChange={(e) => handleSeatQtyChange(Number(e.target.value))}
+                    className="w-full bg-[#121212] border border-[#2A2A2A] rounded-xl px-3.5 py-2.5 text-white font-mono text-sm focus:outline-none focus:border-emerald-500"
                   />
                   <button
                     type="button"
-                    onClick={async () => {
-                      try {
-                        const data = await prorationMutation.mutateAsync({
-                          subscriptionId: targetSub.id,
-                          newQty: newSubQty,
-                        });
-                        setProrationData(data);
-                      } catch {
-                        // fallback
-                      }
-                    }}
-                    className="px-3 py-2 rounded-xl text-xs font-semibold bg-[#1F1F23] hover:bg-[#2A2A30] text-zinc-300 border border-[#2E2E33] cursor-pointer"
+                    disabled={isCalculatingProration}
+                    onClick={handleRecalculate}
+                    className="px-4 py-2.5 rounded-xl text-xs font-semibold bg-[#181818] hover:bg-[#222222] text-zinc-200 border border-[#2E2E2E] transition-all cursor-pointer flex items-center gap-1.5 shrink-0 disabled:opacity-50"
                   >
-                    Recalculate
+                    <RefreshCw className={`w-3.5 h-3.5 ${isCalculatingProration ? 'animate-spin' : ''}`} />
+                    <span>Recalculate</span>
                   </button>
                 </div>
               </div>
 
-              {/* Proration Preview breakdown */}
-              <div className="p-4 rounded-xl bg-[#0D0D0F] border border-[#27272A] space-y-2">
-                <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                  Live Proration Calculation
+              {/* Live Proration Preview Card */}
+              <div className="p-4 rounded-xl bg-[#0D0D0D] border border-[#222222] space-y-2.5">
+                <div className="flex items-center justify-between pb-1.5 border-b border-[#1A1A1A]">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
+                    Live Proration Calculation
+                  </span>
+                  <span className="text-[10px] text-zinc-500 font-mono">
+                    {prorationData?.remainingDays ?? 0} of {prorationData?.periodDays ?? 30} days remaining
+                  </span>
                 </div>
+
                 <div className="flex justify-between items-center text-xs">
-                  <span className="text-slate-400">Credit for unused period:</span>
+                  <span className="text-zinc-400">
+                    Credit for unused period ({targetSub.quantity} seat{targetSub.quantity !== 1 ? 's' : ''}):
+                  </span>
                   <span className="font-mono text-emerald-400 font-semibold">
-                    {formatCurrency(Number(prorationData?.credit ?? 37.49))}
+                    {formatCurrency(prorationData?.creditAmount ?? 0)}
                   </span>
                 </div>
+
                 <div className="flex justify-between items-center text-xs">
-                  <span className="text-slate-400">Charge for additional seats:</span>
-                  <span className="font-mono text-slate-200 font-semibold">
-                    {formatCurrency(Number(prorationData?.charge ?? 59.99))}
+                  <span className="text-zinc-400">
+                    Charge for updated seats ({newSubQty} seat{newSubQty !== 1 ? 's' : ''}):
+                  </span>
+                  <span className="font-mono text-zinc-200 font-semibold">
+                    {formatCurrency(prorationData?.chargeAmount ?? 0)}
                   </span>
                 </div>
-                <div className="border-t border-[#27272A] pt-2 flex justify-between items-center text-xs font-bold">
-                  <span className="text-white">Net Due Immediately:</span>
-                  <span className="font-mono text-emerald-400 text-sm">
-                    +{formatCurrency(Number(prorationData?.net ?? 22.50))}
+
+                <div className="border-t border-[#1F1F1F] pt-2.5 flex justify-between items-center text-xs font-bold">
+                  <span className="text-white">
+                    {(prorationData?.netAmount ?? 0) >= 0 ? 'Net Due Immediately:' : 'Net Refund / Credit to Account:'}
+                  </span>
+                  <span
+                    className={`font-mono text-base ${
+                      (prorationData?.netAmount ?? 0) >= 0 ? 'text-emerald-400' : 'text-amber-400'
+                    }`}
+                  >
+                    {(prorationData?.netAmount ?? 0) >= 0 ? '+' : '-'}
+                    {formatCurrency(Math.abs(prorationData?.netAmount ?? 0))}
                   </span>
                 </div>
               </div>
+
+              <p className="text-[11px] text-zinc-500 leading-relaxed">
+                Live daily proration applies to remaining days in the cycle. Applying updates seat count immediately and generates an adjusted transaction invoice.
+              </p>
             </div>
 
-            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-[#27272A]">
+            <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-[#1F1F1F]">
               <button
                 type="button"
                 onClick={() => setShowSubModal(false)}
-                className="px-4 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-white cursor-pointer"
+                className="px-4 py-2 rounded-xl text-xs font-medium text-zinc-400 hover:text-white transition-colors cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="button"
+                disabled={isUpdatingSub || newSubQty === targetSub.quantity}
                 onClick={handleUpdateSeats}
-                className="px-5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-500/20 transition-all cursor-pointer"
+                className="px-5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-500/20 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
               >
-                Apply Proration
+                <CheckCircle className="w-3.5 h-3.5" />
+                <span>{isUpdatingSub ? 'Applying Proration...' : 'Apply Proration'}</span>
               </button>
             </div>
           </div>
