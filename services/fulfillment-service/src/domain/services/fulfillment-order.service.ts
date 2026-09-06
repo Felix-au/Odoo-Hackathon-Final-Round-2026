@@ -189,6 +189,10 @@ export class FulfillmentOrderService {
     return this.orderRepo.findByOrderId(orderId);
   }
 
+  async listOrders(companyId = 'default'): Promise<FulfillmentOrderWithSplits[]> {
+    return this.orderRepo.list(companyId);
+  }
+
   async consolidateBackorder(
     fulfillmentOrderId: string,
     companyId: string,

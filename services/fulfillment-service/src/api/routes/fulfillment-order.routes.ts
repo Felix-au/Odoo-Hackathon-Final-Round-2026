@@ -124,6 +124,17 @@ export async function fulfillmentOrderRoutes(
     },
   );
 
+  // GET /fulfillment/orders
+  app.get(
+    '/fulfillment/orders',
+    { preHandler: [jwtAuthMiddleware] },
+    async (request, reply) => {
+      const { companyId = 'default' } = (request.query as { companyId?: string }) || {};
+      const orders = await fulfillmentOrderService.listOrders(companyId);
+      return reply.send({ orders });
+    },
+  );
+
   // GET /fulfillment/orders/:orderId
   app.get(
     '/fulfillment/orders/:orderId',

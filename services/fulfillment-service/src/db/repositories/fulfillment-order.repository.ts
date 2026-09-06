@@ -69,6 +69,14 @@ export class FulfillmentOrderRepository {
     });
   }
 
+  async list(companyId = 'default'): Promise<FulfillmentOrderWithSplits[]> {
+    return this.db.fulfillmentOrder.findMany({
+      where: { companyId },
+      include: { splits: true },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   async updateOverride(
     tx: Prisma.TransactionClient,
     id: string,
