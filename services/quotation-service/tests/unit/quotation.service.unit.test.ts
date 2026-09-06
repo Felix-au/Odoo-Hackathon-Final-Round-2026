@@ -167,7 +167,7 @@ describe('QuotationService', () => {
   });
 
   describe('approve', () => {
-    it('SALES_MANAGER approval with Finance required -> PENDING_FINANCE_APPROVAL', async () => {
+    it('SALES_MANAGER approval with single-tier flow -> APPROVED', async () => {
       const mockQuote = {
         id: 'quote-high-risk',
         status: QuotationStatus.PENDING_MANAGER_APPROVAL,
@@ -181,13 +181,13 @@ describe('QuotationService', () => {
       quotationRepo.findById.mockResolvedValue(mockQuote);
       quotationRepo.update.mockResolvedValue({
         ...mockQuote,
-        status: QuotationStatus.PENDING_FINANCE_APPROVAL,
+        status: QuotationStatus.APPROVED,
       });
 
       const result = await service.approve(
         'quote-high-risk',
         { id: 'mgr-1', name: 'Sales Manager', role: 'SALES_MANAGER' },
-        'Approved by manager, needs finance',
+        'Approved by manager',
       );
 
       expect(approvalLogRepo.create).toHaveBeenCalledWith(
@@ -198,9 +198,9 @@ describe('QuotationService', () => {
       );
       expect(quotationRepo.update).toHaveBeenCalledWith(
         'quote-high-risk',
-        { status: QuotationStatus.PENDING_FINANCE_APPROVAL },
+        { status: QuotationStatus.APPROVED },
       );
-      expect(result?.status).toBe(QuotationStatus.PENDING_FINANCE_APPROVAL);
+      expect(result?.status).toBe(QuotationStatus.APPROVED);
     });
 
     it('SALES_MANAGER approval without Finance required -> APPROVED', async () => {

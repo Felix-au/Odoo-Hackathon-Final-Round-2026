@@ -186,50 +186,56 @@ async function seed() {
     // ─── Discount Tiers ────────────────────────────────────────
     // BRONZE: 5%, SILVER: 10%, GOLD: 15%
     // Services category: capped at 10% for all tiers
+    await tx.discountTier.deleteMany({ where: { companyId: 'default' } });
     await tx.discountTier.createMany({
-      skipDuplicates: true,
       data: [
-        { companyId: 'default', customerTier: 'BRONZE', ceilingPct: 5 },
-        { companyId: 'default', customerTier: 'SILVER', ceilingPct: 10 },
-        { companyId: 'default', customerTier: 'GOLD', ceilingPct: 15 },
-        { companyId: 'default', customerTier: 'BRONZE', categoryId: services.id, ceilingPct: 5 },
-        { companyId: 'default', customerTier: 'SILVER', categoryId: services.id, ceilingPct: 8 },
-        { companyId: 'default', customerTier: 'GOLD', categoryId: services.id, ceilingPct: 10 },
+        { id: 'dt-000000-0000-0000-0000-000000000001', companyId: 'default', customerTier: 'BRONZE', ceilingPct: 5 },
+        { id: 'dt-000000-0000-0000-0000-000000000002', companyId: 'default', customerTier: 'SILVER', ceilingPct: 10 },
+        { id: 'dt-000000-0000-0000-0000-000000000003', companyId: 'default', customerTier: 'GOLD', ceilingPct: 15 },
+        { id: 'dt-000000-0000-0000-0000-000000000004', companyId: 'default', customerTier: 'BRONZE', categoryId: services.id, ceilingPct: 5 },
+        { id: 'dt-000000-0000-0000-0000-000000000005', companyId: 'default', customerTier: 'SILVER', categoryId: services.id, ceilingPct: 8 },
+        { id: 'dt-000000-0000-0000-0000-000000000006', companyId: 'default', customerTier: 'GOLD', categoryId: services.id, ceilingPct: 10 },
       ],
     });
 
     console.log('✅ Seeded discount tiers: BRONZE 5%, SILVER 10%, GOLD 15%');
 
     // ─── Approval Chains ────────────────────────────────────────
-    // score 0: no approval; 0.1-30: Manager; 30+: Manager + Finance
+    // Canonical default rules matching docs:
+    // 1. Standard Operational Flow (Score 0 - 0.1): zero approval
+    // 2. Manager Approval Tier (Score 0.1 - 30): Sales Manager approval
+    // 3. Two-Tier Critical Chain (Score 30+): Sales Manager + Finance approval
+    await tx.approvalChain.deleteMany({ where: { companyId: 'default' } });
     await tx.approvalChain.createMany({
-      skipDuplicates: true,
       data: [
         {
+          id: 'appr-chain-0000-0000-0000-000000000001',
           companyId: 'default',
-          name: 'No Approval Required',
+          name: 'Standard Operational Flow',
           minRiskScore: 0,
           maxRiskScore: 0.1,
           requiredRoles: [],
         },
         {
+          id: 'appr-chain-0000-0000-0000-000000000002',
           companyId: 'default',
-          name: 'Sales Manager Approval',
+          name: 'Manager Approval Tier',
           minRiskScore: 0.1,
           maxRiskScore: 30,
           requiredRoles: ['SALES_MANAGER'],
         },
         {
+          id: 'appr-chain-0000-0000-0000-000000000003',
           companyId: 'default',
-          name: 'CFO / Finance Approval',
+          name: 'Two-Tier Critical Chain',
           minRiskScore: 30,
           maxRiskScore: 999,
-          requiredRoles: ['FINANCE'],
+          requiredRoles: ['SALES_MANAGER', 'FINANCE'],
         },
       ],
     });
 
-    console.log('✅ Seeded 3 approval chains: no approval, manager, manager+finance');
+    console.log('✅ Seeded 3 approval chains: standard (no approval), manager tier, two-tier critical chain (manager+finance)');
 
     // ─── Warehouses ─────────────────────────────────────────────
     const mainWh = await tx.warehouseDefinition.upsert({
