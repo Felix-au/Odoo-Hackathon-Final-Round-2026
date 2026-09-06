@@ -10,19 +10,47 @@ export const billingHttp = axios.create({
 });
 
 export const billingApi = {
+  listInvoices: async (params?: { orderId?: string; status?: string; page?: number }, token?: string): Promise<{ data: OneTimeInvoice[]; total: number }> => {
+    const query = new URLSearchParams();
+    if (params?.orderId) query.set('orderId', params.orderId);
+    if (params?.status) query.set('status', params.status);
+    if (params?.page) query.set('page', String(params.page));
+    const url = `/billing/invoices${query.toString() ? `?${query.toString()}` : ''}`;
+    const res = await billingHttp.get(url, {
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    });
+    const rawList = res.data?.data || res.data?.invoices || (Array.isArray(res.data) ? res.data : []);
+    const total = res.data?.total ?? rawList.length;
+    const data: OneTimeInvoice[] = rawList.map((inv: any) => ({
+      id: inv.id,
+      invoiceNumber: inv.invoiceNumber || `INV-${inv.id.slice(0, 8).toUpperCase()}`,
+      orderId: inv.orderId,
+      customerId: inv.customerId,
+      customerName: inv.customerName || (inv.customer?.name ?? 'Enterprise Client'),
+      amount: inv.subtotal ?? inv.amount ?? 0,
+      taxAmount: inv.taxAmount ?? 0,
+      totalAmount: inv.totalAmount ?? 0,
+      status: inv.status === 'SENT' ? 'ISSUED' : inv.status,
+      dueDate: inv.dueDate,
+      issuedAt: inv.createdAt || inv.issuedAt,
+      paidAt: inv.paidAt,
+    }));
+    return { data, total };
+  },
+
   getInvoice: async (orderId: string, token?: string): Promise<OneTimeInvoice | null> => {
     const res = await billingHttp.get(`/billing/invoices?orderId=${orderId}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     });
-    const invoices = res.data?.invoices || (Array.isArray(res.data) ? res.data : [res.data]);
+    const invoices = res.data?.data || res.data?.invoices || (Array.isArray(res.data) ? res.data : [res.data]);
     if (!invoices || invoices.length === 0) return null;
     const inv = invoices[0];
     return {
       id: inv.id,
-      invoiceNumber: inv.invoiceNumber,
+      invoiceNumber: inv.invoiceNumber || `INV-${inv.id.slice(0, 8).toUpperCase()}`,
       orderId: inv.orderId || orderId,
       customerId: inv.customerId,
-      customerName: inv.customerName,
+      customerName: inv.customerName || (inv.customer?.name ?? 'Enterprise Client'),
       amount: inv.subtotal ?? inv.amount ?? 0,
       taxAmount: inv.taxAmount ?? 0,
       totalAmount: inv.totalAmount ?? 0,
@@ -33,11 +61,37 @@ export const billingApi = {
     };
   },
 
+  listSubscriptions: async (params?: { orderId?: string; status?: string }, token?: string): Promise<{ subscriptions: SubscriptionLine[]; total: number }> => {
+    const query = new URLSearchParams();
+    if (params?.orderId) query.set('orderId', params.orderId);
+    if (params?.status) query.set('status', params.status);
+    const url = `/billing/subscriptions${query.toString() ? `?${query.toString()}` : ''}`;
+    const res = await billingHttp.get(url, {
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    });
+    const rawList = res.data?.subscriptions || res.data?.data || (Array.isArray(res.data) ? res.data : []);
+    const total = res.data?.total ?? rawList.length;
+    const subscriptions: SubscriptionLine[] = rawList.map((s: any) => ({
+      id: s.id,
+      orderId: s.orderId,
+      planName: s.planName,
+      interval: s.interval,
+      quantity: s.quantity,
+      unitPrice: s.unitPrice,
+      totalAmount: Number(s.unitPrice) * s.quantity,
+      status: s.status,
+      currentPeriodStart: s.currentPeriodStart,
+      currentPeriodEnd: s.currentPeriodEnd,
+      nextBillingDate: s.nextBillingDate,
+    }));
+    return { subscriptions, total };
+  },
+
   getSubscriptions: async (orderId: string, token?: string): Promise<SubscriptionLine[]> => {
     const res = await billingHttp.get(`/billing/subscriptions?orderId=${orderId}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     });
-    const list = res.data?.subscriptions || (Array.isArray(res.data) ? res.data : []);
+    const list = res.data?.subscriptions || res.data?.data || (Array.isArray(res.data) ? res.data : []);
     return list.map((s: any) => ({
       id: s.id,
       orderId: s.orderId || orderId,
@@ -45,7 +99,7 @@ export const billingApi = {
       interval: s.interval,
       quantity: s.quantity,
       unitPrice: s.unitPrice,
-      totalAmount: s.unitPrice * s.quantity,
+      totalAmount: Number(s.unitPrice) * s.quantity,
       status: s.status,
       currentPeriodStart: s.currentPeriodStart,
       currentPeriodEnd: s.currentPeriodEnd,

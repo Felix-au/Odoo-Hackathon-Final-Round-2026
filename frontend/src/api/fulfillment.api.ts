@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { SplitRecommendation, WarehouseSplit } from '../types/fulfillment.types';
+import { SplitRecommendation, WarehouseSplit, WarehouseStockItem, FulfillmentOrderRecord } from '../types/fulfillment.types';
 
 const GATEWAY_API_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:3000/api/v1';
 
@@ -70,5 +70,20 @@ export const fulfillmentApi = {
       headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     });
     return res.data;
+  },
+
+  getStock: async (warehouseId?: string, token?: string): Promise<WarehouseStockItem[]> => {
+    const url = warehouseId ? `/fulfillment/stock/${warehouseId}` : '/fulfillment/stock';
+    const res = await fulfillmentHttp.get(url, {
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    });
+    return res.data?.stock || (Array.isArray(res.data) ? res.data : []);
+  },
+
+  listOrders: async (token?: string): Promise<FulfillmentOrderRecord[]> => {
+    const res = await fulfillmentHttp.get('/fulfillment/orders', {
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    });
+    return res.data?.orders || (Array.isArray(res.data) ? res.data : []);
   },
 };

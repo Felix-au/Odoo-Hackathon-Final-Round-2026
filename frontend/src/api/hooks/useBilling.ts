@@ -53,6 +53,30 @@ export function useBilling(orderId: string) {
   };
 }
 
+export function useAllInvoices(params?: { orderId?: string; status?: string }) {
+  const token = useAuthStore((s) => s.accessToken) || undefined;
+
+  return useQuery<{ data: OneTimeInvoice[]; total: number }, Error>({
+    queryKey: ['billing-all-invoices', params?.orderId, params?.status, token],
+    queryFn: async () => {
+      return await billingApi.listInvoices(params, token);
+    },
+    staleTime: 15_000,
+  });
+}
+
+export function useAllSubscriptions(params?: { orderId?: string; status?: string }) {
+  const token = useAuthStore((s) => s.accessToken) || undefined;
+
+  return useQuery<{ subscriptions: SubscriptionLine[]; total: number }, Error>({
+    queryKey: ['billing-all-subscriptions', params?.orderId, params?.status, token],
+    queryFn: async () => {
+      return await billingApi.listSubscriptions(params, token);
+    },
+    staleTime: 15_000,
+  });
+}
+
 export function useRecordPayment(_orderId: string) {
   const token = useAuthStore((s) => s.accessToken) || undefined;
 
@@ -62,6 +86,18 @@ export function useRecordPayment(_orderId: string) {
       const invoice = await billingApi.getInvoice(_orderId, token);
       if (!invoice) throw new Error('Invoice not found for order');
       return await billingApi.recordPayment(invoice.id, payment, token);
+    },
+    isPending: false,
+  };
+}
+
+export function useRecordInvoicePayment() {
+  const token = useAuthStore((s) => s.accessToken) || undefined;
+
+  return {
+    mutateAsync: async (invoiceId: string, payment: { amount: number; method: string; reference: string }) => {
+      if (!token) throw new Error('Authentication required');
+      return await billingApi.recordPayment(invoiceId, payment, token);
     },
     isPending: false,
   };
@@ -78,3 +114,4 @@ export function useProrationPreview() {
     isPending: false,
   };
 }
+

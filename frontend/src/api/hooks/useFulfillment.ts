@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { fulfillmentApi } from '../fulfillment.api';
-import { SplitRecommendation } from '../../types/fulfillment.types';
+import { SplitRecommendation, WarehouseStockItem, FulfillmentOrderRecord } from '../../types/fulfillment.types';
 import { useAuthStore } from '../../stores/auth.store';
 
 export function useFulfillmentSplit(orderId: string) {
@@ -81,3 +81,36 @@ export function useUpdateSplit(orderId: string) {
     isPending: false,
   };
 }
+
+export function useWarehouseStock(warehouseId?: string) {
+  const token = useAuthStore((s) => s.accessToken) || undefined;
+
+  return useQuery<WarehouseStockItem[], Error>({
+    queryKey: ['warehouse-stock', warehouseId, token],
+    queryFn: async () => {
+      try {
+        return await fulfillmentApi.getStock(warehouseId, token);
+      } catch {
+        return [];
+      }
+    },
+    staleTime: 15_000,
+  });
+}
+
+export function useFulfillmentOrders() {
+  const token = useAuthStore((s) => s.accessToken) || undefined;
+
+  return useQuery<FulfillmentOrderRecord[], Error>({
+    queryKey: ['fulfillment-orders', token],
+    queryFn: async () => {
+      try {
+        return await fulfillmentApi.listOrders(token);
+      } catch {
+        return [];
+      }
+    },
+    staleTime: 15_000,
+  });
+}
+
