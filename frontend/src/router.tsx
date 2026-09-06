@@ -53,7 +53,7 @@ export const router = createBrowserRouter([
         <p className="text-sm text-slate-400 mt-1 mb-4">Page not found</p>
         <a
           href="/app/dashboard"
-          className="px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-semibold hover:bg-blue-500 transition-colors shadow-lg shadow-blue-500/20"
+          className="px-4 py-2 rounded-xl bg-white text-black text-xs font-bold hover:bg-zinc-200 transition-colors shadow-lg shadow-white/5"
         >
           Return to Dashboard
         </a>

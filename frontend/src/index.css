@@ -7,11 +7,11 @@
     --bg-workspace: #09090B;
     --surface-workspace: #121214;
     --surface-elevated: #18181B;
-    --border-subtle: #27272A;
+    --border-subtle: #1F1F1F;
     --text-primary: #FAFAFA;
     --text-secondary: #A1A1AA;
     --text-muted: #71717A;
-    --accent-blue: #3B82F6;
+    --accent-mono: #FFFFFF;
   }
 
   body {
@@ -26,53 +26,53 @@
 @layer components {
   /* Floating pill navigation */
   .floating-navbar {
-    background-color: rgba(18, 18, 20, 0.85);
+    background-color: rgba(10, 10, 10, 0.85);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border: 1px solid #27272A;
+    border: 1px solid #1F1F1F;
   }
 
   /* Internal Workspace Cards */
   .dark-card {
-    background-color: #121214;
-    border: 1px solid #27272A;
+    background-color: #0A0A0A;
+    border: 1px solid #1F1F1F;
     border-radius: 1rem;
   }
 
   .dark-card-elevated {
-    background-color: #18181B;
-    border: 1px solid #2E2E33;
+    background-color: #121212;
+    border: 1px solid #262626;
     border-radius: 1rem;
   }
 
   .dark-card-highlight {
-    background-color: #0D0D0F;
-    border: 1px solid #3B82F6;
+    background-color: #121212;
+    border: 1px solid #FFFFFF;
     border-radius: 1rem;
   }
 
   /* White Column Header from Screenshot 2 */
   .builder-header-bar {
     background-color: #FFFFFF;
-    color: #09090B;
+    color: #000000;
     font-weight: 700;
     font-size: 0.75rem;
     letter-spacing: 0.05em;
     text-transform: uppercase;
   }
 
-  /* Customer Portal Proposal Styling (Screenshot 3) */
+  /* Customer Portal Proposal Styling */
   .portal-root {
-    background-color: #F8FAFC;
-    color: #0F172A;
+    background-color: #000000;
+    color: #FAFAFA;
     min-height: 100vh;
   }
 
   .portal-proposal-card {
-    background-color: #FFFFFF;
-    border: 1px solid #E2E8F0;
+    background-color: #0A0A0A;
+    border: 1px solid #1F1F1F;
     border-radius: 1.5rem;
-    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5);
   }
 }
 
