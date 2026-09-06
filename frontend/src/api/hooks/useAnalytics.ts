@@ -12,14 +12,16 @@ export function useDashboardAnalytics() {
     queryKey: ['analytics-kpis', token],
     queryFn: () => analyticsApi.getKPIs(token),
     retry: false,
-    staleTime: 30_000,
+    staleTime: 5_000,
+    refetchInterval: 10_000,
   });
 
   const stagesQuery = useQuery<PipelineStageCount[], Error>({
     queryKey: ['analytics-stages', token],
     queryFn: () => analyticsApi.getPipelineStages(token),
     retry: false,
-    staleTime: 30_000,
+    staleTime: 5_000,
+    refetchInterval: 10_000,
   });
 
   const alertsQuery = useQuery<DealHealthAlert[], Error>({

@@ -55,6 +55,9 @@ export function usePortalQuotation(id: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['portal-quotation', id] });
       queryClient.invalidateQueries({ queryKey: ['portal-quotations'] });
+      queryClient.invalidateQueries({ queryKey: ['quotations'] });
+      queryClient.invalidateQueries({ queryKey: ['analytics-stages'] });
+      queryClient.invalidateQueries({ queryKey: ['analytics-kpis'] });
       toast.success('Proposal accepted! Your order has been confirmed and submitted for fulfillment.');
     },
     onError: (err: any) => {
@@ -71,6 +74,9 @@ export function usePortalQuotation(id: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['portal-quotation', id] });
       queryClient.invalidateQueries({ queryKey: ['portal-quotations'] });
+      queryClient.invalidateQueries({ queryKey: ['quotations'] });
+      queryClient.invalidateQueries({ queryKey: ['analytics-stages'] });
+      queryClient.invalidateQueries({ queryKey: ['analytics-kpis'] });
       toast.info('Proposal declined. Feedback has been forwarded to your sales team.');
     },
     onError: (err: any) => {

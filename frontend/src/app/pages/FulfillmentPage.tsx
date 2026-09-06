@@ -147,6 +147,8 @@ export function FulfillmentPage() {
       queryClient.invalidateQueries({ queryKey: ['warehouse-stock'] });
       queryClient.invalidateQueries({ queryKey: ['quotations'] });
       queryClient.invalidateQueries({ queryKey: ['quotation', targetOrderId] });
+      queryClient.invalidateQueries({ queryKey: ['analytics-stages'] });
+      queryClient.invalidateQueries({ queryKey: ['analytics-kpis'] });
     } catch (err: any) {
       const msg = err?.response?.data?.detail || err?.response?.data?.message || err?.message || 'Failed to accept split';
       toast.error(msg);

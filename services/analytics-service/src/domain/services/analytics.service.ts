@@ -243,7 +243,38 @@ export class AnalyticsService {
     const fromDate = fromDateStr ? new Date(fromDateStr) : undefined;
     const toDate = toDateStr ? new Date(toDateStr) : undefined;
 
-    return this.analyticsRepo.getDashboardData(companyId, fromDate, toDate);
+    const data = await this.analyticsRepo.getDashboardData(companyId, fromDate, toDate);
+
+    // Overlay real-time pipeline breakdown from Quotation Service
+    try {
+      const quotationUrl = process.env['QUOTATION_SERVICE_URL'] || 'http://quotation-service:3003';
+      const serviceToken = process.env['SERVICE_TOKEN'] || 'dev_service_token_for_internal_calls_min_16';
+      const res = await fetch(`${quotationUrl}/quotations/pipeline`, {
+        headers: {
+          'x-service-token': serviceToken,
+          'x-company-id': companyId,
+        },
+      });
+      if (res.ok) {
+        const json: any = await res.json();
+        const stages = json.data?.stages || json.data;
+        if (stages) {
+          for (const [stageKey, val] of Object.entries(stages) as any) {
+            if (val && typeof val.count === 'number') {
+              data.pipelineBreakdown[stageKey] = val.count;
+            }
+          }
+          const totalFromStages = Object.values(data.pipelineBreakdown).reduce((a: number, b: any) => a + (Number(b) || 0), 0);
+          if (totalFromStages > (data.kpis?.totalQuotations || 0)) {
+            data.kpis.totalQuotations = totalFromStages;
+          }
+        }
+      }
+    } catch {
+      // Return snapshot data if live call fails
+    }
+
+    return data;
   }
 
   /**

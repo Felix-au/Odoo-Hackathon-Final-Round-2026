@@ -109,6 +109,14 @@ export class QuotationEventPublisher {
     newStatus: string;
     changedBy: string;
     changedAt: string;
+    repId?: string;
+    repName?: string;
+    customerName?: string;
+    customerTier?: string;
+    totalAmount?: number;
+    totalMarginPct?: number;
+    blendedRiskScore?: number;
+    currency?: string;
   }) {
     return this.publish(Streams.QUOTATION, EventTypes.QUOTATION_STATUS_CHANGED, payload.companyId, payload);
   }

@@ -102,6 +102,8 @@ export function useQuotationBuilder(id: string) {
       toast.success('Quotation submitted for review/approval');
       queryClient.invalidateQueries({ queryKey: ['quotation', id] });
       queryClient.invalidateQueries({ queryKey: ['quotations'] });
+      queryClient.invalidateQueries({ queryKey: ['analytics-stages'] });
+      queryClient.invalidateQueries({ queryKey: ['analytics-kpis'] });
       return data;
     },
     onError: (err: any) => {
@@ -118,6 +120,8 @@ export function useQuotationBuilder(id: string) {
       toast.success('Quotation successfully dispatched to customer portal');
       queryClient.invalidateQueries({ queryKey: ['quotation', id] });
       queryClient.invalidateQueries({ queryKey: ['quotations'] });
+      queryClient.invalidateQueries({ queryKey: ['analytics-stages'] });
+      queryClient.invalidateQueries({ queryKey: ['analytics-kpis'] });
       queryClient.invalidateQueries({ queryKey: ['deal-health-alerts'] });
       return data;
     },

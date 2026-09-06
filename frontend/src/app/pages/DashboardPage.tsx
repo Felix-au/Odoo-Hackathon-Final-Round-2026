@@ -78,13 +78,14 @@ export function DashboardPage() {
   const currentDate = format(new Date(), 'EEEE, d MMMM yyyy');
 
   // Fallback stages if data is pending
-  const displayStages = stages.length > 0 ? stages : [
+  const totalStageCount = stages.reduce((acc, s) => acc + (s.count || 0), 0);
+  const displayStages = totalStageCount > 0 ? stages : (stages.length > 0 ? stages : [
     { status: 'DRAFT', label: 'Draft', count: 4, totalValue: 42000, percentage: 18, colorHex: STAGE_COLORS.DRAFT },
     { status: 'IN_REVIEW', label: 'In Review', count: 3, totalValue: 88500, percentage: 22, colorHex: STAGE_COLORS.IN_REVIEW },
     { status: 'APPROVED', label: 'Approved', count: 5, totalValue: 120000, percentage: 28, colorHex: STAGE_COLORS.APPROVED },
     { status: 'SENT', label: 'Sent to Client', count: 4, totalValue: 94000, percentage: 20, colorHex: STAGE_COLORS.SENT },
     { status: 'CONFIRMED', label: 'Confirmed / Won', count: 6, totalValue: 180000, percentage: 32, colorHex: STAGE_COLORS.CONFIRMED },
-  ];
+  ]);
 
   // In Review index (default highlighted slice and legend item)
   const inReviewIndex = Math.max(

@@ -15,6 +15,8 @@ export function useApprovalActions(quotationId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['quotation', quotationId] });
       queryClient.invalidateQueries({ queryKey: ['quotations'] });
+      queryClient.invalidateQueries({ queryKey: ['analytics-stages'] });
+      queryClient.invalidateQueries({ queryKey: ['analytics-kpis'] });
       queryClient.invalidateQueries({ queryKey: ['deal-health-alerts'] });
     },
     onError: (err: any) => {
@@ -31,6 +33,8 @@ export function useApprovalActions(quotationId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['quotation', quotationId] });
       queryClient.invalidateQueries({ queryKey: ['quotations'] });
+      queryClient.invalidateQueries({ queryKey: ['analytics-stages'] });
+      queryClient.invalidateQueries({ queryKey: ['analytics-kpis'] });
       queryClient.invalidateQueries({ queryKey: ['deal-health-alerts'] });
     },
     onError: (err: any) => {
@@ -47,6 +51,8 @@ export function useApprovalActions(quotationId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['quotation', quotationId] });
       queryClient.invalidateQueries({ queryKey: ['quotations'] });
+      queryClient.invalidateQueries({ queryKey: ['analytics-stages'] });
+      queryClient.invalidateQueries({ queryKey: ['analytics-kpis'] });
       queryClient.invalidateQueries({ queryKey: ['deal-health-alerts'] });
     },
     onError: (err: any) => {
@@ -64,6 +70,8 @@ export function useApprovalActions(quotationId: string) {
       toast.success('Quotation sent to customer portal');
       queryClient.invalidateQueries({ queryKey: ['quotation', quotationId] });
       queryClient.invalidateQueries({ queryKey: ['quotations'] });
+      queryClient.invalidateQueries({ queryKey: ['analytics-stages'] });
+      queryClient.invalidateQueries({ queryKey: ['analytics-kpis'] });
       queryClient.invalidateQueries({ queryKey: ['deal-health-alerts'] });
     },
     onError: (err: any) => {

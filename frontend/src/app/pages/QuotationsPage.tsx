@@ -137,7 +137,7 @@ export function QuotationsPage() {
       return isQuotationAtRisk(q);
     }
     if (statusFilter === 'IN_REVIEW') {
-      return q.status === 'PENDING_MANAGER_APPROVAL' || q.status === 'PENDING_FINANCE_APPROVAL';
+      return q.status === 'PENDING_MANAGER_APPROVAL' || q.status === 'PENDING_FINANCE_APPROVAL' || q.status === 'UNDER_NEGOTIATION';
     }
     return true;
   });

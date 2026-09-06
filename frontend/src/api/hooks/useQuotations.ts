@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { quotationApi } from '../quotation.api';
 import { Quotation, QuotationFilters } from '../../types/quotation.types';
 import { useAuthStore } from '../../stores/auth.store';
@@ -55,6 +55,7 @@ export function useCustomers() {
 
 export function useCreateQuotation() {
   const token = useAuthStore((s) => s.accessToken) || undefined;
+  const queryClient = useQueryClient();
 
   return {
     mutateAsync: async (customerId?: string): Promise<Quotation> => {
@@ -68,7 +69,11 @@ export function useCreateQuotation() {
           targetCustomerId = 'cust-000000-0000-0000-0000-000000000001';
         }
       }
-      return await quotationApi.createQuotation(targetCustomerId, token);
+      const quote = await quotationApi.createQuotation(targetCustomerId, token);
+      queryClient.invalidateQueries({ queryKey: ['quotations'] });
+      queryClient.invalidateQueries({ queryKey: ['analytics-stages'] });
+      queryClient.invalidateQueries({ queryKey: ['analytics-kpis'] });
+      return quote;
     },
     isPending: false,
   };

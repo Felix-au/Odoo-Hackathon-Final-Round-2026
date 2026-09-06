@@ -24,7 +24,7 @@ export class AnalyticsEventConsumer {
 
     for (const stream of this.streams) {
       try {
-        await this.redis.xgroup('CREATE', stream, this.group, '$', 'MKSTREAM');
+        await this.redis.xgroup('CREATE', stream, this.group, '0', 'MKSTREAM');
       } catch (err: unknown) {
         if (!(err instanceof Error) || !err.message.includes('BUSYGROUP')) {
           // stream or group ready
@@ -62,7 +62,7 @@ export class AnalyticsEventConsumer {
                 fieldMap[fields[i]] = fields[i + 1];
               }
 
-              const eventType = fieldMap['event'];
+              const eventType = fieldMap['eventType'] || fieldMap['event'];
               const rawPayload = fieldMap['payload'];
 
               if (eventType && rawPayload) {
@@ -80,7 +80,15 @@ export class AnalyticsEventConsumer {
         }
       }
     } catch (err) {
-      console.warn('[AnalyticsConsumer] Poll error:', err);
+      if (err instanceof Error && err.message.includes('NOGROUP')) {
+        for (const s of this.streams) {
+          try {
+            await this.redis.xgroup('CREATE', s, this.group, '0', 'MKSTREAM');
+          } catch {}
+        }
+      } else {
+        console.warn('[AnalyticsConsumer] Poll error:', err);
+      }
     }
 
     if (this.running) {
@@ -91,7 +99,17 @@ export class AnalyticsEventConsumer {
   async handleEvent(eventType: string, payload: any) {
     switch (eventType) {
       case 'quotation.status_changed':
-      case 'quotation.confirmed': {
+      case 'quotation.confirmed':
+      case 'quotation.approved':
+      case 'quotation.rejected':
+      case 'quotation.negotiation_received': {
+        const nextStatus = payload.newStatus ?? payload.status ?? (
+          eventType === 'quotation.confirmed' ? 'CONFIRMED' :
+          eventType === 'quotation.approved' ? 'APPROVED' :
+          eventType === 'quotation.rejected' ? 'REJECTED' :
+          eventType === 'quotation.negotiation_received' ? 'UNDER_NEGOTIATION' :
+          'DRAFT'
+        );
         await this.analyticsRepo.upsertQuotationSnapshot({
           id: payload.quotationId,
           companyId: payload.companyId ?? 'default',
@@ -100,13 +118,13 @@ export class AnalyticsEventConsumer {
           customerId: payload.customerId ?? 'unknown',
           customerName: payload.customerName ?? 'Customer',
           customerTier: payload.customerTier ?? 'STANDARD',
-          status: payload.status ?? (eventType === 'quotation.confirmed' ? 'CONFIRMED' : 'DRAFT'),
+          status: nextStatus,
           totalAmount: Number(payload.totalAmount ?? 0),
           totalMarginPct: Number(payload.totalMarginPct ?? 0),
           blendedRiskScore: Number(payload.blendedRiskScore ?? 0),
           currency: payload.currency ?? 'USD',
           lastActivityAt: payload.confirmedAt ? new Date(payload.confirmedAt) : new Date(),
-          confirmedAt: payload.confirmedAt ? new Date(payload.confirmedAt) : null,
+          confirmedAt: payload.confirmedAt ? new Date(payload.confirmedAt) : (nextStatus === 'CONFIRMED' ? new Date() : null),
           lines: payload.lines
             ? payload.lines.map((l: any) => ({
                 productId: l.productId,

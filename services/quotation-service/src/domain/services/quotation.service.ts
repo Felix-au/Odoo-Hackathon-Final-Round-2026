@@ -53,6 +53,24 @@ export class QuotationService {
       companyId: customer.companyId,
     });
 
+    await this.eventPublisher.publishQuotationStatusChanged({
+      quotationId: quotation.id,
+      customerId: quotation.customerId,
+      companyId: quotation.companyId,
+      previousStatus: quotation.status,
+      newStatus: quotation.status,
+      changedBy: input.repId || 'unknown',
+      changedAt: new Date().toISOString(),
+      repId: quotation.repId,
+      repName: quotation.repName || 'Sales Rep',
+      customerName: customer.name || 'Customer',
+      customerTier: customer.tier || 'STANDARD',
+      totalAmount: Number(quotation.totalAmount || 0),
+      totalMarginPct: Number(quotation.totalMarginPct || 0),
+      blendedRiskScore: Number(quotation.blendedRiskScore || 0),
+      currency: quotation.currency || 'USD',
+    }).catch(() => {});
+
     return quotation;
   }
 
@@ -236,6 +254,13 @@ export class QuotationService {
       newStatus: nextStatus,
       changedBy: repId,
       changedAt: new Date().toISOString(),
+      repId: quotation.repId,
+      repName: quotation.repName || 'Sales Rep',
+      customerName: quotation.customer?.name || 'Customer',
+      totalAmount: Number(quotation.totalAmount || 0),
+      totalMarginPct: Number(quotation.totalMarginPct || 0),
+      blendedRiskScore: Number(quotation.blendedRiskScore || 0),
+      currency: quotation.currency || 'USD',
     });
 
     if (nextStatus === QuotationStatus.APPROVED) {
@@ -325,6 +350,13 @@ export class QuotationService {
       newStatus: nextStatus,
       changedBy: approver.id,
       changedAt: new Date().toISOString(),
+      repId: quotation.repId,
+      repName: quotation.repName || 'Sales Rep',
+      customerName: quotation.customer?.name || 'Customer',
+      totalAmount: Number(quotation.totalAmount || 0),
+      totalMarginPct: Number(quotation.totalMarginPct || 0),
+      blendedRiskScore: Number(quotation.blendedRiskScore || 0),
+      currency: quotation.currency || 'USD',
     });
 
     if (nextStatus === QuotationStatus.APPROVED) {
@@ -521,6 +553,13 @@ export class QuotationService {
       newStatus: QuotationStatus.CONFIRMED,
       changedBy: userId,
       changedAt: confirmedAt.toISOString(),
+      repId: quotation.repId,
+      repName: quotation.repName || 'Sales Rep',
+      customerName: quotation.customer?.name || 'Customer',
+      totalAmount: Number(quotation.totalAmount || 0),
+      totalMarginPct: Number(quotation.totalMarginPct || 0),
+      blendedRiskScore: Number(quotation.blendedRiskScore || 0),
+      currency: quotation.currency || 'USD',
     });
 
     await this.eventPublisher.publishQuotationConfirmed({

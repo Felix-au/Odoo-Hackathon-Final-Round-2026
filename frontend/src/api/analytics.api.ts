@@ -67,6 +67,52 @@ export const analyticsApi = {
   },
 
   getPipelineStages: async (token?: string): Promise<PipelineStageCount[]> => {
+    // 1. Try live pipeline from quotation service (authoritative real-time data)
+    try {
+      const liveRes = await analyticsHttp.get('/quotations/pipeline', {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
+      const data = liveRes.data?.data || liveRes.data;
+      const stages = data?.stages || data;
+      if (stages && typeof stages === 'object') {
+        const draftCount = Number(stages.DRAFT?.count ?? 0);
+        const draftVal = Number(stages.DRAFT?.totalValue ?? 0);
+
+        const pmCount = Number(stages.PENDING_MANAGER_APPROVAL?.count ?? 0);
+        const pmVal = Number(stages.PENDING_MANAGER_APPROVAL?.totalValue ?? 0);
+        const pfCount = Number(stages.PENDING_FINANCE_APPROVAL?.count ?? 0);
+        const pfVal = Number(stages.PENDING_FINANCE_APPROVAL?.totalValue ?? 0);
+        const unCount = Number(stages.UNDER_NEGOTIATION?.count ?? 0);
+        const unVal = Number(stages.UNDER_NEGOTIATION?.totalValue ?? 0);
+        const reviewCount = pmCount + pfCount + unCount;
+        const reviewVal = pmVal + pfVal + unVal;
+
+        const appCount = Number(stages.APPROVED?.count ?? 0);
+        const appVal = Number(stages.APPROVED?.totalValue ?? 0);
+
+        const sentCount = Number(stages.SENT?.count ?? 0);
+        const sentVal = Number(stages.SENT?.totalValue ?? 0);
+
+        const wonCount = Number((stages.CONFIRMED?.count ?? 0) + (stages.WON?.count ?? 0));
+        const wonVal = Number((stages.CONFIRMED?.totalValue ?? 0) + (stages.WON?.totalValue ?? 0));
+
+        const total = draftCount + reviewCount + appCount + sentCount + wonCount;
+        const safeTotal = total > 0 ? total : 1;
+
+        if (total > 0) {
+          return [
+            { status: 'DRAFT', label: 'Draft', count: draftCount, totalValue: draftVal, percentage: Math.round((draftCount / safeTotal) * 100), colorHex: '#52525B' },
+            { status: 'IN_REVIEW', label: 'In Review', count: reviewCount, totalValue: reviewVal, percentage: Math.round((reviewCount / safeTotal) * 100), colorHex: '#F59E0B' },
+            { status: 'APPROVED', label: 'Approved', count: appCount, totalValue: appVal, percentage: Math.round((appCount / safeTotal) * 100), colorHex: '#3B82F6' },
+            { status: 'SENT', label: 'Sent to Client', count: sentCount, totalValue: sentVal, percentage: Math.round((sentCount / safeTotal) * 100), colorHex: '#8B5CF6' },
+            { status: 'CONFIRMED', label: 'Confirmed / Won', count: wonCount, totalValue: wonVal, percentage: Math.round((wonCount / safeTotal) * 100), colorHex: '#10B981' },
+          ];
+        }
+      }
+    } catch {
+      // fallback to analytics/dashboard
+    }
+
     const res = await analyticsHttp.get('/analytics/dashboard', {
       headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     });
