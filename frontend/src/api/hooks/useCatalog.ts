@@ -131,6 +131,64 @@ export function useWarehouses() {
   });
 }
 
+export function useCreateWarehouse() {
+  const queryClient = useQueryClient();
+  const token = useAuthStore((s) => s.accessToken) || undefined;
+
+  return useMutation({
+    mutationFn: async (data: {
+      name: string;
+      location?: string;
+      shippingCostWeight?: number;
+      isActive?: boolean;
+    }) => {
+      return catalogApi.createWarehouse(data, token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['warehouses'] });
+    },
+  });
+}
+
+export function useUpdateWarehouse() {
+  const queryClient = useQueryClient();
+  const token = useAuthStore((s) => s.accessToken) || undefined;
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: {
+        name?: string;
+        location?: string;
+        shippingCostWeight?: number;
+        isActive?: boolean;
+      };
+    }) => {
+      return catalogApi.updateWarehouse(id, data, token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['warehouses'] });
+    },
+  });
+}
+
+export function useDeleteWarehouse() {
+  const queryClient = useQueryClient();
+  const token = useAuthStore((s) => s.accessToken) || undefined;
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      return catalogApi.deleteWarehouse(id, token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['warehouses'] });
+    },
+  });
+}
+
 export function useCreateProduct() {
   const queryClient = useQueryClient();
   const token = useAuthStore((s) => s.accessToken);

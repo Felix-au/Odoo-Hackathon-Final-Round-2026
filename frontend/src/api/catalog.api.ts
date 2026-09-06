@@ -153,6 +153,43 @@ export const catalogApi = {
     return Array.isArray(res.data) ? res.data : (res.data?.data || []);
   },
 
+  createWarehouse: async (
+    data: {
+      name: string;
+      location?: string;
+      shippingCostWeight?: number;
+      isActive?: boolean;
+    },
+    token?: string
+  ): Promise<Warehouse> => {
+    const res = await catalogHttp.post('/catalog/warehouses', data, {
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    });
+    return res.data?.data || res.data;
+  },
+
+  updateWarehouse: async (
+    id: string,
+    data: {
+      name?: string;
+      location?: string;
+      shippingCostWeight?: number;
+      isActive?: boolean;
+    },
+    token?: string
+  ): Promise<Warehouse> => {
+    const res = await catalogHttp.put(`/catalog/warehouses/${id}`, data, {
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    });
+    return res.data?.data || res.data;
+  },
+
+  deleteWarehouse: async (id: string, token?: string): Promise<void> => {
+    await catalogHttp.delete(`/catalog/warehouses/${id}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    });
+  },
+
   getSubscriptionPlans: async (token?: string): Promise<SubscriptionPlan[]> => {
     const res = await catalogHttp.get('/catalog/subscription-plans', {
       headers: token ? { Authorization: `Bearer ${token}` } : undefined,

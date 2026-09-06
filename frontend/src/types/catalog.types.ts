@@ -59,10 +59,12 @@ export interface UpsellSuggestion {
 export interface Warehouse {
   id: string;
   name: string;
-  code: string;
+  code?: string;
+  location?: string;
   address?: string;
   shippingCostWeight: number;
   isPrimary?: boolean;
+  isActive?: boolean;
 }
 
 export interface SubscriptionPlan {

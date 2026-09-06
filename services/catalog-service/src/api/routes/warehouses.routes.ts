@@ -7,8 +7,9 @@ import { requireRole } from '../middleware/role-guard.middleware';
 
 const CreateWarehouseSchema = z.object({
   name: z.string().min(1).max(100),
-  location: z.string().optional(),
+  location: z.string().optional().nullable(),
   shippingCostWeight: z.number().positive().default(1.0),
+  isActive: z.boolean().optional(),
 });
 
 export function warehousesRoutes(warehouseRepo: WarehouseRepository, cache: CatalogCache) {
@@ -25,26 +26,26 @@ export function warehousesRoutes(warehouseRepo: WarehouseRepository, cache: Cata
       return reply.code(200).send({ data: warehouses });
     });
 
-    fastify.post('/', { preHandler: [jwtAuthMiddleware, requireRole('ADMIN')] }, async (request, reply) => {
+    fastify.post('/', { preHandler: [jwtAuthMiddleware, requireRole('ADMIN', 'SALES_MANAGER')] }, async (request, reply) => {
       const body = CreateWarehouseSchema.safeParse(request.body);
       if (!body.success) {
         return reply.code(400).send({ error: 'VALIDATION_ERROR', detail: body.error.message });
       }
       const wh = await warehouseRepo.create({ ...body.data, companyId: request.user!.companyId });
       await cache.invalidateWarehouses(request.user!.companyId);
-      return reply.code(201).send(wh);
+      return reply.code(201).send({ data: wh });
     });
 
-    fastify.put('/:id', { preHandler: [jwtAuthMiddleware, requireRole('ADMIN')] }, async (request, reply) => {
+    fastify.put('/:id', { preHandler: [jwtAuthMiddleware, requireRole('ADMIN', 'SALES_MANAGER')] }, async (request, reply) => {
       const { id } = request.params as { id: string };
       const body = CreateWarehouseSchema.partial().extend({ isActive: z.boolean().optional() }).safeParse(request.body);
-      if (!body.success) return reply.code(400).send({ error: 'VALIDATION_ERROR' });
+      if (!body.success) return reply.code(400).send({ error: 'VALIDATION_ERROR', detail: body.error.message });
       const wh = await warehouseRepo.update(id, body.data);
       await cache.invalidateWarehouses(request.user!.companyId);
-      return reply.code(200).send(wh);
+      return reply.code(200).send({ data: wh });
     });
 
-    fastify.delete('/:id', { preHandler: [jwtAuthMiddleware, requireRole('ADMIN')] }, async (request, reply) => {
+    fastify.delete('/:id', { preHandler: [jwtAuthMiddleware, requireRole('ADMIN', 'SALES_MANAGER')] }, async (request, reply) => {
       const { id } = request.params as { id: string };
       await warehouseRepo.delete(id);
       await cache.invalidateWarehouses(request.user!.companyId);

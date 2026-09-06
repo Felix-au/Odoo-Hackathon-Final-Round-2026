@@ -24,15 +24,24 @@ export class WarehouseRepository {
   async create(data: {
     companyId: string;
     name: string;
-    location?: string;
+    location?: string | null;
     shippingCostWeight?: number;
+    isActive?: boolean;
   }): Promise<WarehouseDefinition> {
-    return this.prisma.warehouseDefinition.create({ data });
+    return this.prisma.warehouseDefinition.create({
+      data: {
+        companyId: data.companyId,
+        name: data.name,
+        location: data.location ?? undefined,
+        shippingCostWeight: data.shippingCostWeight ?? 1.0,
+        isActive: data.isActive !== undefined ? data.isActive : true,
+      },
+    });
   }
 
   async update(id: string, data: Partial<{
     name: string;
-    location: string;
+    location: string | null;
     shippingCostWeight: number;
     isActive: boolean;
   }>): Promise<WarehouseDefinition> {
