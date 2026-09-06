@@ -4,6 +4,7 @@ export interface OneTimeInvoice {
   orderId: string;
   customerId: string;
   customerName: string;
+  currency?: string;
   amount: string | number;
   taxAmount: string | number;
   totalAmount: string | number;
@@ -11,6 +12,8 @@ export interface OneTimeInvoice {
   dueDate: string;
   issuedAt: string;
   paidAt?: string;
+  lines?: any[];
+  items?: any[];
 }
 
 export interface SubscriptionLine {
