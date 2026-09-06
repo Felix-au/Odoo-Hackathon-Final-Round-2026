@@ -129,4 +129,37 @@ export const analyticsApi = {
       { headers: token ? { Authorization: `Bearer ${token}` } : undefined }
     );
   },
+
+  getQuotationReport: async (
+    params?: { from?: string; to?: string; repId?: string; status?: string; page?: number; pageSize?: number },
+    token?: string
+  ): Promise<{ quotations: any[]; total: number; page: number; pageSize: number }> => {
+    const res = await analyticsHttp.get('/analytics/reports/quotations', {
+      params,
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    });
+    return res.data;
+  },
+
+  getProductReport: async (
+    params?: { from?: string; to?: string },
+    token?: string
+  ): Promise<Array<{ productId: string; productName: string; quantity: number; revenue: number }>> => {
+    const res = await analyticsHttp.get('/analytics/reports/products', {
+      params,
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    });
+    return Array.isArray(res.data) ? res.data : [];
+  },
+
+  exportReport: async (
+    body: { reportType: string; format: 'PDF' | 'XLS'; filters?: any },
+    token?: string
+  ): Promise<{ downloadUrl: string; expiresAt: string; format: string }> => {
+    const res = await analyticsHttp.post('/analytics/reports/export', body, {
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    });
+    return res.data;
+  },
 };
+
