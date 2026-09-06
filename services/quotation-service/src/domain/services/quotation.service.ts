@@ -192,8 +192,12 @@ export class QuotationService {
 
   async submitForApproval(id: string, repId: string) {
     const quotation = await this.getQuotation(id);
-    if (quotation.status !== QuotationStatus.DRAFT && quotation.status !== QuotationStatus.REJECTED) {
-      throw new QuotationDomainError(400, `Cannot submit quotation with status ${quotation.status}. Must be DRAFT or REJECTED.`);
+    if (
+      quotation.status !== QuotationStatus.DRAFT &&
+      quotation.status !== QuotationStatus.REJECTED &&
+      quotation.status !== QuotationStatus.UNDER_NEGOTIATION
+    ) {
+      throw new QuotationDomainError(400, `Cannot submit quotation with status ${quotation.status}. Must be DRAFT, UNDER_NEGOTIATION, or REJECTED.`);
     }
 
     if (quotation.lines.length === 0) {
@@ -280,14 +284,16 @@ export class QuotationService {
       throw new QuotationDomainError(403, `Role ${approver.role} is not authorized to approve quotations`, 'INSUFFICIENT_ROLE');
     }
 
-    // Role check depending on status
+    // Role check depending on status:
+    // - PENDING_FINANCE_APPROVAL: Only CFO (FINANCE) and ADMIN can approve (Manager cannot approve CFO-level quotes).
+    // - PENDING_MANAGER_APPROVAL: Sales Manager, CFO (FINANCE), and ADMIN can approve.
     if (quotation.status === QuotationStatus.PENDING_FINANCE_APPROVAL) {
       if (approver.role !== 'FINANCE' && approver.role !== 'ADMIN') {
         throw new QuotationDomainError(403, 'Quotation is waiting for FINANCE approval', 'INSUFFICIENT_ROLE');
       }
     } else if (quotation.status === QuotationStatus.PENDING_MANAGER_APPROVAL) {
-      if (approver.role !== 'SALES_MANAGER' && approver.role !== 'ADMIN') {
-        throw new QuotationDomainError(403, 'Quotation is waiting for SALES_MANAGER approval', 'INSUFFICIENT_ROLE');
+      if (approver.role !== 'SALES_MANAGER' && approver.role !== 'FINANCE' && approver.role !== 'ADMIN') {
+        throw new QuotationDomainError(403, 'Quotation is waiting for SALES_MANAGER or higher approval', 'INSUFFICIENT_ROLE');
       }
     }
 
@@ -436,7 +442,10 @@ export class QuotationService {
 
   async send(id: string, userId: string) {
     const quotation = await this.getQuotation(id);
-    if (quotation.status === QuotationStatus.DRAFT && quotation.blendedRiskScore > 0) {
+    if (
+      (quotation.status === QuotationStatus.DRAFT || quotation.status === QuotationStatus.UNDER_NEGOTIATION) &&
+      quotation.blendedRiskScore > 0
+    ) {
       throw new QuotationDomainError(
         400,
         `Quotation has governance risk (score: ${quotation.blendedRiskScore}) and requires ${quotation.blendedRiskScore > 30 ? 'CFO' : 'Sales Manager'} review before sending to client. Please submit for approval first.`,
@@ -447,9 +456,10 @@ export class QuotationService {
     if (
       quotation.status !== QuotationStatus.APPROVED &&
       quotation.status !== QuotationStatus.DRAFT &&
+      quotation.status !== QuotationStatus.UNDER_NEGOTIATION &&
       quotation.status !== QuotationStatus.SENT
     ) {
-      throw new QuotationDomainError(400, `Cannot send quotation in status ${quotation.status}. Must be APPROVED.`);
+      throw new QuotationDomainError(400, `Cannot send quotation in status ${quotation.status}. Must be APPROVED, DRAFT, or UNDER_NEGOTIATION.`);
     }
 
     const previousStatus = quotation.status;
@@ -578,11 +588,14 @@ export class QuotationService {
       lineComments: input.lineComments,
     });
 
-    let reEnteredApproval = false;
-    let nextStatus: QuotationStatus = QuotationStatus.UNDER_NEGOTIATION;
+    // When a customer submits a counter-offer/negotiation, status must always enter UNDER_NEGOTIATION
+    // so the sales representative is notified, sees the customer remarks and requested discount,
+    // and can readjust the quote before resubmitting or resending.
+    const nextStatus: QuotationStatus = QuotationStatus.UNDER_NEGOTIATION;
+    const reEnteredApproval = false;
 
     if (input.proposedDiscount !== undefined && input.proposedDiscount > 0) {
-      // Re-evaluate risk with proposed discount across lines or average
+      // Re-evaluate risk with proposed discount across lines or average for tracking
       const ceilingsResponse = await this.catalogClient.getDiscountCeilings(quotation.companyId);
       const tierCeiling = ceilingsResponse.tierCeilings[quotation.customer.tier.toUpperCase()] ?? 15;
 
@@ -594,17 +607,11 @@ export class QuotationService {
         lineTotal: Number(l.lineTotal),
       }));
 
-      const newRisk = computeBlendedRiskScore(
+      computeBlendedRiskScore(
         riskInputs,
         { tierCeiling, categoryCeilings: ceilingsResponse.categoryCeilings || {} },
         Number(quotation.totalAmount),
       );
-
-      // If new risk score exceeds threshold (REQ-BR-008, CHECK-QUOT-004)
-      if (newRisk.blendedScore > 0) {
-        nextStatus = QuotationStatus.PENDING_MANAGER_APPROVAL;
-        reEnteredApproval = true;
-      }
     }
 
     const previousStatus = quotation.status;

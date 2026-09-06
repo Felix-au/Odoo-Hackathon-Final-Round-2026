@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuotation } from '../../api/hooks/useQuotationBuilder';
 import { useApprovalActions } from '../../api/hooks/useApproval';
@@ -41,11 +41,41 @@ export function QuotationApprovalPage() {
     );
   }
 
+  const customerTier = (quotation.customer?.tier || 'GOLD').toUpperCase();
+  const tierCeiling = customerTier === 'PLATINUM' ? 20 : customerTier === 'GOLD' ? 15 : customerTier === 'SILVER' ? 10 : 5;
+
+  const actualCost = useMemo(() => {
+    if (!quotation.lines || quotation.lines.length === 0) {
+      return Number(quotation.totalCost) || 0;
+    }
+    return quotation.lines.reduce((acc: number, l: any) => {
+      const qty = Number(l.quantity) || 1;
+      const cost = Number(l.costPrice) > 0 ? Number(l.costPrice) : (Number(l.unitPrice) * 0.65);
+      return acc + qty * cost;
+    }, 0);
+  }, [quotation.lines, quotation.totalCost]);
+
+  const netAmount = Number(quotation.totalAmount) || 0;
+  const blendedMargin = useMemo(() => {
+    if (netAmount <= 0) return 0;
+    const computed = ((netAmount - actualCost) / netAmount) * 100;
+    return Math.max(0, Math.min(100, Math.round(computed)));
+  }, [netAmount, actualCost]);
+
+  const score = quotation.blendedRiskScore ?? quotation.riskScore ?? 0;
+  const isCFOApproval = score > 30 || quotation.status === 'PENDING_FINANCE_APPROVAL';
+  const isApproved = quotation.status === 'APPROVED' || quotation.status === 'SENT' || quotation.status === 'CONFIRMED';
+
+  // Hierarchical permissions:
+  // - PENDING_MANAGER_APPROVAL: Sales Manager, CFO (FINANCE), or Admin can act.
+  // - PENDING_FINANCE_APPROVAL: Only CFO (FINANCE) or Admin can act (Manager cannot approve CFO-level quotes).
   const canAct =
     (quotation.status === 'PENDING_MANAGER_APPROVAL' &&
-      (user?.role === 'SALES_MANAGER' || user?.role === 'ADMIN')) ||
+      (user?.role === 'SALES_MANAGER' || user?.role === 'FINANCE' || user?.role === 'ADMIN')) ||
     (quotation.status === 'PENDING_FINANCE_APPROVAL' &&
       (user?.role === 'FINANCE' || user?.role === 'ADMIN')) ||
+    (quotation.status === 'UNDER_NEGOTIATION' &&
+      (user?.role === 'SALES_MANAGER' || user?.role === 'FINANCE' || user?.role === 'ADMIN')) ||
     (quotation.status === 'DRAFT' &&
       (user?.role === 'SALES_MANAGER' || user?.role === 'FINANCE' || user?.role === 'ADMIN'));
 
@@ -73,10 +103,6 @@ export function QuotationApprovalPage() {
     }
   };
 
-  const score = quotation.blendedRiskScore ?? quotation.riskScore ?? 0;
-  const isCFOApproval = score > 30 || quotation.status === 'PENDING_FINANCE_APPROVAL';
-  const isApproved = quotation.status === 'APPROVED' || quotation.status === 'SENT' || quotation.status === 'CONFIRMED';
-
   const steps = isCFOApproval
     ? [
         { label: 'Sales Rep (Draft)', state: 'COMPLETED' },
@@ -101,7 +127,6 @@ export function QuotationApprovalPage() {
         },
       ];
 
-
   return (
     <div className="space-y-6 max-w-4xl mx-auto animate-in fade-in duration-300 pb-10">
       {/* Back button */}
@@ -109,7 +134,7 @@ export function QuotationApprovalPage() {
         <button
           type="button"
           onClick={() => navigate(`/app/quotations/${id}`)}
-          className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1.5 font-medium transition-colors"
+          className="text-xs text-zinc-400 hover:text-white flex items-center gap-1.5 font-medium transition-colors"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           <span>Back to Quotation Builder</span>
@@ -135,7 +160,7 @@ export function QuotationApprovalPage() {
       </div>
 
       {/* Approval Stepper */}
-      <div className="bg-[#121214] border border-[#27272A] rounded-2xl p-6 shadow-sm">
+      <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-2xl p-6 shadow-sm">
         <div className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-5">
           Approval Chain Progression
         </div>
@@ -148,7 +173,7 @@ export function QuotationApprovalPage() {
                   step.state === 'COMPLETED'
                     ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400'
                     : step.state === 'IN_PROGRESS'
-                    ? 'bg-blue-600 border-blue-400 text-white animate-pulse'
+                    ? 'bg-white text-black border-white animate-pulse'
                     : 'bg-[#18181B] border-[#27272A] text-zinc-500'
                 }`}
               >
@@ -171,7 +196,7 @@ export function QuotationApprovalPage() {
 
       {/* Deal Summary & Risk Metrics Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-[#121214] border border-[#27272A] rounded-2xl p-4">
+        <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-2xl p-4">
           <span className="text-[11px] font-semibold uppercase text-zinc-400">Total Value</span>
           <div className="text-2xl font-bold text-white mt-1 font-mono">
             {formatCurrency(quotation.totalAmount)}
@@ -179,57 +204,71 @@ export function QuotationApprovalPage() {
           <span className="text-xs text-zinc-500">Net quotation amount</span>
         </div>
 
-        <div className="bg-[#121214] border border-[#27272A] rounded-2xl p-4">
+        <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-2xl p-4">
           <span className="text-[11px] font-semibold uppercase text-zinc-400">Blended Margin</span>
           <div className="text-2xl font-bold text-emerald-400 mt-1 font-mono">
-            {Math.round(Number((quotation as any).totalMarginPct ?? quotation.overallMarginPct ?? 37))}%
+            {blendedMargin}%
           </div>
-          <span className="text-xs text-zinc-500 font-mono">Cost: {formatCurrency(quotation.totalCost || 3800)}</span>
+          <span className="text-xs text-zinc-500 font-mono">Cost: {formatCurrency(actualCost)}</span>
         </div>
 
-        <div className="bg-[#121214] border border-[#27272A] rounded-2xl p-4">
+        <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-2xl p-4">
           <span className="text-[11px] font-semibold uppercase text-zinc-400">Risk Score</span>
-          <div className="text-2xl font-bold text-orange-500 mt-1 font-mono">
-            {quotation.riskScore || 82}
+          <div className="text-2xl font-bold text-amber-400 mt-1 font-mono">
+            {score}
           </div>
-          <span className="text-xs text-orange-400">High discount exception</span>
+          <span className="text-xs text-zinc-400">
+            {score > 30 ? 'CFO review required' : score > 0 ? 'Manager review required' : 'Standard compliant'}
+          </span>
         </div>
       </div>
 
       {/* Pricing Violations Breakdown */}
-      <div className="bg-[#121214] border border-[#27272A] rounded-2xl p-5 space-y-3">
-        <div className="flex items-center gap-2 text-xs font-bold text-orange-400 uppercase tracking-wider">
+      <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-2xl p-5 space-y-3">
+        <div className="flex items-center gap-2 text-xs font-bold text-amber-400 uppercase tracking-wider">
           <AlertTriangle className="w-4 h-4" />
           <span>Governance Exceptions & Violations</span>
         </div>
 
-        <div className="divide-y divide-[#1E1E22] text-xs">
-          <div className="py-3 flex items-center justify-between">
-            <div>
-              <div className="font-semibold text-white">Enterprise Router (ER-500)</div>
-              <div className="text-zinc-400 text-[11px]">Applied 8% vs Gold Tier allowed ceiling of 5%</div>
-            </div>
-            <span className="font-mono font-semibold text-orange-400">+32 risk</span>
-          </div>
+        <div className="divide-y divide-[#1A1A1A] text-xs">
+          {quotation.lines && quotation.lines.length > 0 ? (
+            quotation.lines.map((l: any) => {
+              const applied = Number(l.discountPct) || 0;
+              const excess = Math.max(0, applied - tierCeiling);
+              return (
+                <div key={l.id} className="py-3 flex items-center justify-between">
+                  <div>
+                    <div className="font-semibold text-white">{l.productName}</div>
+                    <div className="text-zinc-400 text-[11px]">
+                      Applied {applied}% discount vs {customerTier} Tier allowed ceiling of {tierCeiling}%
+                    </div>
+                  </div>
+                  <span
+                    className={`font-mono font-semibold ${
+                      excess > 0 ? 'text-amber-400' : 'text-emerald-400'
+                    }`}
+                  >
+                    {excess > 0 ? `+${excess}% over ceiling` : 'Compliant'}
+                  </span>
+                </div>
+              );
+            })
+          ) : (
+            <div className="py-3 text-zinc-400 text-xs">No line items configured on this quotation.</div>
+          )}
 
           <div className="py-3 flex items-center justify-between">
             <div>
-              <div className="font-semibold text-white">Software / Licensing Bundle</div>
-              <div className="text-zinc-400 text-[11px]">Discount exceeds single-approval threshold</div>
-            </div>
-            <span className="font-mono font-semibold text-orange-400">+18 risk</span>
-          </div>
-
-          <div className="py-3 flex items-center justify-between">
-            <div>
-              <div className="font-semibold text-white">Customer Tier Compliance</div>
+              <div className="font-semibold text-white">Customer Tier Compliance & Delegation</div>
               <div className="text-zinc-400 text-[11px]">
                 {isCFOApproval
-                  ? 'High risk deal: Requires direct CFO sign-off. Once approved by CFO, deal is fully approved without Manager approval.'
-                  : 'Standard margin exception: Requires Sales Manager sign-off. Once approved by Manager, deal is fully approved without CFO approval.'}
+                  ? 'High risk / margin breach: Requires CFO or Admin review. Sales Manager cannot approve CFO-level deals.'
+                  : 'Standard risk tier: Requires Sales Manager, CFO, or Admin sign-off.'}
               </div>
             </div>
-            <span className="font-mono font-semibold text-orange-400">+{score > 30 ? score : 21} risk</span>
+            <span className="font-mono font-semibold text-amber-400">
+              Risk: {score}
+            </span>
           </div>
         </div>
       </div>

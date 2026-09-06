@@ -21,6 +21,7 @@ import {
   AlertTriangle,
   Clock,
   Lock,
+  MessageSquare,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -211,13 +212,40 @@ export function QuotationBuilderPage() {
 
   const user = useAuthStore((s) => s.user);
 
+  const customerTier = (quote?.customer?.tier || 'GOLD').toUpperCase();
+  const tierCeiling = customerTier === 'PLATINUM' ? 20 : customerTier === 'GOLD' ? 15 : customerTier === 'SILVER' ? 10 : 5;
+
+  const latestNegotiation = useMemo(() => {
+    if (!quote?.negotiations || quote.negotiations.length === 0) return null;
+    return quote.negotiations[0];
+  }, [quote?.negotiations]);
+
   // Check if quotation requires approval based on blended risk score or margin violation
-  const hasRiskScore = riskScore > 0;
-  const isCFOApprovalRequired = riskScore > 30 || marginPct < 15;
-  const requiresReview = hasRiskScore || marginPct < 30;
+  // IMPORTANT: Requires at least one line item added before initiating governance review warnings
+  const hasRiskScore = lines.length > 0 && riskScore > 0;
+  const isCFOApprovalRequired = lines.length > 0 && (riskScore > 30 || marginPct < 15);
+  const requiresReview = lines.length > 0 && (hasRiskScore || marginPct < 30);
 
   const reviewTargetName = isCFOApprovalRequired ? 'CFO (Madhab CFO)' : 'Sales Manager (Atharva Manager)';
   const reviewActionLabel = isCFOApprovalRequired ? 'Submit for CFO Review' : 'Submit for Manager Review';
+
+  const handleApplyNegotiatedDiscount = (discount: number) => {
+    const nextEdits: Record<string, any> = { ...inlineEdits };
+    lines.forEach((l: any) => {
+      const current = nextEdits[l.id] || {
+        quantity: Number(l.quantity) || 1,
+        unitPrice: Number(l.unitPrice) || 0,
+        discountPct: Number(l.discountPct) || 0,
+      };
+      nextEdits[l.id] = {
+        ...current,
+        discountPct: discount,
+        isDirty: true,
+      };
+    });
+    setInlineEdits(nextEdits);
+    toast.success(`Applied counter-offer discount (${discount}%) to all lines. Click Save or adjust as needed.`);
+  };
 
   // Save single line item edit
   const handleSaveLine = async (lineId: string) => {
@@ -492,10 +520,41 @@ export function QuotationBuilderPage() {
             </div>
           )}
 
+          {/* If quote is UNDER_NEGOTIATION: */}
+          {quote?.status === 'UNDER_NEGOTIATION' && (
+            <div className="flex items-center gap-2">
+              <div className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-amber-500/10 text-amber-300 border border-amber-500/20 flex items-center gap-1.5">
+                <MessageSquare className="w-3.5 h-3.5 text-amber-400" />
+                <span>Client Counter-Offer Active</span>
+              </div>
+              {requiresReview ? (
+                <button
+                  type="button"
+                  disabled={isUpdating || lines.length === 0}
+                  onClick={handleSubmitApproval}
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-amber-400 hover:bg-amber-300 text-black transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-amber-500/20 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5 text-black" />
+                  <span>{reviewActionLabel}</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  disabled={isUpdating || lines.length === 0}
+                  onClick={handleSendToCustomer}
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-white hover:bg-zinc-200 text-black transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-white/5 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  <Send className="w-3.5 h-3.5 text-black" />
+                  <span>Send Revised Quote to Customer</span>
+                </button>
+              )}
+            </div>
+          )}
+
           {/* If quote is PENDING REVIEW: */}
           {quote?.status === 'PENDING_MANAGER_APPROVAL' && (
             <>
-              {user?.role === 'SALES_MANAGER' || user?.role === 'ADMIN' ? (
+              {user?.role === 'SALES_MANAGER' || user?.role === 'FINANCE' || user?.role === 'ADMIN' ? (
                 <button
                   type="button"
                   onClick={() => navigate(`/app/quotations/${id}/approval`)}
@@ -542,8 +601,55 @@ export function QuotationBuilderPage() {
         </div>
       </div>
 
+      {/* Customer Counter-Offer / Negotiation Banner */}
+      {(quote?.status === 'UNDER_NEGOTIATION' || latestNegotiation) && latestNegotiation && (
+        <div className="p-5 rounded-2xl bg-[#0E0E0E] border border-amber-500/30 text-xs shadow-xl space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <span className="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                <MessageSquare className="w-4 h-4" />
+              </span>
+              <div>
+                <div className="font-bold text-white flex items-center gap-2">
+                  <span>Customer Negotiation & Counter-Offer Received</span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                    Requested: {latestNegotiation.proposedDiscount || 0}% Discount
+                  </span>
+                </div>
+                <div className="text-[11px] text-zinc-400 mt-0.5">
+                  Submitted {new Date(latestNegotiation.submittedAt || (latestNegotiation as any).createdAt || Date.now()).toLocaleString()}
+                </div>
+              </div>
+            </div>
+
+            {latestNegotiation.proposedDiscount !== undefined && latestNegotiation.proposedDiscount > 0 && (
+              <button
+                type="button"
+                onClick={() => handleApplyNegotiatedDiscount(latestNegotiation.proposedDiscount || 0)}
+                className="px-3.5 py-1.5 rounded-xl bg-[#181818] hover:bg-[#222222] border border-[#2E2E2E] hover:border-amber-400/50 text-zinc-200 hover:text-white font-semibold text-xs transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                <span>Auto-Apply {latestNegotiation.proposedDiscount}% to Lines</span>
+              </button>
+            )}
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-[#080808] border border-[#1A1A1A] space-y-1">
+            <div className="text-[10px] uppercase font-mono text-zinc-400 font-semibold tracking-wider">
+              Customer Remark & Rationale:
+            </div>
+            <p className="text-zinc-200 text-xs italic leading-relaxed">
+              "{latestNegotiation.message || 'No written remark provided.'}"
+            </p>
+          </div>
+
+          <p className="text-[11px] text-zinc-400">
+            Readjust product quantities, prices, or discounts inline below. When finalized, send the revised proposal to the customer or submit for governance review if it exceeds tier limits.
+          </p>
+        </div>
+      )}
+
       {/* Governance Review Required Banner */}
-      {quote?.status === 'DRAFT' && requiresReview && (
+      {(quote?.status === 'DRAFT' || quote?.status === 'UNDER_NEGOTIATION') && requiresReview && lines.length > 0 && (
         <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/25 flex items-start gap-3.5 text-xs text-amber-200 shadow-lg">
           <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
           <div className="space-y-1">
@@ -551,7 +657,7 @@ export function QuotationBuilderPage() {
               Governance Review Required — Client Dispatch Blocked
             </div>
             <div className="text-zinc-400 text-[11px] leading-relaxed">
-              This quotation has a risk score of <strong className="text-amber-300 font-mono">{riskScore || 35}</strong> (Estimated Margin: <strong className="text-zinc-300 font-mono">{marginPct}%</strong>). Direct client dispatch is disabled until approval is completed by <strong className="text-white">{reviewTargetName}</strong>.
+              This quotation has a risk score of <strong className="text-amber-300 font-mono">{riskScore}</strong> (Estimated Margin: <strong className="text-zinc-300 font-mono">{marginPct}%</strong>). Direct client dispatch is disabled until approval is completed by <strong className="text-white">{reviewTargetName}</strong>.
             </div>
           </div>
         </div>
@@ -658,7 +764,7 @@ export function QuotationBuilderPage() {
                 <span className="w-16 text-center">Qty</span>
                 <span className="w-24 text-right">Unit Price</span>
                 <span className="w-16 text-right">Disc. %</span>
-                <span className="w-20 text-center">Risk</span>
+                <span className="w-28 text-center">Tier Delta</span>
                 <span className="w-24 text-right">Total</span>
                 <span className="w-14 text-right">Action</span>
               </div>
@@ -776,21 +882,26 @@ export function QuotationBuilderPage() {
                           />
                         </div>
 
-                        {/* LINE RISK Column */}
-                        <div className="w-20 flex items-center justify-center">
-                          {edit.discountPct >= 30 ? (
-                            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-500/10 text-rose-400 border border-rose-500/20">
-                              High ({edit.discountPct}%)
-                            </span>
-                          ) : edit.discountPct >= 15 ? (
-                            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                              Med ({edit.discountPct}%)
-                            </span>
-                          ) : (
-                            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                              Low (0)
-                            </span>
-                          )}
+                        {/* LINE TIER DELTA Column */}
+                        <div className="w-28 flex items-center justify-center">
+                          {(() => {
+                            const delta = edit.discountPct - tierCeiling;
+                            if (delta > 0) {
+                              return (
+                                <span
+                                  className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                                  title={`Applied ${edit.discountPct}% vs ${customerTier} allowed ceiling of ${tierCeiling}%`}
+                                >
+                                  +{delta}% over ceiling
+                                </span>
+                              );
+                            }
+                            return (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                Compliant ({edit.discountPct}%)
+                              </span>
+                            );
+                          })()}
                         </div>
 
                         {/* TOTAL */}

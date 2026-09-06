@@ -1,10 +1,25 @@
-import { Outlet } from 'react-router-dom';
+import { Outlet, Navigate } from 'react-router-dom';
 import { PortalShell } from './layout/PortalShell';
 import { PortalLoginPage } from './pages/PortalLoginPage';
 import { PortalSignupPage } from './pages/PortalSignupPage';
 import { MagicLinkSentPage } from './pages/MagicLinkSentPage';
 import { MagicLinkVerifyPage } from './pages/MagicLinkVerifyPage';
 import { QuotationPortalPage } from './pages/QuotationPortalPage';
+import { usePortalAuthStore } from '../stores/portal-auth.store';
+import { useAuthStore } from '../stores/auth.store';
+
+export function PortalGuestGuard({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated: isPortalAuth } = usePortalAuthStore();
+  const { isAuthenticated: isInternalAuth } = useAuthStore();
+
+  if (isPortalAuth) {
+    return <Navigate to="/portal/quotations" replace />;
+  }
+  if (isInternalAuth) {
+    return <Navigate to="/app/dashboard" replace />;
+  }
+  return <>{children}</>;
+}
 
 export function PortalAuthGuard() {
   return <Outlet />;
@@ -13,9 +28,23 @@ export function PortalAuthGuard() {
 export const portalRoutes = {
   path: '/portal',
   children: [
-    // Full-screen Dark Auth routes
-    { path: 'auth/login', element: <PortalLoginPage /> },
-    { path: 'auth/signup', element: <PortalSignupPage /> },
+    // Full-screen Dark Auth routes (guarded against already authenticated sessions)
+    {
+      path: 'auth/login',
+      element: (
+        <PortalGuestGuard>
+          <PortalLoginPage />
+        </PortalGuestGuard>
+      ),
+    },
+    {
+      path: 'auth/signup',
+      element: (
+        <PortalGuestGuard>
+          <PortalSignupPage />
+        </PortalGuestGuard>
+      ),
+    },
     { path: 'auth/magic-link-sent', element: <MagicLinkSentPage /> },
     { path: 'auth/verify', element: <MagicLinkVerifyPage /> },
 

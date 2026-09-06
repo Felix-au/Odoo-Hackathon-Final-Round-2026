@@ -4,10 +4,16 @@ import { portalRoutes } from './portal/routes';
 import { LoginPage } from './app/pages/LoginPage';
 import { SignupPage } from './app/pages/SignupPage';
 import { useAuthStore } from './stores/auth.store';
+import { usePortalAuthStore } from './stores/portal-auth.store';
 
 export function GuestGuard({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated } = useAuthStore();
-  if (isAuthenticated) {
+  const { isAuthenticated: isInternalAuth } = useAuthStore();
+  const { isAuthenticated: isPortalAuth } = usePortalAuthStore();
+
+  if (isPortalAuth) {
+    return <Navigate to="/portal/quotations" replace />;
+  }
+  if (isInternalAuth) {
     return <Navigate to="/app/dashboard" replace />;
   }
   return <>{children}</>;
