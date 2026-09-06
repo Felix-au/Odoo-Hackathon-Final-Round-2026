@@ -10,7 +10,10 @@ export function useQuotations(filters?: QuotationFilters) {
     queryKey: ['quotations', filters, token],
     queryFn: async () => {
       try {
-        const res = await quotationApi.getQuotations(token, filters);
+        const res = await quotationApi.getQuotations(token, {
+          pageSize: 100,
+          ...filters,
+        });
         return { data: res.data || [], total: res.total || 0, isLive: true };
       } catch {
         // When quotation service is offline/incomplete, return empty real data rather than mocking
