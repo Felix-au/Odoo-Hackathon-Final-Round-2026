@@ -95,3 +95,46 @@ export function useCreateProduct() {
     },
   });
 }
+
+export function useUpdateProduct() {
+  const queryClient = useQueryClient();
+  const token = useAuthStore((s) => s.accessToken) || undefined;
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: {
+        name?: string;
+        categoryId?: string;
+        basePrice?: number;
+        costPrice?: number;
+        unit?: string;
+        taxRate?: number;
+        description?: string;
+        isActive?: boolean;
+      };
+    }) => {
+      return catalogApi.updateProduct(id, data, token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+    },
+  });
+}
+
+export function useDeleteProduct() {
+  const queryClient = useQueryClient();
+  const token = useAuthStore((s) => s.accessToken) || undefined;
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      return catalogApi.deleteProduct(id, token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+    },
+  });
+}

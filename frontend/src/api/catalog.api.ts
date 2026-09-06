@@ -48,6 +48,32 @@ export const catalogApi = {
     return res.data?.data || res.data;
   },
 
+  updateProduct: async (
+    id: string,
+    data: {
+      name?: string;
+      categoryId?: string;
+      basePrice?: number;
+      costPrice?: number;
+      unit?: string;
+      taxRate?: number;
+      description?: string;
+      isActive?: boolean;
+    },
+    token?: string
+  ): Promise<Product> => {
+    const res = await catalogHttp.put(`/catalog/products/${id}`, data, {
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    });
+    return res.data?.data || res.data;
+  },
+
+  deleteProduct: async (id: string, token?: string): Promise<void> => {
+    await catalogHttp.delete(`/catalog/products/${id}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    });
+  },
+
   getCategories: async (token?: string): Promise<ProductCategory[]> => {
     const res = await catalogHttp.get('/catalog/categories', {
       headers: token ? { Authorization: `Bearer ${token}` } : undefined,

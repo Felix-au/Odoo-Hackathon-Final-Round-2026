@@ -76,9 +76,9 @@ export function productsRoutes(productService: ProductService) {
       return reply.code(200).send(product);
     });
 
-    // POST /catalog/products — ADMIN only
+    // POST /catalog/products — ADMIN or SALES_MANAGER
     fastify.post('/', {
-      preHandler: [jwtAuthMiddleware, requireRole('ADMIN')],
+      preHandler: [jwtAuthMiddleware, requireRole('ADMIN', 'SALES_MANAGER')],
     }, async (request, reply) => {
       const body = CreateProductSchema.safeParse(request.body);
       if (!body.success) {
@@ -95,9 +95,9 @@ export function productsRoutes(productService: ProductService) {
       return reply.code(201).send(product);
     });
 
-    // PUT /catalog/products/:id — ADMIN only
+    // PUT /catalog/products/:id — ADMIN or SALES_MANAGER
     fastify.put('/:id', {
-      preHandler: [jwtAuthMiddleware, requireRole('ADMIN')],
+      preHandler: [jwtAuthMiddleware, requireRole('ADMIN', 'SALES_MANAGER')],
     }, async (request, reply) => {
       const { id } = request.params as { id: string };
       const body = UpdateProductSchema.safeParse(request.body);
@@ -109,9 +109,9 @@ export function productsRoutes(productService: ProductService) {
       return reply.code(200).send(product);
     });
 
-    // DELETE /catalog/products/:id — ADMIN only (soft delete)
+    // DELETE /catalog/products/:id — ADMIN or SALES_MANAGER (soft delete)
     fastify.delete('/:id', {
-      preHandler: [jwtAuthMiddleware, requireRole('ADMIN')],
+      preHandler: [jwtAuthMiddleware, requireRole('ADMIN', 'SALES_MANAGER')],
     }, async (request, reply) => {
       const { id } = request.params as { id: string };
       await productService.softDelete(request.user!.companyId, id);
