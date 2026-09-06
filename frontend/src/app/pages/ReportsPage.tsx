@@ -20,6 +20,7 @@ import {
   CheckCircle,
   Receipt,
   ShieldAlert,
+  Users,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatCurrency, formatDate } from '../../lib/utils';
@@ -137,6 +138,102 @@ export function ReportsPage() {
 
     return Object.values(stages);
   }, [filteredQuotations]);
+
+  // Tab 1: Representative Conversion Breakdown (Live Period Aggregate)
+  const repConversionData = useMemo(() => {
+    const repMap: Record<
+      string,
+      {
+        repName: string;
+        quotesCreated: number;
+        dealsWon: number;
+        totalRevenue: number;
+        totalMarginPct: number;
+        marginCount: number;
+      }
+    > = {};
+
+    // First collect all known reps from rawQuotations so active reps remain visible
+    for (const q of rawQuotations) {
+      const name = q.repName || 'Sales Representative';
+      if (!repMap[name]) {
+        repMap[name] = {
+          repName: name,
+          quotesCreated: 0,
+          dealsWon: 0,
+          totalRevenue: 0,
+          totalMarginPct: 0,
+          marginCount: 0,
+        };
+      }
+    }
+
+    // Tally metrics from filtered quotations (respects Reporting Window: ALL_TIME, THIS_MONTH, etc.)
+    for (const q of filteredQuotations) {
+      const name = q.repName || 'Sales Representative';
+      if (!repMap[name]) {
+        repMap[name] = {
+          repName: name,
+          quotesCreated: 0,
+          dealsWon: 0,
+          totalRevenue: 0,
+          totalMarginPct: 0,
+          marginCount: 0,
+        };
+      }
+
+      repMap[name].quotesCreated++;
+      const isWon = q.status === 'CONFIRMED' || q.status === 'APPROVED';
+      const amt = Number(q.totalAmount || 0);
+
+      if (isWon) {
+        repMap[name].dealsWon++;
+        repMap[name].totalRevenue += amt;
+      }
+
+      if (q.totalMarginPct !== undefined && q.totalMarginPct !== null) {
+        repMap[name].totalMarginPct += Number(q.totalMarginPct);
+        repMap[name].marginCount++;
+      }
+    }
+
+    return Object.values(repMap)
+      .map((r) => {
+        const winRate = r.quotesCreated > 0 ? Math.round((r.dealsWon / r.quotesCreated) * 100) : 0;
+        const avgMargin = r.marginCount > 0 ? (r.totalMarginPct / r.marginCount).toFixed(1) : '0.0';
+        return {
+          repName: r.repName,
+          quotesCreated: r.quotesCreated,
+          dealsWon: r.dealsWon,
+          totalRevenue: r.totalRevenue,
+          winRate,
+          avgMargin,
+        };
+      })
+      .sort((a, b) => b.totalRevenue - a.totalRevenue || b.quotesCreated - a.quotesCreated);
+  }, [rawQuotations, filteredQuotations]);
+
+  const repTotals = useMemo(() => {
+    const totalQuotes = repConversionData.reduce((acc, r) => acc + r.quotesCreated, 0);
+    const totalWon = repConversionData.reduce((acc, r) => acc + r.dealsWon, 0);
+    const totalRev = repConversionData.reduce((acc, r) => acc + r.totalRevenue, 0);
+    const blendedWinRate = totalQuotes > 0 ? Math.round((totalWon / totalQuotes) * 100) : 0;
+    const blendedAvgMargin =
+      totalQuotes > 0
+        ? (
+            repConversionData.reduce((acc, r) => acc + Number(r.avgMargin) * r.quotesCreated, 0) /
+            totalQuotes
+          ).toFixed(1)
+        : '0.0';
+
+    return {
+      totalQuotes,
+      totalWon,
+      totalRev,
+      blendedWinRate,
+      blendedAvgMargin,
+    };
+  }, [repConversionData]);
 
   // Tab 2: Product & Margin Mix Chart Data
   const productChartData = useMemo(() => {
@@ -436,6 +533,121 @@ export function ReportsPage() {
                   <Bar dataKey="value" fill="#3B82F6" radius={[6, 6, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Representative Conversion Breakdown Table (Live Period Aggregate) */}
+          <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-2xl overflow-hidden shadow-2xl">
+            <div className="py-3.5 px-5 bg-[#0E0E0E] border-b border-[#1F1F1F] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+                  <Users className="w-4 h-4" />
+                </div>
+                <div>
+                  <h2 className="text-xs font-bold text-zinc-200 uppercase tracking-wider">
+                    Representative Conversion Breakdown
+                  </h2>
+                  <p className="text-[11px] text-zinc-500">
+                    Live Period Aggregate · Performance metrics across active sales representatives
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  Live Period Aggregate
+                </span>
+                <span className="text-[11px] font-mono text-zinc-500">
+                  {repConversionData.length} Active Reps
+                </span>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-[#1F1F1F] text-zinc-400 uppercase font-semibold text-[11px]">
+                    <th className="py-3.5 px-5">Sales Representative</th>
+                    <th className="py-3.5 px-5 text-center">Quotes Created</th>
+                    <th className="py-3.5 px-5 text-center">Deals Won</th>
+                    <th className="py-3.5 px-5 text-right">Total Revenue</th>
+                    <th className="py-3.5 px-5 text-right">Win Rate</th>
+                    <th className="py-3.5 px-5 text-right">Avg Margin</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#181818]">
+                  {repConversionData.map((rep) => {
+                    const initials = rep.repName
+                      .split(' ')
+                      .map((n) => n[0])
+                      .join('')
+                      .slice(0, 2)
+                      .toUpperCase();
+                    return (
+                      <tr key={rep.repName} className="hover:bg-white/[0.02] transition-colors">
+                        <td className="py-4 px-5">
+                          <div className="flex items-center gap-3">
+                            <div className="w-7 h-7 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-[10px] font-bold text-zinc-200 uppercase">
+                              {initials}
+                            </div>
+                            <div>
+                              <div className="font-bold text-white text-xs">{rep.repName}</div>
+                              <div className="text-[10px] text-zinc-500 font-mono">
+                                {rep.quotesCreated} quotes in scope
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-4 px-5 text-center font-mono font-semibold text-zinc-300">
+                          {rep.quotesCreated}
+                        </td>
+                        <td className="py-4 px-5 text-center font-mono font-bold text-emerald-400">
+                          {rep.dealsWon}
+                        </td>
+                        <td className="py-4 px-5 text-right font-mono font-bold text-white">
+                          {formatCurrency(rep.totalRevenue)}
+                        </td>
+                        <td className="py-4 px-5 text-right">
+                          <span
+                            className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${
+                              rep.winRate >= 50
+                                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                : rep.winRate > 0
+                                ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                                : 'bg-zinc-800/60 text-zinc-400 border-zinc-700'
+                            }`}
+                          >
+                            {rep.winRate}%
+                          </span>
+                        </td>
+                        <td className="py-4 px-5 text-right font-mono font-semibold text-emerald-400">
+                          {rep.avgMargin}%
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot className="border-t border-[#242424] bg-[#0C0C0C]">
+                  <tr className="font-semibold text-xs text-zinc-300">
+                    <td className="py-3.5 px-5 font-bold uppercase tracking-wider text-[11px] text-zinc-400">
+                      Portfolio Aggregate Total
+                    </td>
+                    <td className="py-3.5 px-5 text-center font-mono font-bold text-white">
+                      {repTotals.totalQuotes}
+                    </td>
+                    <td className="py-3.5 px-5 text-center font-mono font-bold text-emerald-400">
+                      {repTotals.totalWon}
+                    </td>
+                    <td className="py-3.5 px-5 text-right font-mono font-bold text-white">
+                      {formatCurrency(repTotals.totalRev)}
+                    </td>
+                    <td className="py-3.5 px-5 text-right font-mono font-bold text-emerald-400">
+                      {repTotals.blendedWinRate}%
+                    </td>
+                    <td className="py-3.5 px-5 text-right font-mono font-bold text-emerald-400">
+                      {repTotals.blendedAvgMargin}%
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
             </div>
           </div>
 
