@@ -95,6 +95,43 @@ export const catalogApi = {
     return Array.isArray(res.data?.data) ? res.data.data : (Array.isArray(res.data) ? res.data : []);
   },
 
+  updateApprovalChain: async (
+    id: string,
+    payload: {
+      name?: string;
+      minRiskScore?: number;
+      maxRiskScore?: number;
+      requiredRoles?: string[];
+    },
+    token?: string
+  ): Promise<any> => {
+    const res = await catalogHttp.put(`/catalog/approval-chains/${id}`, payload, {
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    });
+    return res.data;
+  },
+
+  createApprovalChain: async (
+    payload: {
+      name: string;
+      minRiskScore: number;
+      maxRiskScore: number;
+      requiredRoles: string[];
+    },
+    token?: string
+  ): Promise<any> => {
+    const res = await catalogHttp.post('/catalog/approval-chains', payload, {
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    });
+    return res.data;
+  },
+
+  deleteApprovalChain: async (id: string, token?: string): Promise<void> => {
+    await catalogHttp.delete(`/catalog/approval-chains/${id}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    });
+  },
+
   resolveApprovalChain: async (riskScore: number, token?: string): Promise<any> => {
     const res = await catalogHttp.get(`/catalog/approval-chains/resolve?riskScore=${riskScore}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : undefined,

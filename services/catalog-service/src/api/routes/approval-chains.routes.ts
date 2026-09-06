@@ -42,7 +42,7 @@ export function approvalChainsRoutes(approvalChainService: ApprovalChainService)
       });
     });
 
-    fastify.post('/', { preHandler: [jwtAuthMiddleware, requireRole('ADMIN')] }, async (request, reply) => {
+    fastify.post('/', { preHandler: [jwtAuthMiddleware, requireRole('ADMIN', 'SALES_MANAGER')] }, async (request, reply) => {
       const body = CreateApprovalChainSchema.safeParse(request.body);
       if (!body.success) {
         return reply.code(400).send({ error: 'VALIDATION_ERROR', detail: body.error.message });
@@ -51,15 +51,17 @@ export function approvalChainsRoutes(approvalChainService: ApprovalChainService)
       return reply.code(201).send(chain);
     });
 
-    fastify.put('/:id', { preHandler: [jwtAuthMiddleware, requireRole('ADMIN')] }, async (request, reply) => {
+    fastify.put('/:id', { preHandler: [jwtAuthMiddleware, requireRole('ADMIN', 'SALES_MANAGER')] }, async (request, reply) => {
       const { id } = request.params as { id: string };
       const body = CreateApprovalChainSchema.partial().safeParse(request.body);
-      if (!body.success) return reply.code(400).send({ error: 'VALIDATION_ERROR' });
+      if (!body.success) {
+        return reply.code(400).send({ error: 'VALIDATION_ERROR', detail: body.error.message });
+      }
       const chain = await approvalChainService.update(request.user!.companyId, id, body.data);
       return reply.code(200).send(chain);
     });
 
-    fastify.delete('/:id', { preHandler: [jwtAuthMiddleware, requireRole('ADMIN')] }, async (request, reply) => {
+    fastify.delete('/:id', { preHandler: [jwtAuthMiddleware, requireRole('ADMIN', 'SALES_MANAGER')] }, async (request, reply) => {
       const { id } = request.params as { id: string };
       await approvalChainService.delete(request.user!.companyId, id);
       return reply.code(204).send();

@@ -59,6 +59,64 @@ export function useApprovalChains() {
   });
 }
 
+export function useUpdateApprovalChain() {
+  const queryClient = useQueryClient();
+  const token = useAuthStore((s) => s.accessToken) || undefined;
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: {
+        name?: string;
+        minRiskScore?: number;
+        maxRiskScore?: number;
+        requiredRoles?: string[];
+      };
+    }) => {
+      return catalogApi.updateApprovalChain(id, data, token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['approval-chains'] });
+    },
+  });
+}
+
+export function useCreateApprovalChain() {
+  const queryClient = useQueryClient();
+  const token = useAuthStore((s) => s.accessToken) || undefined;
+
+  return useMutation({
+    mutationFn: async (data: {
+      name: string;
+      minRiskScore: number;
+      maxRiskScore: number;
+      requiredRoles: string[];
+    }) => {
+      return catalogApi.createApprovalChain(data, token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['approval-chains'] });
+    },
+  });
+}
+
+export function useDeleteApprovalChain() {
+  const queryClient = useQueryClient();
+  const token = useAuthStore((s) => s.accessToken) || undefined;
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      return catalogApi.deleteApprovalChain(id, token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['approval-chains'] });
+    },
+  });
+}
+
 export function useWarehouses() {
   const token = useAuthStore((s) => s.accessToken) || undefined;
 
