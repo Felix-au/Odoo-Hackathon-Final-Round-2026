@@ -5,10 +5,10 @@ import { jwtAuthMiddleware, requireRole } from '../middleware/jwt-auth.middlewar
 
 const upsertStockSchema = z.object({
   companyId: z.string().default('default'),
-  warehouseId: z.string().uuid('warehouseId must be a UUID'),
+  warehouseId: z.string().min(1),
   warehouseName: z.string().min(1),
-  productId: z.string().uuid('productId must be a UUID'),
-  variantId: z.string().uuid().optional().nullable(),
+  productId: z.string().min(1),
+  variantId: z.string().optional().nullable(),
   quantityOnHand: z.number().int().min(0),
   reorderPoint: z.number().int().min(0).optional(),
   reorderQty: z.number().int().min(1).optional(),
@@ -16,17 +16,17 @@ const upsertStockSchema = z.object({
 
 const adjustStockSchema = z.object({
   companyId: z.string().default('default'),
-  warehouseId: z.string().uuid(),
-  productId: z.string().uuid(),
-  variantId: z.string().uuid().optional().nullable(),
+  warehouseId: z.string().min(1),
+  productId: z.string().min(1),
+  variantId: z.string().optional().nullable(),
   delta: z.number().int().refine((n) => n !== 0, 'delta must be non-zero'),
 });
 
 const arrivalSchema = z.object({
   companyId: z.string().default('default'),
-  warehouseId: z.string().uuid(),
-  productId: z.string().uuid(),
-  variantId: z.string().uuid().optional().nullable(),
+  warehouseId: z.string().min(1),
+  productId: z.string().min(1),
+  variantId: z.string().optional().nullable(),
   quantityArrived: z.number().int().min(1),
 });
 
@@ -56,10 +56,10 @@ export async function stockRoutes(
     },
   );
 
-  // PUT /fulfillment/stock  (ADMIN, FINANCE only)
+  // PUT /fulfillment/stock  (ADMIN, FINANCE, SALES_MANAGER)
   app.put(
     '/fulfillment/stock',
-    { preHandler: [jwtAuthMiddleware, requireRole('ADMIN', 'FINANCE')] },
+    { preHandler: [jwtAuthMiddleware, requireRole('ADMIN', 'FINANCE', 'SALES_MANAGER')] },
     async (request, reply) => {
       const parsed = upsertStockSchema.safeParse(request.body);
       if (!parsed.success) {
@@ -76,10 +76,10 @@ export async function stockRoutes(
     },
   );
 
-  // POST /fulfillment/stock/adjust  (ADMIN, FINANCE only)
+  // POST /fulfillment/stock/adjust  (ADMIN, FINANCE, SALES_MANAGER)
   app.post(
     '/fulfillment/stock/adjust',
-    { preHandler: [jwtAuthMiddleware, requireRole('ADMIN', 'FINANCE')] },
+    { preHandler: [jwtAuthMiddleware, requireRole('ADMIN', 'FINANCE', 'SALES_MANAGER')] },
     async (request, reply) => {
       const parsed = adjustStockSchema.safeParse(request.body);
       if (!parsed.success) {
@@ -106,10 +106,10 @@ export async function stockRoutes(
     },
   );
 
-  // POST /fulfillment/stock/arrival  (ADMIN, FINANCE only)
+  // POST /fulfillment/stock/arrival  (ADMIN, FINANCE, SALES_MANAGER)
   app.post(
     '/fulfillment/stock/arrival',
-    { preHandler: [jwtAuthMiddleware, requireRole('ADMIN', 'FINANCE')] },
+    { preHandler: [jwtAuthMiddleware, requireRole('ADMIN', 'FINANCE', 'SALES_MANAGER')] },
     async (request, reply) => {
       const parsed = arrivalSchema.safeParse(request.body);
       if (!parsed.success) {

@@ -80,6 +80,37 @@ export const fulfillmentApi = {
     return res.data?.stock || (Array.isArray(res.data) ? res.data : []);
   },
 
+  setStock: async (
+    data: {
+      warehouseId: string;
+      warehouseName: string;
+      productId: string;
+      quantityOnHand: number;
+      reorderPoint?: number;
+      reorderQty?: number;
+    },
+    token?: string
+  ): Promise<WarehouseStockItem> => {
+    const res = await fulfillmentHttp.put('/fulfillment/stock', data, {
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    });
+    return res.data?.stock || res.data;
+  },
+
+  adjustStock: async (
+    data: {
+      warehouseId: string;
+      productId: string;
+      delta: number;
+    },
+    token?: string
+  ): Promise<WarehouseStockItem> => {
+    const res = await fulfillmentHttp.post('/fulfillment/stock/adjust', data, {
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    });
+    return res.data?.stock || res.data;
+  },
+
   listOrders: async (token?: string): Promise<FulfillmentOrderRecord[]> => {
     const res = await fulfillmentHttp.get('/fulfillment/orders', {
       headers: token ? { Authorization: `Bearer ${token}` } : undefined,

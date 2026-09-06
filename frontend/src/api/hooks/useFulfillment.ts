@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fulfillmentApi } from '../fulfillment.api';
 import { SplitRecommendation, WarehouseStockItem, FulfillmentOrderRecord } from '../../types/fulfillment.types';
 import { useAuthStore } from '../../stores/auth.store';
@@ -95,6 +95,45 @@ export function useWarehouseStock(warehouseId?: string) {
       }
     },
     staleTime: 15_000,
+  });
+}
+
+export function useSetStock() {
+  const queryClient = useQueryClient();
+  const token = useAuthStore((s) => s.accessToken) || undefined;
+
+  return useMutation({
+    mutationFn: async (data: {
+      warehouseId: string;
+      warehouseName: string;
+      productId: string;
+      quantityOnHand: number;
+      reorderPoint?: number;
+      reorderQty?: number;
+    }) => {
+      return fulfillmentApi.setStock(data, token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['warehouse-stock'] });
+    },
+  });
+}
+
+export function useAdjustStock() {
+  const queryClient = useQueryClient();
+  const token = useAuthStore((s) => s.accessToken) || undefined;
+
+  return useMutation({
+    mutationFn: async (data: {
+      warehouseId: string;
+      productId: string;
+      delta: number;
+    }) => {
+      return fulfillmentApi.adjustStock(data, token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['warehouse-stock'] });
+    },
   });
 }
 
