@@ -5,7 +5,7 @@ import { useApprovalActions } from '../../api/hooks/useApproval';
 import { useAuthStore } from '../../stores/auth.store';
 import { LoadingSpinner } from '../../components/feedback/LoadingSpinner';
 import { formatCurrency, formatQuotationNumber } from '../../lib/utils';
-import { AlertTriangle, ArrowLeft, Send, CheckCircle2, ArrowUpRight } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Send, CheckCircle2, ArrowUpRight, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 
 export function QuotationApprovalPage() {
@@ -42,10 +42,12 @@ export function QuotationApprovalPage() {
   }
 
   const canAct =
-    (user?.role === 'ADMIN' || user?.role === 'SALES_MANAGER' || user?.role === 'FINANCE') &&
-    quotation.status !== 'APPROVED' &&
-    quotation.status !== 'SENT' &&
-    quotation.status !== 'CONFIRMED';
+    (quotation.status === 'PENDING_MANAGER_APPROVAL' &&
+      (user?.role === 'SALES_MANAGER' || user?.role === 'ADMIN')) ||
+    (quotation.status === 'PENDING_FINANCE_APPROVAL' &&
+      (user?.role === 'FINANCE' || user?.role === 'ADMIN')) ||
+    (quotation.status === 'DRAFT' &&
+      (user?.role === 'SALES_MANAGER' || user?.role === 'FINANCE' || user?.role === 'ADMIN'));
 
   const handleActionSubmit = async () => {
     try {
@@ -72,12 +74,32 @@ export function QuotationApprovalPage() {
   };
 
   const score = quotation.blendedRiskScore ?? quotation.riskScore ?? 0;
-  const steps = [
-    { label: 'Sales Rep', state: 'COMPLETED' },
-    { label: 'Sales Manager', state: score > 0 ? 'IN_PROGRESS' : 'COMPLETED' },
-    { label: 'Finance', state: score > 30 ? 'PENDING' : 'SKIPPED' },
-    { label: 'Approved', state: quotation.status === 'APPROVED' ? 'COMPLETED' : 'PENDING' },
-  ];
+  const isCFOApproval = score > 30 || quotation.status === 'PENDING_FINANCE_APPROVAL';
+  const isApproved = quotation.status === 'APPROVED' || quotation.status === 'SENT' || quotation.status === 'CONFIRMED';
+
+  const steps = isCFOApproval
+    ? [
+        { label: 'Sales Rep (Draft)', state: 'COMPLETED' },
+        {
+          label: 'CFO Review (Madhab CFO)',
+          state: isApproved ? 'COMPLETED' : quotation.status === 'PENDING_FINANCE_APPROVAL' ? 'IN_PROGRESS' : 'PENDING',
+        },
+        {
+          label: 'Approved (Ready to Send)',
+          state: isApproved ? 'COMPLETED' : 'PENDING',
+        },
+      ]
+    : [
+        { label: 'Sales Rep (Draft)', state: 'COMPLETED' },
+        {
+          label: 'Sales Manager (Atharva Manager)',
+          state: isApproved ? 'COMPLETED' : quotation.status === 'PENDING_MANAGER_APPROVAL' ? 'IN_PROGRESS' : score > 0 ? 'PENDING' : 'SKIPPED',
+        },
+        {
+          label: 'Approved (Ready to Send)',
+          state: isApproved ? 'COMPLETED' : 'PENDING',
+        },
+      ];
 
 
   return (
@@ -201,9 +223,13 @@ export function QuotationApprovalPage() {
           <div className="py-3 flex items-center justify-between">
             <div>
               <div className="font-semibold text-white">Customer Tier Compliance</div>
-              <div className="text-zinc-400 text-[11px]">Enterprise tier requires double sign-off for quotes &gt; ₹50,000</div>
+              <div className="text-zinc-400 text-[11px]">
+                {isCFOApproval
+                  ? 'High risk deal: Requires direct CFO sign-off. Once approved by CFO, deal is fully approved without Manager approval.'
+                  : 'Standard margin exception: Requires Sales Manager sign-off. Once approved by Manager, deal is fully approved without CFO approval.'}
+              </div>
             </div>
-            <span className="font-mono font-semibold text-orange-400">+21 risk</span>
+            <span className="font-mono font-semibold text-orange-400">+{score > 30 ? score : 21} risk</span>
           </div>
         </div>
       </div>
@@ -240,6 +266,18 @@ export function QuotationApprovalPage() {
             >
               Approve Quotation
             </button>
+          </div>
+        </div>
+      ) : (!canAct && (quotation.status === 'PENDING_MANAGER_APPROVAL' || quotation.status === 'PENDING_FINANCE_APPROVAL')) ? (
+        <div className="p-5 bg-[#121214] border border-[#27272A] rounded-2xl flex items-center gap-3.5">
+          <Clock className="w-5 h-5 text-amber-400 animate-pulse shrink-0" />
+          <div>
+            <div className="text-xs font-bold text-white">
+              Awaiting {quotation.status === 'PENDING_FINANCE_APPROVAL' ? 'CFO (Madhab CFO)' : 'Sales Manager (Atharva Manager)'} Review
+            </div>
+            <div className="text-xs text-zinc-400 mt-0.5">
+              Only authorized reviewers can approve or return this quotation. You will be able to dispatch to the customer once approved.
+            </div>
           </div>
         </div>
       ) : null}

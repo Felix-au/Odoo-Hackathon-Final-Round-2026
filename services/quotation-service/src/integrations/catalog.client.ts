@@ -112,10 +112,10 @@ export class CatalogClient {
     // Standard business rule resolution:
     // score = 0 -> none
     // 0 < score <= 30 -> SALES_MANAGER
-    // score > 30 -> SALES_MANAGER + FINANCE
+    // score > 30 -> FINANCE (CFO) only
     let requiredRoles: ('SALES_MANAGER' | 'FINANCE')[] = [];
     if (riskScore > 30) {
-      requiredRoles = ['SALES_MANAGER', 'FINANCE'];
+      requiredRoles = ['FINANCE'];
     } else if (riskScore > 0) {
       requiredRoles = ['SALES_MANAGER'];
     }

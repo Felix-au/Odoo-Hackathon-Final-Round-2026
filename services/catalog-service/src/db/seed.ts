@@ -221,10 +221,10 @@ async function seed() {
         },
         {
           companyId: 'default',
-          name: 'Manager + Finance Approval',
+          name: 'CFO / Finance Approval',
           minRiskScore: 30,
           maxRiskScore: 999,
-          requiredRoles: ['SALES_MANAGER', 'FINANCE'],
+          requiredRoles: ['FINANCE'],
         },
       ],
     });

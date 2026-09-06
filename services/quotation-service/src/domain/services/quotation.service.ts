@@ -209,10 +209,13 @@ export class QuotationService {
     if (riskResult.blendedScore === 0) {
       nextStatus = QuotationStatus.APPROVED;
       approvalRequired = false;
+    } else if (riskResult.blendedScore > 30) {
+      approvalRequired = true;
+      requiredApprovers = ['FINANCE'];
+      nextStatus = QuotationStatus.PENDING_FINANCE_APPROVAL;
     } else {
       approvalRequired = true;
-      const chain = await this.catalogClient.resolveApprovalChain(riskResult.blendedScore);
-      requiredApprovers = chain.requiredRoles;
+      requiredApprovers = ['SALES_MANAGER'];
       nextStatus = QuotationStatus.PENDING_MANAGER_APPROVAL;
     }
 
@@ -282,6 +285,10 @@ export class QuotationService {
       if (approver.role !== 'FINANCE' && approver.role !== 'ADMIN') {
         throw new QuotationDomainError(403, 'Quotation is waiting for FINANCE approval', 'INSUFFICIENT_ROLE');
       }
+    } else if (quotation.status === QuotationStatus.PENDING_MANAGER_APPROVAL) {
+      if (approver.role !== 'SALES_MANAGER' && approver.role !== 'ADMIN') {
+        throw new QuotationDomainError(403, 'Quotation is waiting for SALES_MANAGER approval', 'INSUFFICIENT_ROLE');
+      }
     }
 
     await this.approvalLogRepo.create({
@@ -294,19 +301,11 @@ export class QuotationService {
       riskScore: quotation.blendedRiskScore,
     });
 
-    let nextStatus: QuotationStatus;
+    // Single-level approval:
+    // When Manager approves a manager-level quote -> APPROVED!
+    // When CFO approves a CFO-level quote -> APPROVED!
+    const nextStatus = QuotationStatus.APPROVED;
     const previousStatus = quotation.status;
-
-    if (quotation.status === QuotationStatus.PENDING_MANAGER_APPROVAL || quotation.status === QuotationStatus.DRAFT) {
-      // Check if Finance approval is also needed (score > 30)
-      if (quotation.blendedRiskScore > 30 && approver.role !== 'ADMIN' && approver.role !== 'FINANCE') {
-        nextStatus = QuotationStatus.PENDING_FINANCE_APPROVAL;
-      } else {
-        nextStatus = QuotationStatus.APPROVED;
-      }
-    } else {
-      nextStatus = QuotationStatus.APPROVED;
-    }
 
     const updated = await this.quotationRepo.update(id, {
       status: nextStatus,
@@ -437,12 +436,20 @@ export class QuotationService {
 
   async send(id: string, userId: string) {
     const quotation = await this.getQuotation(id);
+    if (quotation.status === QuotationStatus.DRAFT && quotation.blendedRiskScore > 0) {
+      throw new QuotationDomainError(
+        400,
+        `Quotation has governance risk (score: ${quotation.blendedRiskScore}) and requires ${quotation.blendedRiskScore > 30 ? 'CFO' : 'Sales Manager'} review before sending to client. Please submit for approval first.`,
+        'APPROVAL_REQUIRED'
+      );
+    }
+
     if (
       quotation.status !== QuotationStatus.APPROVED &&
       quotation.status !== QuotationStatus.DRAFT &&
       quotation.status !== QuotationStatus.SENT
     ) {
-      throw new QuotationDomainError(400, `Cannot send quotation in status ${quotation.status}. Must be APPROVED or DRAFT.`);
+      throw new QuotationDomainError(400, `Cannot send quotation in status ${quotation.status}. Must be APPROVED.`);
     }
 
     const previousStatus = quotation.status;

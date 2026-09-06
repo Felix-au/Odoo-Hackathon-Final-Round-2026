@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuotation, useQuotationBuilder, useUpsellSuggestions } from '../../api/hooks/useQuotationBuilder';
 import { useProducts } from '../../api/hooks/useCatalog';
 import { useCustomers } from '../../api/hooks/useQuotations';
+import { useAuthStore } from '../../stores/auth.store';
 import { LoadingSpinner } from '../../components/feedback/LoadingSpinner';
 import { formatCurrency, formatQuotationNumber } from '../../lib/utils';
 import {
@@ -17,6 +18,9 @@ import {
   FileText,
   ArrowUpRight,
   Copy,
+  AlertTriangle,
+  Clock,
+  Lock,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -204,6 +208,16 @@ export function QuotationBuilderPage() {
     const computed = ((netAfterDiscount - totalCost) / netAfterDiscount) * 100;
     return Math.max(0, Math.min(100, Math.round(computed)));
   }, [netAfterDiscount, totalCost, lines.length, quote]);
+
+  const user = useAuthStore((s) => s.user);
+
+  // Check if quotation requires approval based on blended risk score or margin violation
+  const hasRiskScore = riskScore > 0;
+  const isCFOApprovalRequired = riskScore > 30 || marginPct < 15;
+  const requiresReview = hasRiskScore || marginPct < 30;
+
+  const reviewTargetName = isCFOApprovalRequired ? 'CFO (Madhab CFO)' : 'Sales Manager (Atharva Manager)';
+  const reviewActionLabel = isCFOApprovalRequired ? 'Submit for CFO Review' : 'Submit for Manager Review';
 
   // Save single line item edit
   const handleSaveLine = async (lineId: string) => {
@@ -417,8 +431,8 @@ export function QuotationBuilderPage() {
 
         {/* Action Controls */}
         <div className="flex flex-wrap items-center gap-2.5">
-          {/* Send to Customer Button */}
-          {(quote?.status === 'APPROVED' || quote?.status === 'DRAFT') && (
+          {/* If quote is APPROVED, Send to Customer is allowed */}
+          {quote?.status === 'APPROVED' && (
             <button
               type="button"
               disabled={isUpdating}
@@ -430,33 +444,118 @@ export function QuotationBuilderPage() {
             </button>
           )}
 
-          {/* Submit for Approval */}
-          {quote?.status === 'DRAFT' && lines.length > 0 && (
-            <button
-              type="button"
-              disabled={isUpdating}
-              onClick={handleSubmitApproval}
-              className="px-4 py-2.5 rounded-xl text-xs font-semibold bg-[#181818] hover:bg-[#222222] border border-[#2E2E2E] hover:border-zinc-400 text-white transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
-            >
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Submit for Approval</span>
-            </button>
+          {/* If quote is DRAFT and has NO risk (clean quote), can send directly or submit */}
+          {quote?.status === 'DRAFT' && !requiresReview && (
+            <>
+              <button
+                type="button"
+                disabled={isUpdating}
+                onClick={handleSendToCustomer}
+                className="px-5 py-2.5 rounded-xl text-xs font-bold bg-white text-black hover:bg-zinc-200 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-white/5 flex items-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                <Send className="w-3.5 h-3.5 text-black" />
+                <span>Send to Customer</span>
+              </button>
+              {lines.length > 0 && (
+                <button
+                  type="button"
+                  disabled={isUpdating}
+                  onClick={handleSubmitApproval}
+                  className="px-4 py-2.5 rounded-xl text-xs font-semibold bg-[#181818] hover:bg-[#222222] border border-[#2E2E2E] hover:border-zinc-400 text-white transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Submit for Review</span>
+                </button>
+              )}
+            </>
           )}
 
-          {/* Review Approval if in pending status */}
-          {(quote?.status === 'PENDING_MANAGER_APPROVAL' ||
-            quote?.status === 'PENDING_FINANCE_APPROVAL') && (
-            <button
-              type="button"
-              onClick={() => navigate(`/app/quotations/${id}/approval`)}
-              className="px-5 py-2.5 rounded-xl text-xs font-bold bg-amber-400 hover:bg-amber-300 text-black transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-amber-500/20 flex items-center gap-2 cursor-pointer"
-            >
-              <ShieldCheck className="w-3.5 h-3.5 text-black" />
-              <span>Review Approval</span>
-            </button>
+          {/* If quote is DRAFT and HAS RISK: "Send to Customer" is REMOVED/BLOCKED and user MUST submit for review! */}
+          {quote?.status === 'DRAFT' && requiresReview && (
+            <div className="flex items-center gap-2">
+              <div
+                className="px-3.5 py-2 rounded-xl text-xs font-medium bg-rose-500/10 text-rose-400 border border-rose-500/20 flex items-center gap-1.5"
+                title="Send to client is blocked until approved"
+              >
+                <Lock className="w-3.5 h-3.5 text-rose-400" />
+                <span>Send Blocked (Review Required)</span>
+              </div>
+              <button
+                type="button"
+                disabled={isUpdating || lines.length === 0}
+                onClick={handleSubmitApproval}
+                className="px-5 py-2.5 rounded-xl text-xs font-bold bg-amber-400 hover:bg-amber-300 text-black transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-amber-500/20 flex items-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                <ShieldCheck className="w-4 h-4 text-black" />
+                <span>{reviewActionLabel}</span>
+              </button>
+            </div>
+          )}
+
+          {/* If quote is PENDING REVIEW: */}
+          {quote?.status === 'PENDING_MANAGER_APPROVAL' && (
+            <>
+              {user?.role === 'SALES_MANAGER' || user?.role === 'ADMIN' ? (
+                <button
+                  type="button"
+                  onClick={() => navigate(`/app/quotations/${id}/approval`)}
+                  className="px-5 py-2.5 rounded-xl text-xs font-bold bg-amber-400 hover:bg-amber-300 text-black transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-amber-500/20 flex items-center gap-2 cursor-pointer"
+                >
+                  <ShieldCheck className="w-4 h-4 text-black" />
+                  <span>Review & Approve (Sales Manager)</span>
+                </button>
+              ) : (
+                <div className="px-4 py-2 rounded-xl text-xs font-medium bg-amber-500/10 text-amber-300 border border-amber-500/20 flex items-center gap-2">
+                  <Clock className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+                  <span>Awaiting Sales Manager Approval</span>
+                </div>
+              )}
+            </>
+          )}
+
+          {quote?.status === 'PENDING_FINANCE_APPROVAL' && (
+            <>
+              {user?.role === 'FINANCE' || user?.role === 'ADMIN' ? (
+                <button
+                  type="button"
+                  onClick={() => navigate(`/app/quotations/${id}/approval`)}
+                  className="px-5 py-2.5 rounded-xl text-xs font-bold bg-orange-400 hover:bg-orange-300 text-black transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-orange-500/20 flex items-center gap-2 cursor-pointer"
+                >
+                  <ShieldCheck className="w-4 h-4 text-black" />
+                  <span>Review & Approve (CFO)</span>
+                </button>
+              ) : (
+                <div className="px-4 py-2 rounded-xl text-xs font-medium bg-orange-500/10 text-orange-300 border border-orange-500/20 flex items-center gap-2">
+                  <Clock className="w-3.5 h-3.5 text-orange-400 animate-pulse" />
+                  <span>Awaiting CFO Review (Madhab CFO)</span>
+                </div>
+              )}
+            </>
+          )}
+
+          {quote?.status === 'SENT' && (
+            <div className="px-4 py-2 rounded-xl text-xs font-medium bg-purple-500/10 text-purple-300 border border-purple-500/20 flex items-center gap-2">
+              <Send className="w-3.5 h-3.5 text-purple-400" />
+              <span>Quotation Dispatched to Client</span>
+            </div>
           )}
         </div>
       </div>
+
+      {/* Governance Review Required Banner */}
+      {quote?.status === 'DRAFT' && requiresReview && (
+        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/25 flex items-start gap-3.5 text-xs text-amber-200 shadow-lg">
+          <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <div className="font-semibold text-amber-300">
+              Governance Review Required — Client Dispatch Blocked
+            </div>
+            <div className="text-zinc-400 text-[11px] leading-relaxed">
+              This quotation has a risk score of <strong className="text-amber-300 font-mono">{riskScore || 35}</strong> (Estimated Margin: <strong className="text-zinc-300 font-mono">{marginPct}%</strong>). Direct client dispatch is disabled until approval is completed by <strong className="text-white">{reviewTargetName}</strong>.
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main 2-Column Layout (2/3 Left, 1/3 Right) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
