@@ -311,10 +311,10 @@ export function DashboardPage() {
                 <TrendingUp className="w-3.5 h-3.5 text-emerald-400 group-hover:scale-110 transition-transform duration-300" />
               </div>
               <div className="text-3xl font-bold text-white tracking-tight mt-2">
-                ₹{Math.round((kpis?.activePipeline || 384000) / 1000)}K
+                ₹{Math.round((kpis?.activePipeline ?? 0) / 1000)}K
               </div>
               <div className="text-xs text-zinc-400 mt-1 font-normal">
-                {kpis?.activePipelineQuotesCount || 9} quotes moving this week
+                {kpis?.activePipelineQuotesCount ?? 0} quotes moving this week
               </div>
             </div>
 
@@ -327,10 +327,10 @@ export function DashboardPage() {
                 <Clock className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform duration-300" />
               </div>
               <div className="text-3xl font-bold text-white tracking-tight mt-2">
-                {kpis?.pendingApprovalsCount || 2}
+                {kpis?.pendingApprovalsCount ?? 0}
               </div>
               <div className="text-xs text-zinc-400 mt-1 font-normal">
-                {kpis?.pendingApprovalsFinanceCount || 0} require finance review
+                {kpis?.pendingApprovalsFinanceCount ?? 0} require finance review
               </div>
             </div>
 
@@ -346,7 +346,7 @@ export function DashboardPage() {
                 {filteredAlerts.length}
               </div>
               <div className="text-xs text-zinc-400 mt-1 font-normal">
-                {kpis?.atRiskNewTodayCount || 2} newly flagged today
+                {kpis?.atRiskNewTodayCount ?? 0} newly flagged today
               </div>
             </div>
 
@@ -356,7 +356,7 @@ export function DashboardPage() {
                 <Sparkles className="w-3.5 h-3.5 text-zinc-500 group-hover:scale-110 group-hover:text-amber-400 transition-all duration-300" />
               </div>
               <div className="text-3xl font-bold text-white tracking-tight mt-2">
-                ₹{Math.round((kpis?.recurringRevenueMRR || 72000) / 1000)}K
+                ₹{Math.round((kpis?.recurringRevenueMRR ?? 0) / 1000)}K
               </div>
               <div className="text-xs text-zinc-400 mt-1 font-normal">
                 {kpis?.nextRenewalText || 'Next renewal: 10 Sept'}

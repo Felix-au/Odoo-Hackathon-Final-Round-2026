@@ -259,11 +259,35 @@ export class AnalyticsService {
         const json: any = await res.json();
         const stages = json.data?.stages || json.data;
         if (stages) {
+          let liveActiveVal = 0;
+          let liveActiveCount = 0;
+          let livePendingApprovals = 0;
+          let livePendingFinance = 0;
+
           for (const [stageKey, val] of Object.entries(stages) as any) {
             if (val && typeof val.count === 'number') {
               data.pipelineBreakdown[stageKey] = val.count;
+              if (['DRAFT', 'PENDING_MANAGER_APPROVAL', 'PENDING_FINANCE_APPROVAL', 'UNDER_NEGOTIATION', 'APPROVED', 'SENT'].includes(stageKey)) {
+                liveActiveCount += val.count;
+                liveActiveVal += Number(val.totalValue || 0);
+              }
+              if (stageKey === 'PENDING_MANAGER_APPROVAL') {
+                livePendingApprovals += val.count;
+              }
+              if (stageKey === 'PENDING_FINANCE_APPROVAL') {
+                livePendingApprovals += val.count;
+                livePendingFinance = val.count;
+              }
             }
           }
+
+          if (liveActiveCount > 0) {
+            data.kpis.activePipelineQuotesCount = liveActiveCount;
+            data.kpis.activePipelineValue = liveActiveVal.toFixed(2);
+          }
+          data.kpis.pendingApprovals = livePendingApprovals;
+          data.kpis.pendingFinance = livePendingFinance;
+
           const totalFromStages = Object.values(data.pipelineBreakdown).reduce((a: number, b: any) => a + (Number(b) || 0), 0);
           if (totalFromStages > (data.kpis?.totalQuotations || 0)) {
             data.kpis.totalQuotations = totalFromStages;

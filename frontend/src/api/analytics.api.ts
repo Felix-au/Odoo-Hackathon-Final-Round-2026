@@ -11,6 +11,16 @@ export const analyticsHttp = axios.create({
 
 export const analyticsApi = {
   getKPIs: async (token?: string): Promise<KPIData> => {
+    // 1. Fetch live pipeline from quotation service for 0-delay exact metrics
+    let liveStagesData: any = null;
+    try {
+      const liveRes = await analyticsHttp.get('/quotations/pipeline', {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
+      const raw = liveRes.data?.data || liveRes.data;
+      liveStagesData = raw?.stages || raw;
+    } catch {}
+
     const res = await analyticsHttp.get('/analytics/dashboard', {
       headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     });
@@ -19,21 +29,48 @@ export const analyticsApi = {
     const rec = data.recurringRevenue || {};
     const pb = data.pipelineBreakdown || {};
 
-    // Active pipeline = sum of quote totals for all non-terminal statuses
-    const activePipelineQuotes = Number(
+    let activePipelineVal = Number(k.activePipelineValue ?? k.totalRevenue ?? 0);
+    let activePipelineQuotes = Number(
       k.activePipelineQuotesCount ??
       (Number(pb.DRAFT || 0) +
         Number(pb.PENDING_MANAGER_APPROVAL || 0) +
         Number(pb.PENDING_FINANCE_APPROVAL || 0) +
+        Number(pb.UNDER_NEGOTIATION || 0) +
         Number(pb.APPROVED || 0) +
         Number(pb.SENT || 0))
     );
 
+    let pendingApprovals = Number(
+      (Number(pb.PENDING_MANAGER_APPROVAL ?? 0) + Number(pb.PENDING_FINANCE_APPROVAL ?? 0)) || (k.pendingApprovals ?? 0)
+    );
+    let pendingFinance = Number(pb.PENDING_FINANCE_APPROVAL ?? k.pendingFinance ?? 0);
+
+    if (liveStagesData) {
+      const pmCount = Number(liveStagesData.PENDING_MANAGER_APPROVAL?.count ?? 0);
+      const pfCount = Number(liveStagesData.PENDING_FINANCE_APPROVAL?.count ?? 0);
+      pendingApprovals = pmCount + pfCount;
+      pendingFinance = pfCount;
+
+      let sumVal = 0;
+      let sumCount = 0;
+      for (const st of ['DRAFT', 'PENDING_MANAGER_APPROVAL', 'PENDING_FINANCE_APPROVAL', 'UNDER_NEGOTIATION', 'APPROVED', 'SENT']) {
+        const s = liveStagesData[st];
+        if (s) {
+          sumCount += Number(s.count || 0);
+          sumVal += Number(s.totalValue || 0);
+        }
+      }
+      if (sumCount > 0) {
+        activePipelineQuotes = sumCount;
+        activePipelineVal = sumVal;
+      }
+    }
+
     return {
-      activePipeline: Number(k.activePipelineValue ?? k.totalRevenue ?? 0),
+      activePipeline: activePipelineVal,
       activePipelineQuotesCount: activePipelineQuotes,
-      pendingApprovalsCount: Number(k.pendingApprovals ?? pb.PENDING_MANAGER_APPROVAL ?? 0),
-      pendingApprovalsFinanceCount: Number(pb.PENDING_FINANCE_APPROVAL ?? 0),
+      pendingApprovalsCount: pendingApprovals,
+      pendingApprovalsFinanceCount: pendingFinance,
       atRiskDealsCount: Number(data.atRiskCount ?? 0),
       atRiskNewTodayCount: Number(data.atRiskNewToday ?? 0),
       recurringRevenueMRR: Number(rec.mrr || 0),
