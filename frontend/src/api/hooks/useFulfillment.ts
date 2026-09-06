@@ -9,6 +9,7 @@ export function useFulfillmentSplit(orderId: string, lines?: any[]) {
   return useQuery<SplitRecommendation | null, Error>({
     queryKey: ['fulfillment-split', orderId, lines, token],
     queryFn: async () => {
+      if (!orderId) return null;
       try {
         const res = await fulfillmentApi.getSplitRecommendation(orderId, token, lines);
         return res;
@@ -16,6 +17,7 @@ export function useFulfillmentSplit(orderId: string, lines?: any[]) {
         return null;
       }
     },
+    enabled: !!orderId,
     retry: false,
     staleTime: 15_000,
   });

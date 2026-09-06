@@ -111,6 +111,98 @@ export function invoicesRoutes(
       },
     );
 
+    // POST /billing/invoices/order/:orderId/payments - Record payment directly by orderId
+    const recordOrderPaymentSchema = z.object({
+      amount: z.union([z.string(), z.number()]).transform((val) => Number(val)).optional(),
+      currency: z.string().default('USD'),
+      method: z.string().default('WIRE_TRANSFER'),
+      reference: z.string().optional(),
+      customerId: z.string().optional(),
+      lines: z.array(z.any()).optional(),
+      idempotencyKey: z.string().optional(),
+    });
+
+    fastify.post(
+      '/order/:orderId/payments',
+      { preHandler: [requireRole('ADMIN', 'FINANCE', 'SALES_MANAGER', 'SALES_REP')] },
+      async (request, reply) => {
+        const { orderId } = request.params as { orderId: string };
+        const companyId = request.user?.companyId || 'default';
+        const parsedBody = recordOrderPaymentSchema.safeParse(request.body || {});
+
+        if (!parsedBody.success) {
+          return reply.code(400).send({
+            type: 'https://dealflow360.com/errors/validation-error',
+            title: 'Validation Error',
+            status: 400,
+            detail: parsedBody.error.message,
+            instance: request.url,
+          });
+        }
+
+        // Check if an invoice already exists for this orderId
+        const existing = await invoiceRepo.list({ orderId, companyId }, 1, 10);
+        let targetInvoice = existing.invoices?.[0] || (existing as any).data?.[0];
+
+        if (!targetInvoice) {
+          const customerId = parsedBody.data.customerId || 'cust-000000-0000-0000-0000-000000000001';
+          const lines = (parsedBody.data.lines && parsedBody.data.lines.length > 0)
+            ? parsedBody.data.lines.map((l: any) => ({
+                productId: l.productId || 'prod-hardware',
+                description: l.productName || l.description || 'Hardware Order Item',
+                quantity: Number(l.quantityNeeded || l.quantity || 1),
+                unitPrice: Number(l.unitPrice || parsedBody.data.amount || 1000),
+                discountPct: Number(l.discountPct || 0),
+                taxAmount: 0,
+              }))
+            : [{
+                productId: 'prod-hardware-dispatch',
+                description: 'Physical Hardware Shipment & Warehouse Dispatch',
+                quantity: 1,
+                unitPrice: Number(parsedBody.data.amount || 1000),
+                discountPct: 0,
+                taxAmount: 0,
+              }];
+
+          const dueDate = new Date();
+          dueDate.setDate(dueDate.getDate() + 15);
+
+          targetInvoice = await invoiceRepo.create({
+            companyId,
+            orderId,
+            customerId,
+            type: 'ONE_TIME' as any,
+            status: 'SENT' as any,
+            currency: parsedBody.data.currency,
+            dueDate,
+            lines,
+          });
+        }
+
+        const recordedBy = request.user?.id || 'admin';
+        const payAmount = parsedBody.data.amount ?? Number(targetInvoice.totalAmount);
+        const result = await billingService.recordPayment(targetInvoice.id, {
+          companyId,
+          amount: payAmount,
+          currency: parsedBody.data.currency,
+          method: parsedBody.data.method,
+          reference: parsedBody.data.reference || `REF-${Date.now()}`,
+          recordedBy,
+          idempotencyKey: parsedBody.data.idempotencyKey,
+        });
+
+        const fullInvoice = await invoiceRepo.findById(targetInvoice.id);
+
+        return reply.code(200).send({
+          invoiceId: targetInvoice.id,
+          status: result.status,
+          paidAt: result.paidAt,
+          invoice: fullInvoice,
+          payment: result.payment,
+        });
+      },
+    );
+
     // POST /billing/invoices/:id/void - Void invoice (FINANCE, ADMIN)
     fastify.post(
       '/:id/void',

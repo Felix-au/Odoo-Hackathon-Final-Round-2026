@@ -84,6 +84,7 @@ export interface Quotation {
   negotiations?: CustomerNegotiation[];
   createdAt: string;
   updatedAt: string;
+  confirmedAt?: string;
   lastActivityAt?: string;
 }
 

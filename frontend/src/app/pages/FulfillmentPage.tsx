@@ -3,8 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useFulfillmentSplit, useAcceptSplit, useWarehouseStock, useFulfillmentOrders } from '../../api/hooks/useFulfillment';
 import { useQuotations } from '../../api/hooks/useQuotations';
 import { useProducts } from '../../api/hooks/useCatalog';
+import { useAllInvoices } from '../../api/hooks/useBilling';
 import { fulfillmentApi } from '../../api/fulfillment.api';
 import { quotationApi } from '../../api/quotation.api';
+import { billingApi } from '../../api/billing.api';
+import { generateAndDownloadInvoicePdf } from '../../lib/invoicePdf';
 import { useAuthStore } from '../../stores/auth.store';
 import { formatCurrency, formatDate } from '../../lib/utils';
 import {
@@ -20,6 +23,9 @@ import {
   ShieldCheck,
   RefreshCw,
   Clock,
+  CreditCard,
+  FileText,
+  X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
@@ -55,29 +61,45 @@ export function FulfillmentPage() {
   const { data: quotationsData } = useQuotations({ pageSize: 50 });
   const quotations = quotationsData?.data || [];
 
-  // Eligible orders: approved, sent, confirmed, or any draft with lines
-  const eligibleOrders = useMemo(() => {
-    const list = quotations.filter((q) =>
-      ['CONFIRMED', 'APPROVED', 'SENT', 'PENDING_MANAGER_APPROVAL', 'PENDING_FINANCE_APPROVAL', 'DRAFT'].includes(q.status)
-    );
-    return list.sort((a, b) => {
-      const aLines = a.lines?.length || 0;
-      const bLines = b.lines?.length || 0;
-      if (aLines > 0 && bLines === 0) return -1;
-      if (bLines > 0 && aLines === 0) return 1;
-      return new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime();
-    });
-  }, [quotations]);
+  // Live Warehouse Stock
+  const { data: stockData } = useWarehouseStock();
+  const stock = stockData || [];
 
-  // Default selected order (prefer quotes that have physical lines)
+  // Fulfillment Orders History
+  const { data: ordersHistoryData } = useFulfillmentOrders();
+  const fulfillmentOrders = ordersHistoryData || [];
+
+  // Invoices for dispatched orders
+  const { data: invoicesData } = useAllInvoices();
+  const invoices = invoicesData?.data || [];
+  const invoiceByOrderId = useMemo(() => {
+    const map = new Map<string, (typeof invoices)[0]>();
+    for (const inv of invoices) {
+      if (inv.orderId) map.set(inv.orderId, inv);
+    }
+    return map;
+  }, [invoices]);
+
+  // Eligible orders: ONLY show orders with status CONFIRMED, and exclude orders that are already allocated ("not even allocation and won")
+  const eligibleOrders = useMemo(() => {
+    const list = quotations.filter((q) => {
+      if (q.status !== 'CONFIRMED') return false;
+      const alreadyAllocated = fulfillmentOrders.some((o) => o.orderId === q.id);
+      return !alreadyAllocated;
+    });
+    return list.sort((a, b) => {
+      const aTime = new Date(a.confirmedAt || a.updatedAt || a.createdAt).getTime();
+      const bTime = new Date(b.confirmedAt || b.updatedAt || b.createdAt).getTime();
+      return bTime - aTime;
+    });
+  }, [quotations, fulfillmentOrders]);
+
+  // Default selected order (first confirmed unallocated order)
   const defaultOrderId = useMemo(() => {
     if (id) return id;
-    const withLines = eligibleOrders.find((q) => (q.lines?.length || 0) > 0 && (q.status === 'CONFIRMED' || q.status === 'APPROVED' || q.status === 'SENT'));
+    const withLines = eligibleOrders.find((q) => (q.lines?.length || 0) > 0);
     if (withLines) return withLines.id;
-    const anyWithLines = eligibleOrders.find((q) => (q.lines?.length || 0) > 0);
-    if (anyWithLines) return anyWithLines.id;
-    const confirmed = eligibleOrders.find((q) => q.status === 'CONFIRMED' || q.status === 'APPROVED' || q.status === 'SENT');
-    return confirmed ? confirmed.id : (eligibleOrders[0]?.id || 'quot-000000-0000-0000-0000-000000000001');
+    return eligibleOrders[0]?.id || '';
   }, [id, eligibleOrders]);
 
   const [selectedOrderId, setSelectedOrderId] = useState<string>(defaultOrderId);
@@ -87,8 +109,11 @@ export function FulfillmentPage() {
       setSelectedOrderId(id);
     } else if (!selectedOrderId && defaultOrderId) {
       setSelectedOrderId(defaultOrderId);
+    } else if (selectedOrderId && eligibleOrders.length > 0 && !eligibleOrders.some((q) => q.id === selectedOrderId)) {
+      // If currently selected order is no longer in eligible list (e.g. just allocated), switch to next eligible order
+      setSelectedOrderId(defaultOrderId);
     }
-  }, [id, defaultOrderId]);
+  }, [id, defaultOrderId, selectedOrderId, eligibleOrders]);
 
   const targetOrderId = selectedOrderId || defaultOrderId;
 
@@ -119,17 +144,9 @@ export function FulfillmentPage() {
     activeQuotation?.currency
   );
 
-  // Live Warehouse Stock
-  const { data: stockData } = useWarehouseStock();
-  const stock = stockData || [];
-
-  // Fulfillment Orders History
-  const { data: ordersHistoryData } = useFulfillmentOrders();
-  const fulfillmentOrders = ordersHistoryData || [];
-
   // Check if this quotation has already been allocated
   const isAlreadyAllocated = useMemo(() => {
-    return fulfillmentOrders.some((o) => o.orderId === targetOrderId);
+    return !!targetOrderId && fulfillmentOrders.some((o) => o.orderId === targetOrderId);
   }, [fulfillmentOrders, targetOrderId]);
 
   // Active view tab
@@ -202,6 +219,124 @@ export function FulfillmentPage() {
     }
   };
 
+  // Payment modal state for dispatched orders
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentOrder, setPaymentOrder] = useState<any | null>(null);
+  const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('WIRE_TRANSFER');
+  const [paymentRef, setPaymentRef] = useState('');
+  const [isRecordingPayment, setIsRecordingPayment] = useState(false);
+
+  const handleOpenPaymentModal = (ord: any) => {
+    const inv = invoiceByOrderId.get(ord.orderId);
+    const quote = quotations.find((q) => q.id === ord.orderId);
+    setPaymentOrder({ ord, inv, quote });
+    const defaultAmt = inv ? Number(inv.totalAmount) : (quote ? Number(quote.totalAmount) : 5000);
+    setPaymentAmount(String(defaultAmt > 0 ? defaultAmt : 5000));
+    setPaymentRef(`TXN-${Date.now().toString().slice(-6)}`);
+    setShowPaymentModal(true);
+  };
+
+  const handleRecordPayment = async () => {
+    if (!paymentOrder) return;
+    const { ord, inv, quote } = paymentOrder;
+    try {
+      setIsRecordingPayment(true);
+      const amt = parseFloat(paymentAmount) || (inv ? Number(inv.totalAmount) : Number(quote?.totalAmount || 5000));
+
+      let recordedInvoice: any = null;
+
+      if (inv) {
+        await billingApi.recordPayment(inv.id, {
+          amount: amt,
+          method: paymentMethod,
+          reference: paymentRef,
+        }, token);
+        recordedInvoice = {
+          ...inv,
+          status: 'PAID',
+          totalAmount: amt,
+        };
+      } else {
+        const res = await billingApi.recordPaymentForOrder(ord.orderId, {
+          amount: amt,
+          method: paymentMethod,
+          reference: paymentRef,
+          customerId: ord.customerId || quote?.customerId,
+          lines: quote?.lines,
+        }, token);
+        recordedInvoice = res.invoice || {
+          invoiceNumber: `INV-${ord.orderId.slice(0, 8).toUpperCase()}`,
+          orderId: ord.orderId,
+          totalAmount: amt,
+        };
+      }
+
+      // Auto-generate invoice PDF immediately upon recording payment
+      try {
+        generateAndDownloadInvoicePdf({
+          invoiceNumber: recordedInvoice?.invoiceNumber || `INV-${ord.orderId.slice(0, 8).toUpperCase()}`,
+          orderId: ord.orderId,
+          customerName: quote?.customer?.name || recordedInvoice?.customerName || 'Enterprise Customer',
+          customerId: ord.customerId || quote?.customerId,
+          date: formatDate(quote?.confirmedAt || quote?.createdAt || new Date().toISOString()),
+          paidAt: formatDate(new Date().toISOString()),
+          totalAmount: amt,
+          subtotal: amt,
+          taxAmount: 0,
+          paymentMethod,
+          paymentReference: paymentRef,
+          lines: quote?.lines?.map((l: any) => ({
+            description: l.productName || 'Hardware Product',
+            quantity: Number(l.quantity || 1),
+            unitPrice: Number(l.unitPrice || 0),
+            total: Number(l.lineTotal || (Number(l.unitPrice || 0) * Number(l.quantity || 1))),
+          })),
+        });
+      } catch (pdfErr) {
+        console.warn('Failed to auto-generate PDF:', pdfErr);
+      }
+
+      toast.success('Payment recorded successfully! Official Invoice PDF generated & downloaded.');
+      setShowPaymentModal(false);
+      setPaymentOrder(null);
+      queryClient.invalidateQueries({ queryKey: ['billing-all-invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['billing-invoice'] });
+      queryClient.invalidateQueries({ queryKey: ['fulfillment-orders'] });
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || 'Failed to record payment';
+      toast.error(msg);
+    } finally {
+      setIsRecordingPayment(false);
+    }
+  };
+
+  const handleDownloadInvoicePdf = (ord: any) => {
+    const inv = invoiceByOrderId.get(ord.orderId);
+    const quote = quotations.find((q) => q.id === ord.orderId);
+    const amt = inv ? Number(inv.totalAmount) : (quote ? Number(quote.totalAmount) : 0);
+    generateAndDownloadInvoicePdf({
+      invoiceNumber: inv?.invoiceNumber || `INV-${ord.orderId.slice(0, 8).toUpperCase()}`,
+      orderId: ord.orderId,
+      customerName: quote?.customer?.name || inv?.customerName || 'Enterprise Customer',
+      customerId: ord.customerId || quote?.customerId,
+      date: formatDate(inv?.issuedAt || quote?.confirmedAt || quote?.createdAt),
+      paidAt: formatDate(inv?.paidAt || new Date().toISOString()),
+      totalAmount: amt,
+      subtotal: inv?.amount ? Number(inv.amount) : amt,
+      taxAmount: inv?.taxAmount ? Number(inv.taxAmount) : 0,
+      paymentMethod: 'Wire Transfer / Electronic',
+      paymentReference: `TXN-${(inv?.id || ord.id).slice(0, 8).toUpperCase()}`,
+      lines: quote?.lines?.map((l: any) => ({
+        description: l.productName || 'Hardware Product',
+        quantity: Number(l.quantity || 1),
+        unitPrice: Number(l.unitPrice || 0),
+        total: Number(l.lineTotal || (Number(l.unitPrice || 0) * Number(l.quantity || 1))),
+      })),
+    });
+    toast.success('Invoice PDF generated and downloaded!');
+  };
+
   const warehouses: WarehouseSplit[] = split?.splits ?? [];
   const totalShipments = split?.totalShipments ?? warehouses.length;
   const estimatedShippingCost = split?.estimatedShippingCost ?? 0;
@@ -271,17 +406,23 @@ export function FulfillmentPage() {
               onChange={(e) => setSelectedOrderId(e.target.value)}
               className="bg-[#181818] border border-[#2E2E2E] rounded-lg px-2.5 py-1 text-white font-mono text-xs focus:outline-none focus:border-blue-500 cursor-pointer max-w-md truncate"
             >
-              {eligibleOrders.map((q) => {
-                const quoteRef = q.quotationNumber ? `#${q.quotationNumber}` : `#QT-${q.id.slice(0, 6).toUpperCase()}`;
-                const itemsCount = q.lines?.length ?? 0;
-                const itemsStr = itemsCount > 0 ? `${itemsCount} item${itemsCount > 1 ? 's' : ''}` : 'No items';
-                const amtStr = Number(q.totalAmount || 0) > 0 ? ` • ${formatCurrency(Number(q.totalAmount))}` : '';
-                return (
-                  <option key={q.id} value={q.id}>
-                    {quoteRef} • {q.customer?.name || 'Customer'} ({q.status}) • {itemsStr}{amtStr}
-                  </option>
-                );
-              })}
+              {eligibleOrders.length === 0 ? (
+                <option value="" disabled>
+                  No pending confirmed orders
+                </option>
+              ) : (
+                eligibleOrders.map((q) => {
+                  const dateStr = formatDate(q.confirmedAt || q.createdAt);
+                  const itemsCount = q.lines?.length ?? 0;
+                  const itemsStr = itemsCount > 0 ? `${itemsCount} item${itemsCount > 1 ? 's' : ''}` : 'No items';
+                  const amtStr = Number(q.totalAmount || 0) > 0 ? ` • ${formatCurrency(Number(q.totalAmount))}` : '';
+                  return (
+                    <option key={q.id} value={q.id}>
+                      {q.customer?.name || 'Customer'} • {dateStr} • {itemsStr}{amtStr}
+                    </option>
+                  );
+                })
+              )}
             </select>
           </div>
 
@@ -505,7 +646,7 @@ export function FulfillmentPage() {
                   No warehouse split recommendation available for this order.
                 </p>
                 <p className="text-xs text-zinc-500 max-w-md mx-auto">
-                  Order #{targetOrderId.slice(0, 8)} does not have physical hardware items needing warehouse dispatch or is awaiting product line item configuration.
+                  The selected order for {activeQuotation?.customer?.name || 'Customer'} does not have physical hardware items needing warehouse dispatch or is awaiting product line item configuration.
                 </p>
               </div>
               <div className="pt-2">
@@ -515,8 +656,8 @@ export function FulfillmentPage() {
                     const withLines = eligibleOrders.find((q) => (q.lines?.length || 0) > 0);
                     if (withLines) {
                       setSelectedOrderId(withLines.id);
-                    } else {
-                      setSelectedOrderId('quot-000000-0000-0000-0000-000000000001');
+                    } else if (eligibleOrders[0]) {
+                      setSelectedOrderId(eligibleOrders[0].id);
                     }
                   }}
                   className="px-4 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition-all cursor-pointer inline-flex items-center gap-1.5"
@@ -736,6 +877,7 @@ export function FulfillmentPage() {
                     <th className="py-3.5 px-5 text-center">Mode</th>
                     <th className="py-3.5 px-5">Dispatched At</th>
                     <th className="py-3.5 px-5 text-center">Status</th>
+                    <th className="py-3.5 px-5 text-right">Payment & Invoice</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#181818]">
@@ -744,6 +886,10 @@ export function FulfillmentPage() {
                       (acc, s) => acc + (s.quantityRequested || s.quantityFulfilled || 0),
                       0
                     ) || 0;
+                    const inv = invoiceByOrderId.get(ord.orderId);
+                    const isPaid = inv?.status === 'PAID';
+                    const quote = quotations.find((q) => q.id === ord.orderId);
+
                     return (
                       <tr
                         key={ord.id}
@@ -758,7 +904,10 @@ export function FulfillmentPage() {
                           </span>
                         </td>
                         <td className="py-4 px-5 font-mono text-zinc-300">
-                          #{ord.orderId.slice(0, 8)}
+                          <div>#{ord.orderId.slice(0, 8)}</div>
+                          {quote?.customer?.name && (
+                            <div className="text-[10px] text-zinc-500 font-sans">{quote.customer.name}</div>
+                          )}
                         </td>
                         <td className="py-4 px-5">
                           <div className="flex flex-wrap gap-1">
@@ -795,6 +944,34 @@ export function FulfillmentPage() {
                             <span>RESERVED</span>
                           </span>
                         </td>
+                        <td className="py-4 px-5 text-right">
+                          {isPaid ? (
+                            <div className="flex items-center justify-end gap-2">
+                              <span className="px-2.5 py-1 rounded-full text-[10px] font-bold border bg-emerald-500/10 text-emerald-400 border-emerald-500/20 flex items-center gap-1">
+                                <CheckCircle className="w-3 h-3 text-emerald-400" />
+                                <span>PAID</span>
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleDownloadInvoicePdf(ord)}
+                                className="px-2.5 py-1 rounded-xl bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 border border-blue-500/20 text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer"
+                                title="Download Invoice PDF"
+                              >
+                                <FileText className="w-3 h-3 text-blue-400" />
+                                <span>Invoice PDF</span>
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenPaymentModal(ord)}
+                              className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-sm transition-all flex items-center gap-1.5 ml-auto cursor-pointer"
+                            >
+                              <CreditCard className="w-3 h-3" />
+                              <span>Record Payment</span>
+                            </button>
+                          )}
+                        </td>
                       </tr>
                     );
                   })}
@@ -802,6 +979,113 @@ export function FulfillmentPage() {
               </table>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Modal: Record Payment & Auto-Generate Invoice PDF */}
+      {showPaymentModal && paymentOrder && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#0E0E0E] border border-[#242424] rounded-2xl w-full max-w-md p-6 space-y-5 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between pb-3 border-b border-[#1F1F1F]">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                  <CreditCard className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white">Record Order Payment</h3>
+                  <p className="text-[11px] text-zinc-400">
+                    Order #{paymentOrder.ord.orderId.slice(0, 8)} • Auto-generates Tax Invoice PDF
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowPaymentModal(false);
+                  setPaymentOrder(null);
+                }}
+                className="text-zinc-500 hover:text-white p-1 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-4 text-xs">
+              <div>
+                <label className="text-zinc-400 font-medium block mb-1">Customer</label>
+                <div className="p-2.5 rounded-xl bg-[#141414] border border-[#242424] text-white font-medium">
+                  {paymentOrder.quote?.customer?.name || 'Enterprise Customer'}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-zinc-400 font-medium block mb-1">Payment Amount (INR / Base)</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 font-mono">₹</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={paymentAmount}
+                    onChange={(e) => setPaymentAmount(e.target.value)}
+                    className="w-full bg-[#141414] border border-[#2A2A2A] rounded-xl pl-7 pr-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-emerald-500"
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-zinc-400 font-medium block mb-1">Payment Method</label>
+                <select
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
+                  className="w-full bg-[#141414] border border-[#2A2A2A] rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:border-emerald-500 cursor-pointer"
+                >
+                  <option value="WIRE_TRANSFER">Wire Transfer / Electronic</option>
+                  <option value="CREDIT_CARD">Corporate Credit Card</option>
+                  <option value="ACH">Direct Debit / ACH</option>
+                  <option value="CASH">Cash / Check</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-zinc-400 font-medium block mb-1">Transaction Reference</label>
+                <input
+                  type="text"
+                  value={paymentRef}
+                  onChange={(e) => setPaymentRef(e.target.value)}
+                  className="w-full bg-[#141414] border border-[#2A2A2A] rounded-xl px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-emerald-500"
+                  placeholder="e.g. TXN-8923412"
+                />
+              </div>
+
+              <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-300 text-[11px] flex items-center gap-2">
+                <FileText className="w-4 h-4 text-blue-400 shrink-0" />
+                <span>An audit-grade Invoice PDF will be automatically generated & downloaded immediately upon confirmation.</span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#1F1F1F]">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowPaymentModal(false);
+                  setPaymentOrder(null);
+                }}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-zinc-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isRecordingPayment}
+                onClick={handleRecordPayment}
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition-all shadow-lg shadow-emerald-500/20 flex items-center gap-1.5 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                <CheckCircle className="w-3.5 h-3.5" />
+                <span>{isRecordingPayment ? 'Recording & Generating PDF...' : 'Record Payment & Download PDF'}</span>
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

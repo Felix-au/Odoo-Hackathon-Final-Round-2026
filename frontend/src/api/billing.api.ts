@@ -134,6 +134,30 @@ export const billingApi = {
     return res.data;
   },
 
+  recordPaymentForOrder: async (
+    orderId: string,
+    payment: {
+      amount?: number;
+      method?: string;
+      reference?: string;
+      customerId?: string;
+      lines?: any[];
+    },
+    token?: string
+  ) => {
+    const res = await billingHttp.post(`/billing/invoices/order/${orderId}/payments`, {
+      amount: payment.amount,
+      currency: 'USD',
+      method: payment.method || 'WIRE_TRANSFER',
+      reference: payment.reference || `TXN-${Date.now()}`,
+      customerId: payment.customerId,
+      lines: payment.lines,
+    }, {
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    });
+    return res.data;
+  },
+
   previewSubscriptionProration: async (
     subscriptionId: string,
     newQuantity: number,
