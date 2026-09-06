@@ -274,6 +274,29 @@ export function FulfillmentPage() {
 
       // Auto-generate invoice PDF immediately upon recording payment
       try {
+        const rawLines = (quote?.lines && quote.lines.length > 0)
+          ? quote.lines.map((l: any) => ({
+              description: l.productName || 'Hardware Product',
+              quantity: Number(l.quantity || 1),
+              unitPrice: Number(l.unitPrice || 0),
+              total: Number(l.lineTotal || (Number(l.unitPrice || 0) * Number(l.quantity || 1))),
+            }))
+          : (recordedInvoice?.lines && recordedInvoice.lines.length > 0)
+          ? recordedInvoice.lines.map((l: any) => ({
+              description: l.description || l.productName || 'Hardware Product',
+              quantity: Number(l.quantity || 1),
+              unitPrice: Number(l.unitPrice || 0),
+              total: Number(l.lineTotal || (Number(l.unitPrice || 0) * Number(l.quantity || 1))),
+            }))
+          : (ord.splits && ord.splits.length > 0)
+          ? ord.splits.map((s: any) => ({
+              description: s.productName || 'Hardware Product',
+              quantity: Number(s.quantityRequested || 1),
+              unitPrice: 0,
+              total: 0,
+            }))
+          : [];
+
         generateAndDownloadInvoicePdf({
           invoiceNumber: recordedInvoice?.invoiceNumber || `INV-${ord.orderId.slice(0, 8).toUpperCase()}`,
           orderId: ord.orderId,
@@ -281,17 +304,13 @@ export function FulfillmentPage() {
           customerId: ord.customerId || quote?.customerId,
           date: formatDate(quote?.confirmedAt || quote?.createdAt || new Date().toISOString()),
           paidAt: formatDate(new Date().toISOString()),
+          currency: ord.currency || quote?.currency || recordedInvoice?.currency || 'INR',
           totalAmount: amt,
           subtotal: amt,
           taxAmount: 0,
           paymentMethod,
           paymentReference: paymentRef,
-          lines: quote?.lines?.map((l: any) => ({
-            description: l.productName || 'Hardware Product',
-            quantity: Number(l.quantity || 1),
-            unitPrice: Number(l.unitPrice || 0),
-            total: Number(l.lineTotal || (Number(l.unitPrice || 0) * Number(l.quantity || 1))),
-          })),
+          lines: rawLines,
         });
       } catch (pdfErr) {
         console.warn('Failed to auto-generate PDF:', pdfErr);
@@ -315,6 +334,30 @@ export function FulfillmentPage() {
     const inv = invoiceByOrderId.get(ord.orderId);
     const quote = quotations.find((q) => q.id === ord.orderId);
     const amt = inv ? Number(inv.totalAmount) : (quote ? Number(quote.totalAmount) : 0);
+
+    const rawLines = (quote?.lines && quote.lines.length > 0)
+      ? quote.lines.map((l: any) => ({
+          description: l.productName || 'Hardware Product',
+          quantity: Number(l.quantity || 1),
+          unitPrice: Number(l.unitPrice || 0),
+          total: Number(l.lineTotal || (Number(l.unitPrice || 0) * Number(l.quantity || 1))),
+        }))
+      : (inv?.lines && inv.lines.length > 0)
+      ? inv.lines.map((l: any) => ({
+          description: l.description || l.productName || 'Hardware Product',
+          quantity: Number(l.quantity || 1),
+          unitPrice: Number(l.unitPrice || 0),
+          total: Number(l.lineTotal || (Number(l.unitPrice || 0) * Number(l.quantity || 1))),
+        }))
+      : (ord.splits && ord.splits.length > 0)
+      ? ord.splits.map((s: any) => ({
+          description: s.productName || 'Hardware Product',
+          quantity: Number(s.quantityRequested || 1),
+          unitPrice: 0,
+          total: 0,
+        }))
+      : [];
+
     generateAndDownloadInvoicePdf({
       invoiceNumber: inv?.invoiceNumber || `INV-${ord.orderId.slice(0, 8).toUpperCase()}`,
       orderId: ord.orderId,
@@ -322,17 +365,13 @@ export function FulfillmentPage() {
       customerId: ord.customerId || quote?.customerId,
       date: formatDate(inv?.issuedAt || quote?.confirmedAt || quote?.createdAt),
       paidAt: formatDate(inv?.paidAt || new Date().toISOString()),
+      currency: inv?.currency || ord.currency || quote?.currency || 'INR',
       totalAmount: amt,
       subtotal: inv?.amount ? Number(inv.amount) : amt,
       taxAmount: inv?.taxAmount ? Number(inv.taxAmount) : 0,
       paymentMethod: 'Wire Transfer / Electronic',
       paymentReference: `TXN-${(inv?.id || ord.id).slice(0, 8).toUpperCase()}`,
-      lines: quote?.lines?.map((l: any) => ({
-        description: l.productName || 'Hardware Product',
-        quantity: Number(l.quantity || 1),
-        unitPrice: Number(l.unitPrice || 0),
-        total: Number(l.lineTotal || (Number(l.unitPrice || 0) * Number(l.quantity || 1))),
-      })),
+      lines: rawLines,
     });
     toast.success('Invoice PDF generated and downloaded!');
   };
@@ -428,11 +467,10 @@ export function FulfillmentPage() {
 
           {activeQuotation && (
             <span
-              className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${
-                activeQuotation.status === 'CONFIRMED' || activeQuotation.status === 'APPROVED'
-                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                  : 'bg-blue-500/10 text-blue-400 border-blue-500/20'
-              }`}
+              className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${activeQuotation.status === 'CONFIRMED' || activeQuotation.status === 'APPROVED'
+                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                : 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                }`}
             >
               {activeQuotation.status}
             </span>
@@ -521,11 +559,10 @@ export function FulfillmentPage() {
           <button
             type="button"
             onClick={() => setActiveTab('allocation')}
-            className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center gap-2 ${
-              activeTab === 'allocation'
-                ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
-                : 'text-zinc-400 hover:text-white hover:bg-white/5'
-            }`}
+            className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center gap-2 ${activeTab === 'allocation'
+              ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
+              : 'text-zinc-400 hover:text-white hover:bg-white/5'
+              }`}
           >
             <Truck className="w-3.5 h-3.5" />
             <span>Split Allocation & Routing</span>
@@ -534,11 +571,10 @@ export function FulfillmentPage() {
           <button
             type="button"
             onClick={() => setActiveTab('stock')}
-            className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center gap-2 ${
-              activeTab === 'stock'
-                ? 'bg-emerald-600 text-white shadow-md shadow-emerald-500/20'
-                : 'text-zinc-400 hover:text-white hover:bg-white/5'
-            }`}
+            className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center gap-2 ${activeTab === 'stock'
+              ? 'bg-emerald-600 text-white shadow-md shadow-emerald-500/20'
+              : 'text-zinc-400 hover:text-white hover:bg-white/5'
+              }`}
           >
             <Building2 className="w-3.5 h-3.5" />
             <span>Warehouse Stock Levels</span>
@@ -550,11 +586,10 @@ export function FulfillmentPage() {
           <button
             type="button"
             onClick={() => setActiveTab('history')}
-            className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center gap-2 ${
-              activeTab === 'history'
-                ? 'bg-purple-600 text-white shadow-md shadow-purple-500/20'
-                : 'text-zinc-400 hover:text-white hover:bg-white/5'
-            }`}
+            className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center gap-2 ${activeTab === 'history'
+              ? 'bg-purple-600 text-white shadow-md shadow-purple-500/20'
+              : 'text-zinc-400 hover:text-white hover:bg-white/5'
+              }`}
           >
             <History className="w-3.5 h-3.5" />
             <span>Dispatched Orders</span>
@@ -584,23 +619,22 @@ export function FulfillmentPage() {
               type="button"
               disabled={isDispatching || (isAlreadyAllocated && !isEditingOverride)}
               onClick={handleAcceptSplit}
-              className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed ${
-                isAlreadyAllocated && !isEditingOverride
-                  ? 'bg-emerald-600/80 text-white'
-                  : 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/20'
-              }`}
+              className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed ${isAlreadyAllocated && !isEditingOverride
+                ? 'bg-emerald-600/80 text-white'
+                : 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/20'
+                }`}
             >
               <CheckCircle className="w-3.5 h-3.5" />
               <span>
                 {isDispatching
                   ? 'Processing...'
                   : isAlreadyAllocated
-                  ? isEditingOverride
-                    ? 'Update & Reallocate'
-                    : 'Allocation Confirmed'
-                  : isEditingOverride
-                  ? 'Confirm Override Allocation'
-                  : 'Accept Allocation'}
+                    ? isEditingOverride
+                      ? 'Update & Reallocate'
+                      : 'Allocation Confirmed'
+                    : isEditingOverride
+                      ? 'Confirm Override Allocation'
+                      : 'Accept Allocation'}
               </span>
             </button>
           </div>
@@ -680,11 +714,10 @@ export function FulfillmentPage() {
                         <Building2 className="w-4 h-4 text-blue-400" />
                         <span>{w.warehouseName}</span>
                         <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
-                            w.isPrimary || idx === 0
-                              ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
-                              : 'bg-zinc-800 text-zinc-300 border-zinc-700'
-                          }`}
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${w.isPrimary || idx === 0
+                            ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                            : 'bg-zinc-800 text-zinc-300 border-zinc-700'
+                            }`}
                         >
                           {w.isPrimary || idx === 0 ? 'Primary Hub' : 'Secondary Depot'}
                         </span>
@@ -808,11 +841,10 @@ export function FulfillmentPage() {
                             {productMap.get(item.productId) || item.productId.slice(0, 8)}
                           </span>
                           <span
-                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
-                              isLow
-                                ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                                : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                            }`}
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${isLow
+                              ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                              : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                              }`}
                           >
                             {isLow ? 'LOW STOCK' : 'IN STOCK'}
                           </span>
@@ -926,11 +958,10 @@ export function FulfillmentPage() {
                         </td>
                         <td className="py-4 px-5 text-center">
                           <span
-                            className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
-                              ord.isOverride
-                                ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                                : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
-                            }`}
+                            className={`px-2 py-0.5 rounded text-[10px] font-semibold ${ord.isOverride
+                              ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                              : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                              }`}
                           >
                             {ord.isOverride ? 'Manual Override' : 'Optimal Split'}
                           </span>
@@ -1058,10 +1089,7 @@ export function FulfillmentPage() {
                 />
               </div>
 
-              <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-300 text-[11px] flex items-center gap-2">
-                <FileText className="w-4 h-4 text-blue-400 shrink-0" />
-                <span>An audit-grade Invoice PDF will be automatically generated & downloaded immediately upon confirmation.</span>
-              </div>
+
             </div>
 
             <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#1F1F1F]">

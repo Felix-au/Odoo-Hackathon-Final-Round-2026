@@ -143,6 +143,13 @@ export function BillingPage() {
 
       // Auto-generate invoice PDF immediately upon recording payment
       try {
+        const invLines = (targetInvoice.lines || targetInvoice.items)?.map((l: any) => ({
+          description: l.description || l.productName || 'Enterprise Service Item',
+          quantity: Number(l.quantity || 1),
+          unitPrice: Number(l.unitPrice || 0),
+          total: Number(l.lineTotal || (Number(l.unitPrice || 0) * Number(l.quantity || 1))),
+        }));
+
         generateAndDownloadInvoicePdf({
           invoiceNumber: targetInvoice.invoiceNumber,
           orderId: targetInvoice.orderId,
@@ -150,11 +157,13 @@ export function BillingPage() {
           customerId: targetInvoice.customerId,
           date: formatDate(targetInvoice.issuedAt),
           paidAt: formatDate(new Date().toISOString()),
+          currency: targetInvoice.currency || 'INR',
           totalAmount: parseFloat(paymentAmount) || Number(targetInvoice.totalAmount),
           subtotal: Number(targetInvoice.amount || targetInvoice.totalAmount),
           taxAmount: Number(targetInvoice.taxAmount || 0),
           paymentMethod,
           paymentReference: paymentRef,
+          lines: invLines,
         });
       } catch (pdfErr) {
         console.warn('Failed to auto-generate invoice PDF:', pdfErr);
@@ -583,6 +592,13 @@ export function BillingPage() {
                             <button
                               type="button"
                               onClick={() => {
+                                const invLines = (inv.lines || inv.items)?.map((l: any) => ({
+                                  description: l.description || l.productName || 'Enterprise Service Item',
+                                  quantity: Number(l.quantity || 1),
+                                  unitPrice: Number(l.unitPrice || 0),
+                                  total: Number(l.lineTotal || (Number(l.unitPrice || 0) * Number(l.quantity || 1))),
+                                }));
+
                                 generateAndDownloadInvoicePdf({
                                   invoiceNumber: inv.invoiceNumber,
                                   orderId: inv.orderId,
@@ -590,11 +606,13 @@ export function BillingPage() {
                                   customerId: inv.customerId,
                                   date: formatDate(inv.issuedAt),
                                   paidAt: formatDate(inv.paidAt || new Date().toISOString()),
+                                  currency: inv.currency || 'INR',
                                   totalAmount: Number(inv.totalAmount || 0),
                                   subtotal: Number(inv.amount || inv.totalAmount),
                                   taxAmount: Number(inv.taxAmount || 0),
                                   paymentMethod: 'Wire Transfer / Electronic',
                                   paymentReference: `TXN-${inv.id.slice(0, 8).toUpperCase()}`,
+                                  lines: invLines,
                                 });
                               }}
                               className="px-2.5 py-1 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer"

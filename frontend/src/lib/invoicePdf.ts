@@ -24,6 +24,19 @@ export interface InvoicePdfData {
   lines?: InvoiceLineItem[];
 }
 
+function formatMoney(amount: number | string | undefined | null, currency?: string): string {
+  const num = Number(amount || 0);
+  const formatted = num.toLocaleString('en-IN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  const c = (currency || 'INR').toUpperCase();
+  if (c === 'USD' || c === '$') return `$${formatted}`;
+  if (c === 'EUR') return `EUR ${formatted}`;
+  if (c === 'GBP') return `GBP ${formatted}`;
+  return `INR ${formatted}`;
+}
+
 export function generateAndDownloadInvoicePdf(data: InvoicePdfData): void {
   const doc = new jsPDF({
     orientation: 'portrait',
@@ -145,21 +158,48 @@ export function generateAndDownloadInvoicePdf(data: InvoicePdfData): void {
   doc.setFontSize(8.5);
   doc.setTextColor(255, 255, 255);
   doc.text('ITEM / DESCRIPTION', margin + 4, y + 5.5);
-  doc.text('QTY', margin + contentWidth - 65, y + 5.5, { align: 'center' });
-  doc.text('UNIT PRICE', margin + contentWidth - 35, y + 5.5, { align: 'right' });
+  doc.text('QTY', margin + contentWidth - 75, y + 5.5, { align: 'center' });
+  doc.text('UNIT PRICE', margin + contentWidth - 40, y + 5.5, { align: 'right' });
   doc.text('LINE TOTAL', margin + contentWidth - 4, y + 5.5, { align: 'right' });
 
   y += 8;
 
-  // Line items
-  const lines = data.lines && data.lines.length > 0 ? data.lines : [
-    {
-      description: 'Physical Hardware & Enterprise Order Fulfillment',
-      quantity: 1,
-      unitPrice: data.totalAmount,
-      total: data.totalAmount,
-    },
-  ];
+  // Line items sanitization & fallback
+  let lines: InvoiceLineItem[] = [];
+  if (data.lines && data.lines.length > 0) {
+    lines = data.lines.map((l) => ({
+      description: l.description || 'Enterprise Hardware Item',
+      quantity: Number(l.quantity) > 0 ? Number(l.quantity) : 1,
+      unitPrice: Number(l.unitPrice) || 0,
+      total: l.total !== undefined ? Number(l.total) : (Number(l.unitPrice || 0) * (Number(l.quantity) || 1)),
+    }));
+  }
+
+  const linesSum = lines.reduce((acc, l) => acc + (l.total ?? (l.unitPrice * l.quantity)), 0);
+
+  // If no lines or all line values are 0 while totalAmount > 0, calibrate with totalAmount
+  if (lines.length === 0) {
+    lines = [
+      {
+        description: 'Physical Hardware & Enterprise Order Fulfillment',
+        quantity: 1,
+        unitPrice: data.totalAmount,
+        total: data.totalAmount,
+      },
+    ];
+  } else if (linesSum === 0 && data.totalAmount > 0) {
+    if (lines.length === 1) {
+      const q = lines[0].quantity || 1;
+      lines[0].unitPrice = data.totalAmount / q;
+      lines[0].total = data.totalAmount;
+    } else {
+      const each = data.totalAmount / lines.length;
+      lines.forEach((l) => {
+        l.unitPrice = each / (l.quantity || 1);
+        l.total = each;
+      });
+    }
+  }
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.5);
@@ -175,31 +215,34 @@ export function generateAndDownloadInvoicePdf(data: InvoicePdfData): void {
     doc.setTextColor(17, 24, 39);
     const lineDesc = line.description.length > 45 ? `${line.description.slice(0, 42)}...` : line.description;
     doc.text(lineDesc, margin + 4, y + 5.5);
-    doc.text(String(line.quantity), margin + contentWidth - 65, y + 5.5, { align: 'center' });
-    doc.text(`₹${Number(line.unitPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, margin + contentWidth - 35, y + 5.5, { align: 'right' });
+    doc.text(String(line.quantity), margin + contentWidth - 75, y + 5.5, { align: 'center' });
+    doc.text(formatMoney(line.unitPrice, data.currency), margin + contentWidth - 40, y + 5.5, { align: 'right' });
     const lineTot = line.total ?? (Number(line.unitPrice) * Number(line.quantity));
-    doc.text(`₹${Number(lineTot).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, margin + contentWidth - 4, y + 5.5, { align: 'right' });
+    doc.text(formatMoney(lineTot, data.currency), margin + contentWidth - 4, y + 5.5, { align: 'right' });
 
     y += 8;
   });
 
   // Summary Totals
   y += 6;
-  const summaryBoxWidth = 75;
+  const summaryBoxWidth = 85;
   const summaryX = margin + contentWidth - summaryBoxWidth;
+
+  const subtotal = Number(data.subtotal) > 0 ? Number(data.subtotal) : (data.totalAmount - (Number(data.taxAmount) || 0));
+  const tax = Number(data.taxAmount) || 0;
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(107, 114, 128);
   doc.text('Subtotal:', summaryX, y);
   doc.setTextColor(17, 24, 39);
-  doc.text(`₹${Number(data.subtotal || data.totalAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, margin + contentWidth - 4, y, { align: 'right' });
+  doc.text(formatMoney(subtotal, data.currency), margin + contentWidth - 4, y, { align: 'right' });
 
   y += 6;
   doc.setTextColor(107, 114, 128);
   doc.text('Tax (0% GST / Export):', summaryX, y);
   doc.setTextColor(17, 24, 39);
-  doc.text(`₹${Number(data.taxAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, margin + contentWidth - 4, y, { align: 'right' });
+  doc.text(formatMoney(tax, data.currency), margin + contentWidth - 4, y, { align: 'right' });
 
   y += 8;
   doc.setFillColor(243, 244, 246);
@@ -208,7 +251,7 @@ export function generateAndDownloadInvoicePdf(data: InvoicePdfData): void {
   doc.setFontSize(10);
   doc.setTextColor(17, 24, 39);
   doc.text('Total Invoiced:', summaryX, y + 1);
-  doc.text(`₹${Number(data.totalAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, margin + contentWidth - 4, y + 1, { align: 'right' });
+  doc.text(formatMoney(data.totalAmount, data.currency), margin + contentWidth - 4, y + 1, { align: 'right' });
 
   y += 10;
   doc.setFillColor(236, 253, 245); // #ECFDF5 Emerald light
@@ -217,7 +260,7 @@ export function generateAndDownloadInvoicePdf(data: InvoicePdfData): void {
   doc.setFontSize(10);
   doc.setTextColor(5, 150, 105); // #059669
   doc.text('Amount Paid:', summaryX, y + 1);
-  doc.text(`₹${Number(data.totalAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, margin + contentWidth - 4, y + 1, { align: 'right' });
+  doc.text(formatMoney(data.totalAmount, data.currency), margin + contentWidth - 4, y + 1, { align: 'right' });
 
   // Verification Seal / Sign-off Box
   y = Math.max(y + 24, 190);
