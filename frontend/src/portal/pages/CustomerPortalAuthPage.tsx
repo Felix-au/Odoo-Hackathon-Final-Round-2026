@@ -88,7 +88,7 @@ export const CustomerPortalAuthPage: React.FC<CustomerPortalAuthPageProps> = ({
     try {
       await loginWithPassword(loginEmail, loginPassword);
       toast.success('Signed in to Customer Portal');
-      window.location.href = '/portal/quotations/q-001';
+      window.location.href = '/portal/quotations';
     } catch (err: any) {
       const msg = err.response?.data?.detail || err.message || 'Invalid customer credentials';
       toast.error(msg);
@@ -109,7 +109,7 @@ export const CustomerPortalAuthPage: React.FC<CustomerPortalAuthPageProps> = ({
       setIsSignupSuccess(true);
       toast.success('Registration successful! Redirecting to client portal...');
       setTimeout(() => {
-        window.location.href = '/portal/quotations/q-001';
+        window.location.href = '/portal/quotations';
       }, 600);
     } catch (err: any) {
       const msg = err.response?.data?.detail || err.message || 'Registration failed. Please contact your account manager.';

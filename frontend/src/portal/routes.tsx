@@ -26,6 +26,8 @@ export const portalRoutes = {
         {
           element: <PortalAuthGuard />,
           children: [
+            { index: true, element: <QuotationPortalPage /> },
+            { path: 'quotations', element: <QuotationPortalPage /> },
             { path: 'quotations/:id', element: <QuotationPortalPage /> },
           ],
         },

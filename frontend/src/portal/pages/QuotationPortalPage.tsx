@@ -1,225 +1,892 @@
-import { useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { usePortalQuotation } from '../../api/hooks/usePortalQuotation';
+import React, { useState, useMemo } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { usePortalQuotations, usePortalQuotation } from '../../api/hooks/usePortalQuotation';
 import { LoadingSpinner } from '../../components/feedback/LoadingSpinner';
 import { formatCurrency } from '../../lib/utils';
-import { CheckCircle2 } from 'lucide-react';
+import {
+  CheckCircle2,
+  Clock,
+  MessageSquare,
+  Search,
+  Check,
+  X,
+  FileText,
+  Printer,
+  ChevronRight,
+  Building2,
+  AlertCircle,
+  Package,
+  Calendar,
+  Layers,
+  ShieldCheck,
+  Send,
+  Sliders,
+  Loader2
+} from 'lucide-react';
 import { toast } from 'sonner';
 
 export function QuotationPortalPage() {
-  const { id = 'q-001' } = useParams<{ id: string }>();
-  const { quotation, isLoading, submitNegotiation, confirmQuotation, isSubmitting } = usePortalQuotation(id);
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
 
-  const [isEditingComments, setIsEditingComments] = useState(false);
-  const [commentText, setCommentText] = useState(
-    'Can we increase the router quantity and receive a better discount?'
+  // 1. Fetch all quotations available to this portal customer
+  const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const { data: quoteListData, isLoading: isListLoading } = usePortalQuotations();
+
+  const allQuotations = useMemo(() => {
+    return quoteListData?.quotations || [];
+  }, [quoteListData]);
+
+  // Determine active quotation ID
+  const activeQuoteId = useMemo(() => {
+    if (id && id !== 'q-001' && id !== 'sample') {
+      return id;
+    }
+    // Default to the first quote that is SENT, or first available
+    const sentQuote = allQuotations.find((q) => q.status === 'SENT');
+    if (sentQuote) return sentQuote.id;
+    if (allQuotations.length > 0) return allQuotations[0].id;
+    return id || 'q-001';
+  }, [id, allQuotations]);
+
+  // 2. Fetch active quotation details
+  const {
+    quotation,
+    isLoading: isQuoteLoading,
+    submitNegotiation,
+    confirmQuotation,
+    rejectQuotation,
+    isSubmitting,
+  } = usePortalQuotation(activeQuoteId);
+
+  // Sync URL when picking a quotation from the list
+  const handleSelectQuotation = (selectedId: string) => {
+    navigate(`/portal/quotations/${selectedId}`);
+  };
+
+  // Modals state
+  const [showAcceptModal, setShowAcceptModal] = useState(false);
+  const [showNegotiateModal, setShowNegotiateModal] = useState(false);
+  const [showDeclineModal, setShowDeclineModal] = useState(false);
+
+  // Negotiation form state
+  const [proposedDiscount, setProposedDiscount] = useState<number>(20);
+  const [negotiationMessage, setNegotiationMessage] = useState<string>(
+    'We are ready to move forward if we can get a competitive volume discount.'
   );
-  const [isConfirmed, setIsConfirmed] = useState(false);
 
-  if (isLoading && !quotation) {
-    return (
-      <div className="py-20 flex justify-center">
-        <LoadingSpinner label="Loading proposal..." />
-      </div>
-    );
-  }
+  // Decline form state
+  const [declineReason, setDeclineReason] = useState<string>('Pricing higher than budget');
+  const [declineNotes, setDeclineNotes] = useState<string>('');
 
-  const handleConfirm = async () => {
-    try {
-      if (confirmQuotation) {
-        await confirmQuotation();
+  // Filtered quotations for picker sidebar
+  const filteredQuotations = useMemo(() => {
+    return allQuotations.filter((q) => {
+      // Status filter
+      if (statusFilter === 'ACTION_REQUIRED' && q.status !== 'SENT') return false;
+      if (statusFilter === 'UNDER_NEGOTIATION' && q.status !== 'UNDER_NEGOTIATION') return false;
+      if (statusFilter === 'CONFIRMED' && q.status !== 'CONFIRMED') return false;
+
+      // Search filter
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase().trim();
+        const num = (q.quotationNumber || q.id || '').toLowerCase();
+        const customerName = (q.customer?.name || '').toLowerCase();
+        const lineNames = (q.lines || []).map((l: any) => l.productName?.toLowerCase() || '').join(' ');
+        return num.includes(query) || customerName.includes(query) || lineNames.includes(query);
       }
-      setIsConfirmed(true);
-      toast.success('Proposal accepted! Your order is now being processed.');
+      return true;
+    });
+  }, [allQuotations, statusFilter, searchQuery]);
+
+  // Derived active quote metrics
+  const activeQuoteNumber = quotation?.quotationNumber || (quotation?.id ? `DF-${quotation.id.slice(0, 6).toUpperCase()}` : 'DF-10482');
+  const activeTotal = Number(quotation?.totalAmount || 0);
+  const activeLines = quotation?.lines || [];
+  const isConfirmed = quotation?.status === 'CONFIRMED';
+  const isUnderNegotiation = quotation?.status === 'UNDER_NEGOTIATION';
+  const isRejected = quotation?.status === 'REJECTED';
+  const isSent = quotation?.status === 'SENT';
+  const canTakeAction = isSent || isUnderNegotiation || quotation?.status === 'APPROVED';
+
+  // Live calculation of counter-proposal
+  const counterTotal = useMemo(() => {
+    if (!quotation) return activeTotal;
+    const effectiveDiscount = proposedDiscount / 100;
+    let sum = 0;
+    activeLines.forEach((line: any) => {
+      const unitPrice = Number(line.unitPrice || 0);
+      const qty = Number(line.quantity || 1);
+      const discount = Math.max(Number(line.discountPct || 0) / 100, effectiveDiscount);
+      sum += unitPrice * qty * (1 - discount);
+    });
+    return sum > 0 ? sum : activeTotal * (1 - (proposedDiscount / 100));
+  }, [quotation, activeLines, activeTotal, proposedDiscount]);
+
+  const counterSavings = Math.max(0, activeTotal - counterTotal);
+
+  // Handle Confirm Submission
+  const handleConfirmSubmit = async () => {
+    try {
+      await confirmQuotation();
+      setShowAcceptModal(false);
     } catch {
-      toast.error('Failed to confirm proposal');
+      // Error handled by hook toast
     }
   };
 
-  const handleRequestChanges = async () => {
-    if (!commentText.trim()) {
-      toast.error('Please enter your feedback before requesting changes');
+  // Handle Negotiate Submission
+  const handleNegotiateSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!negotiationMessage.trim()) {
+      toast.error('Please enter a message explaining your counter-proposal');
       return;
     }
     try {
-      if (submitNegotiation) {
-        await submitNegotiation({
-          message: commentText,
-        });
-      }
-      setIsEditingComments(false);
-      toast.success('Your feedback has been delivered to your sales representative.');
+      await submitNegotiation({
+        proposedDiscount,
+        message: negotiationMessage,
+      });
+      setShowNegotiateModal(false);
     } catch {
-      toast.error('Failed to submit feedback');
+      // Error handled by hook toast
     }
   };
 
-  // Lines representation matching Screenshot 3
-  const lines = quotation?.lines && quotation.lines.length > 0 ? quotation.lines : [
-    {
-      id: 'line-01',
-      productName: 'Enterprise Router',
-      quantity: 10,
-      unitPrice: 500,
-      total: 5000,
-      subtext: '10 × ₹500',
-    },
-    {
-      id: 'line-02',
-      productName: 'Support Plan',
-      quantity: 1,
-      unitPrice: 900,
-      total: 900,
-      subtext: '1 × ₹900 · annual renewal',
-    },
-  ];
+  // Handle Decline Submission
+  const handleDeclineSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const fullReason = declineNotes.trim() ? `${declineReason} — ${declineNotes.trim()}` : declineReason;
+      await rejectQuotation({ reason: fullReason });
+      setShowDeclineModal(false);
+    } catch {
+      // Error handled by hook toast
+    }
+  };
 
-  const totalAmount = quotation?.totalAmount || 6500;
-  const quoteNumber = quotation?.quotationNumber || 'DF-10482';
-  const customerName = quotation?.customer?.name || 'Acme Corporation';
+  // Print summary
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'CONFIRMED':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Accepted & Confirmed</span>
+          </span>
+        );
+      case 'SENT':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-sky-500/15 text-sky-400 border border-sky-500/30">
+            <span className="h-1.5 w-1.5 rounded-full bg-sky-400 animate-pulse" />
+            <span>Ready for Review</span>
+          </span>
+        );
+      case 'UNDER_NEGOTIATION':
+      case 'PENDING_MANAGER_APPROVAL':
+      case 'PENDING_FINANCE_APPROVAL':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-400 border border-amber-500/30">
+            <Clock className="w-3.5 h-3.5 text-amber-400" />
+            <span>Under Negotiation</span>
+          </span>
+        );
+      case 'REJECTED':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-500/15 text-rose-400 border border-rose-500/30">
+            <X className="w-3.5 h-3.5 text-rose-400" />
+            <span>Declined</span>
+          </span>
+        );
+      case 'APPROVED':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-500/15 text-indigo-400 border border-indigo-500/30">
+            <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" />
+            <span>Approved by DealFlow360</span>
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-800 text-slate-400 border border-slate-700">
+            <span>{status.replace(/_/g, ' ')}</span>
+          </span>
+        );
+    }
+  };
 
   return (
-    <div className="w-full max-w-2xl mx-auto animate-in fade-in duration-300">
-      {/* Confirmed Banner */}
-      {isConfirmed && (
-        <div className="mb-6 p-5 rounded-2xl bg-slate-900 text-white shadow-lg flex items-center gap-3.5">
-          <CheckCircle2 className="w-6 h-6 text-emerald-400 shrink-0" />
-          <div>
-            <h3 className="text-sm font-bold tracking-tight">Proposal Accepted</h3>
-            <p className="text-xs text-slate-300 mt-0.5">
-              Thank you for approving Quote #{quoteNumber}. Fulfillment and delivery coordination have been initiated.
+    <div className="w-full space-y-6 animate-in fade-in duration-300">
+      {/* Top Banner / Welcome */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-slate-800/80">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white flex items-center gap-2.5">
+            <span>Your Proposals & Quotations</span>
+            <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700 font-mono">
+              {allQuotations.length} total
+            </span>
+          </h1>
+          <p className="text-sm text-slate-400 mt-1">
+            Review commercial proposals, negotiate terms, or confirm quotes for immediate order processing.
+          </p>
+        </div>
+
+        {/* Global actions */}
+        <div className="flex items-center gap-2 self-start md:self-auto">
+          <button
+            type="button"
+            onClick={handlePrint}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs font-medium text-slate-300 hover:text-white transition-colors"
+          >
+            <Printer className="w-3.5 h-3.5 text-slate-400" />
+            <span>Print View</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Main Split Grid: Left = Picker / Quotations List, Right = Detailed Proposal */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* ─── LEFT COLUMN: Quotations Selector (Pick & Choose) ─── */}
+        <div className="lg:col-span-4 bg-slate-900/70 border border-slate-800/80 rounded-2xl p-4 backdrop-blur-md space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs font-bold tracking-wider text-slate-400 uppercase flex items-center gap-1.5">
+              <Layers className="w-3.5 h-3.5 text-indigo-400" />
+              <span>Select Quotation</span>
+            </h2>
+            <span className="text-[11px] text-slate-500">
+              {filteredQuotations.length} available
+            </span>
+          </div>
+
+          {/* Search box */}
+          <div className="relative">
+            <Search className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by quote # or item..."
+              className="w-full bg-slate-950/80 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
+            />
+          </div>
+
+          {/* Filter Pills */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar text-xs">
+            <button
+              type="button"
+              onClick={() => setStatusFilter('ALL')}
+              className={`px-2.5 py-1 rounded-lg font-medium transition-all shrink-0 ${
+                statusFilter === 'ALL'
+                  ? 'bg-indigo-600 text-white font-semibold'
+                  : 'bg-slate-950 text-slate-400 hover:text-slate-200 border border-slate-800'
+              }`}
+            >
+              All ({allQuotations.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter('ACTION_REQUIRED')}
+              className={`px-2.5 py-1 rounded-lg font-medium transition-all shrink-0 ${
+                statusFilter === 'ACTION_REQUIRED'
+                  ? 'bg-sky-600 text-white font-semibold'
+                  : 'bg-slate-950 text-slate-400 hover:text-slate-200 border border-slate-800'
+              }`}
+            >
+              Action Required
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter('UNDER_NEGOTIATION')}
+              className={`px-2.5 py-1 rounded-lg font-medium transition-all shrink-0 ${
+                statusFilter === 'UNDER_NEGOTIATION'
+                  ? 'bg-amber-600 text-white font-semibold'
+                  : 'bg-slate-950 text-slate-400 hover:text-slate-200 border border-slate-800'
+              }`}
+            >
+              Negotiating
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter('CONFIRMED')}
+              className={`px-2.5 py-1 rounded-lg font-medium transition-all shrink-0 ${
+                statusFilter === 'CONFIRMED'
+                  ? 'bg-emerald-600 text-white font-semibold'
+                  : 'bg-slate-950 text-slate-400 hover:text-slate-200 border border-slate-800'
+              }`}
+            >
+              Confirmed
+            </button>
+          </div>
+
+          {/* Scrollable List of Quotations */}
+          <div className="space-y-2 max-h-[580px] overflow-y-auto pr-1">
+            {isListLoading ? (
+              <div className="py-12 flex justify-center">
+                <LoadingSpinner label="Loading proposals..." />
+              </div>
+            ) : filteredQuotations.length === 0 ? (
+              <div className="p-8 text-center bg-slate-950/60 rounded-xl border border-slate-800/80">
+                <FileText className="w-8 h-8 text-slate-600 mx-auto mb-2" />
+                <p className="text-xs font-medium text-slate-400">No proposals matching filters</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStatusFilter('ALL');
+                    setSearchQuery('');
+                  }}
+                  className="mt-2 text-xs text-indigo-400 hover:underline"
+                >
+                  Clear filters
+                </button>
+              </div>
+            ) : (
+              filteredQuotations.map((q) => {
+                const isSelected = q.id === activeQuoteId;
+                const quoteNum = q.quotationNumber || `DF-${q.id.slice(0, 6).toUpperCase()}`;
+                const topProduct = q.lines?.[0]?.productName || 'Custom Configuration';
+                const linesCount = q.lines?.length || 0;
+                const quoteAmount = Number(q.totalAmount || 0);
+
+                return (
+                  <button
+                    key={q.id}
+                    type="button"
+                    onClick={() => handleSelectQuotation(q.id)}
+                    className={`w-full text-left p-3.5 rounded-xl border transition-all flex flex-col gap-2 relative ${
+                      isSelected
+                        ? 'bg-indigo-950/40 border-indigo-500/60 shadow-md shadow-indigo-500/10 ring-1 ring-indigo-500/30'
+                        : 'bg-slate-950/70 border-slate-800/80 hover:border-slate-700 hover:bg-slate-900/60'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono text-xs font-bold text-white flex items-center gap-1.5">
+                        <FileText className={`w-3.5 h-3.5 ${isSelected ? 'text-indigo-400' : 'text-slate-500'}`} />
+                        <span>{quoteNum}</span>
+                      </span>
+                      {getStatusBadge(q.status)}
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs text-slate-400">
+                      <span className="truncate max-w-[170px] text-slate-300 font-medium">
+                        {topProduct} {linesCount > 1 ? `+${linesCount - 1} more` : ''}
+                      </span>
+                      <span className="font-mono text-sm font-bold text-white shrink-0">
+                        {formatCurrency(quoteAmount)}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-slate-800/60">
+                      <span>
+                        {q.createdAt ? new Date(q.createdAt).toLocaleDateString() : 'Active deal'}
+                      </span>
+                      {isSelected ? (
+                        <span className="text-indigo-400 font-semibold flex items-center gap-0.5">
+                          Viewing <ChevronRight className="w-3 h-3" />
+                        </span>
+                      ) : (
+                        <span className="hover:text-slate-300 flex items-center gap-0.5">
+                          Click to open
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        {/* ─── RIGHT COLUMN: Detailed Proposal View ─── */}
+        <div className="lg:col-span-8 space-y-6">
+          {isQuoteLoading && !quotation ? (
+            <div className="p-20 flex justify-center bg-slate-900/70 border border-slate-800/80 rounded-3xl">
+              <LoadingSpinner label="Loading proposal details..." />
+            </div>
+          ) : !quotation ? (
+            <div className="p-12 text-center bg-slate-900/70 border border-slate-800/80 rounded-3xl">
+              <AlertCircle className="w-12 h-12 text-slate-600 mx-auto mb-3" />
+              <h2 className="text-base font-bold text-white">Quotation not found</h2>
+              <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+                Please select an active proposal from the list on the left to review its commercial terms.
+              </p>
+            </div>
+          ) : (
+            <>
+              {/* Confirmed Banner Alert */}
+              {isConfirmed && (
+                <div className="p-5 rounded-2xl bg-gradient-to-r from-emerald-950/60 to-slate-900 border border-emerald-500/40 text-white shadow-lg flex items-start gap-4 animate-in fade-in">
+                  <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 shrink-0 mt-0.5">
+                    <CheckCircle2 className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-emerald-200">Proposal Confirmed & Order Initiated</h3>
+                    <p className="text-xs text-slate-300 mt-1">
+                      Thank you for approving Quote #{activeQuoteNumber}. Our automated orchestration engine has routed this order to Fulfillment & Billing. Your account executive will follow up with shipment tracking.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Under Negotiation Banner Alert */}
+              {isUnderNegotiation && (
+                <div className="p-5 rounded-2xl bg-gradient-to-r from-amber-950/50 to-slate-900 border border-amber-500/40 text-white shadow-lg flex items-start gap-4 animate-in fade-in">
+                  <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 shrink-0 mt-0.5">
+                    <Clock className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-amber-200">Counter-Offer Under Review</h3>
+                    <p className="text-xs text-slate-300 mt-1">
+                      Your negotiation request is currently being reviewed by the account manager and governance team. You will be notified as soon as revised commercial terms are published.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Declined Banner Alert */}
+              {isRejected && (
+                <div className="p-5 rounded-2xl bg-gradient-to-r from-rose-950/50 to-slate-900 border border-rose-500/40 text-white shadow-lg flex items-start gap-4 animate-in fade-in">
+                  <div className="p-2 rounded-xl bg-rose-500/20 text-rose-400 shrink-0 mt-0.5">
+                    <X className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-rose-200">Proposal Declined</h3>
+                    <p className="text-xs text-slate-300 mt-1">
+                      You have declined this proposal. If your project requirements or timeline change, please reach out to your sales representative to request a new proposal.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Main Proposal Container (Obsidian Dark Luxury) */}
+              <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 sm:p-10 shadow-2xl backdrop-blur-xl relative overflow-hidden">
+                {/* Proposal Top Header */}
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-6 border-b border-slate-800/80">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] font-bold uppercase tracking-widest text-indigo-400">
+                        Enterprise Commercial Proposal
+                      </span>
+                      <span>·</span>
+                      <span className="text-[11px] font-mono text-slate-400">
+                        Quote #{activeQuoteNumber}
+                      </span>
+                    </div>
+
+                    <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white mt-1.5">
+                      {activeLines[0]?.productName
+                        ? `${activeLines[0].productName} Enterprise Solution`
+                        : 'Enterprise Infrastructure & Licensing'}
+                    </h2>
+
+                    <div className="text-xs sm:text-sm text-slate-400 mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
+                      <span className="flex items-center gap-1">
+                        <Building2 className="w-3.5 h-3.5 text-slate-500" />
+                        Prepared for <strong className="text-slate-200 font-semibold">{quotation.customer?.name || 'Valued Client'}</strong>
+                      </span>
+                      <span>·</span>
+                      <span className="flex items-center gap-1">
+                        <Calendar className="w-3.5 h-3.5 text-slate-500" />
+                        Issued on {new Date(quotation.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col items-start sm:items-end gap-1.5 shrink-0">
+                    {getStatusBadge(quotation.status)}
+                    <span className="text-[11px] text-slate-400 font-mono">
+                      Validity: 30 days from issue
+                    </span>
+                  </div>
+                </div>
+
+                {/* Line Items Table */}
+                <div className="mt-6">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-1.5">
+                    <Package className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>Included Products & Services</span>
+                  </h3>
+
+                  <div className="overflow-x-auto border border-slate-800 rounded-2xl bg-slate-950/60">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-slate-900/90 text-slate-400 uppercase tracking-wider text-[10px] border-b border-slate-800 font-semibold">
+                        <tr>
+                          <th className="py-3 px-4">Item & Description</th>
+                          <th className="py-3 px-3 text-center">Qty</th>
+                          <th className="py-3 px-3 text-right">Unit Price</th>
+                          <th className="py-3 px-3 text-right">Discount</th>
+                          <th className="py-3 px-4 text-right">Total</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800/60 text-slate-200">
+                        {activeLines.map((line: any, idx: number) => {
+                          const unitPrice = Number(line.unitPrice || 0);
+                          const qty = Number(line.quantity || 1);
+                          const discountPct = Number(line.discountPct || 0);
+                          const lineTotal = Number(line.lineTotal || (unitPrice * qty * (1 - discountPct / 100)));
+
+                          return (
+                            <tr key={line.id || idx} className="hover:bg-slate-900/40 transition-colors">
+                              <td className="py-3.5 px-4">
+                                <div className="font-semibold text-slate-100">
+                                  {line.productName}
+                                </div>
+                                <div className="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5">
+                                  <span className="px-1.5 py-0.2 rounded bg-slate-800 text-slate-300 font-mono text-[10px]">
+                                    {line.categoryName || 'Standard Item'}
+                                  </span>
+                                  {line.isRecurring && (
+                                    <span className="text-indigo-400 font-medium">
+                                      · Recurring Subscription
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="py-3.5 px-3 text-center font-mono font-medium">
+                                {qty}
+                              </td>
+                              <td className="py-3.5 px-3 text-right font-mono text-slate-300">
+                                {formatCurrency(unitPrice)}
+                              </td>
+                              <td className="py-3.5 px-3 text-right font-mono">
+                                {discountPct > 0 ? (
+                                  <span className="text-emerald-400 font-semibold">
+                                    {discountPct}% OFF
+                                  </span>
+                                ) : (
+                                  <span className="text-slate-500">0%</span>
+                                )}
+                              </td>
+                              <td className="py-3.5 px-4 text-right font-mono font-bold text-white text-sm">
+                                {formatCurrency(lineTotal)}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Financial Summary Calculation */}
+                <div className="mt-6 pt-6 border-t border-slate-800/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+                  <div className="text-xs text-slate-400 max-w-sm">
+                    <p className="font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
+                      <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                      <span>Guaranteed Commercial Price</span>
+                    </p>
+                    <p className="text-[11px] leading-relaxed text-slate-400">
+                      Prices include enterprise tiered discounts and standard SLA. Acceptance confirms delivery terms and fulfillment allocation.
+                    </p>
+                  </div>
+
+                  <div className="w-full sm:w-72 bg-slate-950/70 border border-slate-800 rounded-2xl p-4 space-y-2">
+                    <div className="flex items-center justify-between text-xs text-slate-400">
+                      <span>Subtotal</span>
+                      <span className="font-mono text-slate-200">
+                        {formatCurrency(Number(quotation.subtotalAmount || quotation.totalAmount || 0))}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs text-slate-400">
+                      <span>Tax / Duty</span>
+                      <span className="font-mono text-slate-200">₹0.00</span>
+                    </div>
+
+                    <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
+                      <span className="text-sm font-bold text-white">Grand Total</span>
+                      <span className="text-xl sm:text-2xl font-bold font-mono text-white tracking-tight">
+                        {formatCurrency(activeTotal)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Buttons Bar */}
+                {canTakeAction && !isConfirmed && (
+                  <div className="mt-8 pt-6 border-t border-slate-800/80 flex flex-wrap items-center justify-end gap-3">
+                    {/* Decline Button */}
+                    <button
+                      type="button"
+                      disabled={isSubmitting}
+                      onClick={() => setShowDeclineModal(true)}
+                      className="px-4 py-2.5 rounded-xl border border-slate-800 hover:border-rose-500/40 bg-slate-950 text-slate-400 hover:text-rose-400 text-xs sm:text-sm font-semibold transition-all focus:outline-none disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <X className="w-4 h-4" />
+                      <span>Decline</span>
+                    </button>
+
+                    {/* Negotiate Button */}
+                    <button
+                      type="button"
+                      disabled={isSubmitting}
+                      onClick={() => setShowNegotiateModal(true)}
+                      className="px-5 py-2.5 rounded-xl border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-xs sm:text-sm font-semibold transition-all focus:outline-none disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <MessageSquare className="w-4 h-4" />
+                      <span>Negotiate Terms</span>
+                    </button>
+
+                    {/* Accept Button */}
+                    <button
+                      type="button"
+                      disabled={isSubmitting}
+                      onClick={() => setShowAcceptModal(true)}
+                      className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white text-xs sm:text-sm font-bold transition-all shadow-lg shadow-emerald-500/20 focus:outline-none disabled:opacity-50 flex items-center gap-2 cursor-pointer"
+                    >
+                      <Check className="w-4 h-4" />
+                      <span>Accept & Confirm Proposal</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* ─── MODAL 1: ACCEPT & CONFIRM MODAL ─── */}
+      {showAcceptModal && quotation && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400">
+                  <CheckCircle2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">Confirm & Sign Proposal</h3>
+                  <p className="text-xs text-slate-400">Quote #{activeQuoteNumber}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAcceptModal(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="bg-slate-950/70 border border-slate-800 rounded-2xl p-4 space-y-2 text-xs">
+              <div className="flex justify-between text-slate-400">
+                <span>Customer</span>
+                <span className="font-semibold text-slate-200">{quotation.customer?.name}</span>
+              </div>
+              <div className="flex justify-between text-slate-400">
+                <span>Items</span>
+                <span className="font-semibold text-slate-200">{activeLines.length} product(s)</span>
+              </div>
+              <div className="flex justify-between pt-2 border-t border-slate-800">
+                <span className="font-bold text-white">Total Order Value</span>
+                <span className="font-mono text-base font-bold text-emerald-400">{formatCurrency(activeTotal)}</span>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-400 leading-relaxed">
+              By clicking <strong className="text-slate-200">Confirm Order</strong>, you agree to the commercial terms and pricing outlined in this proposal. DealFlow360 will allocate reserved inventory and initiate order fulfillment immediately.
             </p>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                disabled={isSubmitting}
+                onClick={() => setShowAcceptModal(false)}
+                className="px-4 py-2 rounded-xl border border-slate-800 text-xs font-semibold text-slate-300 hover:bg-slate-800"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isSubmitting}
+                onClick={handleConfirmSubmit}
+                className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-md shadow-emerald-600/30 flex items-center gap-2 cursor-pointer"
+              >
+                {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                <span>{isSubmitting ? 'Confirming...' : 'Confirm Order'}</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Main Proposal Card (Screenshot 3) */}
-      <div className="bg-white border border-slate-200/90 rounded-3xl p-8 sm:p-12 shadow-sm">
-        {/* Eyebrow */}
-        <div className="text-[11px] font-bold tracking-widest text-slate-400 uppercase">
-          Proposal
-        </div>
-
-        {/* Title */}
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 mt-1.5">
-          Enterprise Network Infrastructure
-        </h1>
-
-        {/* Subtitle */}
-        <div className="text-xs sm:text-sm text-slate-500 mt-2 pb-6 border-b border-slate-100">
-          Prepared for {customerName} · Quote #{quoteNumber}
-        </div>
-
-        {/* Line Items List */}
-        <div className="divide-y divide-slate-100">
-          {lines.map((item: any) => {
-            const itemTotal = item.total || (item.unitPrice * item.quantity);
-            return (
-              <div key={item.id} className="py-5 flex items-baseline justify-between gap-4">
-                <div>
-                  <div className="text-sm sm:text-base font-semibold text-slate-900">
-                    {item.productName}
-                  </div>
-                  <div className="text-xs text-slate-500 mt-0.5 font-mono">
-                    {item.subtext || `${item.quantity} × ${formatCurrency(item.unitPrice)}`}
-                  </div>
+      {/* ─── MODAL 2: NEGOTIATE / COUNTER-OFFER MODAL ─── */}
+      {showNegotiateModal && quotation && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl space-y-5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400">
+                  <Sliders className="w-5 h-5" />
                 </div>
-                <div className="text-sm sm:text-base font-bold text-slate-900 shrink-0 font-mono">
-                  {formatCurrency(itemTotal)}
+                <div>
+                  <h3 className="text-base font-bold text-white">Negotiate Commercial Terms</h3>
+                  <p className="text-xs text-slate-400">Submit a structured counter-proposal for review</p>
                 </div>
               </div>
-            );
-          })}
-        </div>
-
-        {/* Total Row */}
-        <div className="pt-6 pb-6 border-t border-slate-100 flex items-center justify-between">
-          <span className="text-base font-bold text-slate-900">Total</span>
-          <span className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight font-mono">
-            {formatCurrency(totalAmount)}
-          </span>
-        </div>
-
-        {/* Comments Section (Screenshot 3) */}
-        <div className="bg-[#F8FAFC] border border-slate-100 rounded-2xl p-5 mt-2">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">
-              Comments
-            </span>
-            {!isEditingComments && (
               <button
                 type="button"
-                onClick={() => setIsEditingComments(true)}
-                className="text-[11px] font-medium text-slate-400 hover:text-slate-700"
+                onClick={() => setShowNegotiateModal(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-white"
               >
-                Edit
+                <X className="w-4 h-4" />
               </button>
-            )}
-          </div>
+            </div>
 
-          {isEditingComments ? (
-            <div className="space-y-3">
-              <textarea
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                rows={2}
-                maxLength={1000}
-                className="w-full bg-white border border-slate-200 rounded-xl p-3 text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-slate-400"
-                placeholder="Add counter discount or specific requirements..."
-              />
-              <div className="flex justify-end gap-2">
+            <form onSubmit={handleNegotiateSubmit} className="space-y-4 text-xs">
+              {/* Counter Discount Slider */}
+              <div className="bg-slate-950/70 border border-slate-800 rounded-2xl p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="font-semibold text-slate-200">
+                    Requested Discount Percentage
+                  </label>
+                  <span className="font-mono text-sm font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/30">
+                    {proposedDiscount}%
+                  </span>
+                </div>
+
+                <input
+                  type="range"
+                  min="0"
+                  max="40"
+                  step="1"
+                  value={proposedDiscount}
+                  onChange={(e) => setProposedDiscount(Number(e.target.value))}
+                  className="w-full accent-amber-500 cursor-pointer"
+                />
+
+                <div className="flex items-center justify-between text-[11px] text-slate-400 pt-2 border-t border-slate-800/80">
+                  <span>
+                    Current Total: <strong className="text-slate-200 font-mono">{formatCurrency(activeTotal)}</strong>
+                  </span>
+                  <span>
+                    Proposed Total: <strong className="text-emerald-400 font-mono">{formatCurrency(counterTotal)}</strong>
+                  </span>
+                </div>
+                {counterSavings > 0 && (
+                  <div className="text-[11px] text-emerald-400 font-medium text-right">
+                    Estimated Savings: {formatCurrency(counterSavings)}
+                  </div>
+                )}
+              </div>
+
+              {/* Message justification */}
+              <div>
+                <label className="block font-semibold text-slate-200 mb-1.5">
+                  Counter-Proposal Rationale & Comments
+                </label>
+                <textarea
+                  rows={3}
+                  value={negotiationMessage}
+                  onChange={(e) => setNegotiationMessage(e.target.value)}
+                  placeholder="Explain your volume, budget requirements, or desired contract duration..."
+                  required
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-amber-500 placeholder-slate-500"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3">
                 <button
                   type="button"
-                  onClick={() => setIsEditingComments(false)}
-                  className="px-3 py-1.5 text-xs text-slate-500 hover:text-slate-800 font-medium"
+                  disabled={isSubmitting}
+                  onClick={() => setShowNegotiateModal(false)}
+                  className="px-4 py-2 rounded-xl border border-slate-800 text-xs font-semibold text-slate-300 hover:bg-slate-800"
                 >
                   Cancel
                 </button>
                 <button
-                  type="button"
-                  onClick={handleRequestChanges}
-                  className="px-3.5 py-1.5 bg-slate-900 text-white rounded-lg text-xs font-semibold hover:bg-slate-800"
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold transition-all shadow-md shadow-amber-500/20 flex items-center gap-2 cursor-pointer"
                 >
-                  Save Feedback
+                  {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin text-slate-950" /> : <Send className="w-3.5 h-3.5" />}
+                  <span>{isSubmitting ? 'Submitting...' : 'Submit Counter-Offer'}</span>
                 </button>
               </div>
-            </div>
-          ) : (
-            <p className="text-xs sm:text-sm text-slate-700 italic">
-              "{commentText}"
-            </p>
-          )}
-        </div>
-
-        {/* Action Buttons Row (Screenshot 3) */}
-        {!isConfirmed && (
-          <div className="flex items-center justify-end gap-3 mt-8">
-            <button
-              type="button"
-              disabled={isSubmitting}
-              onClick={() => {
-                if (!isEditingComments) {
-                  setIsEditingComments(true);
-                } else {
-                  handleRequestChanges();
-                }
-              }}
-              className="px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-xs sm:text-sm font-semibold transition-colors focus:outline-none disabled:opacity-50"
-            >
-              Request changes
-            </button>
-
-            <button
-              type="button"
-              disabled={isSubmitting}
-              onClick={handleConfirm}
-              className="px-6 py-2.5 rounded-xl bg-slate-950 text-white hover:bg-slate-800 text-xs sm:text-sm font-semibold transition-colors shadow-xs focus:outline-none disabled:opacity-50"
-            >
-              {isSubmitting ? 'Processing...' : 'Accept proposal'}
-            </button>
+            </form>
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* ─── MODAL 3: DECLINE PROPOSAL MODAL ─── */}
+      {showDeclineModal && quotation && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl space-y-5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-rose-500/20 text-rose-400">
+                  <X className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">Decline Proposal</h3>
+                  <p className="text-xs text-slate-400">Quote #{activeQuoteNumber}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowDeclineModal(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleDeclineSubmit} className="space-y-4 text-xs">
+              <div>
+                <label className="block font-semibold text-slate-200 mb-1.5">
+                  Primary Reason for Declining
+                </label>
+                <select
+                  value={declineReason}
+                  onChange={(e) => setDeclineReason(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-slate-200 focus:outline-none focus:border-rose-500"
+                >
+                  <option value="Pricing higher than budget">Pricing higher than current budget</option>
+                  <option value="Specifications did not meet requirements">Specifications did not meet project requirements</option>
+                  <option value="Selected alternative solution">Selected alternative solution or provider</option>
+                  <option value="Project postponed or cancelled">Project postponed or cancelled</option>
+                  <option value="Other">Other reason</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-200 mb-1.5">
+                  Additional Notes (Optional)
+                </label>
+                <textarea
+                  rows={2}
+                  value={declineNotes}
+                  onChange={(e) => setDeclineNotes(e.target.value)}
+                  placeholder="Provide feedback to help us tailor future proposals..."
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-rose-500 placeholder-slate-500"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  disabled={isSubmitting}
+                  onClick={() => setShowDeclineModal(false)}
+                  className="px-4 py-2 rounded-xl border border-slate-800 text-xs font-semibold text-slate-300 hover:bg-slate-800"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition-all shadow-md shadow-rose-600/30 flex items-center gap-1.5 cursor-pointer"
+                >
+                  {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin text-white" /> : <X className="w-3.5 h-3.5" />}
+                  <span>{isSubmitting ? 'Declining...' : 'Decline Proposal'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
