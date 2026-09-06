@@ -343,11 +343,20 @@ export function QuotationBuilderPage() {
 
   // Send to Customer
   const handleSendToCustomer = async () => {
+    if (requiresReview && quote?.status !== 'APPROVED') {
+      toast.error('This quotation requires approval before sending to customer. Please submit for approval first.');
+      return;
+    }
+    if (lines.length === 0) {
+      toast.error('Cannot send empty quotation. Please add products first.');
+      return;
+    }
     try {
       await sendQuotation();
       toast.success('Quotation dispatched to customer portal');
-    } catch {
-      toast.error('Failed to dispatch quotation');
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || 'Failed to dispatch quotation';
+      toast.error(msg);
     }
   };
 
@@ -498,16 +507,25 @@ export function QuotationBuilderPage() {
             </>
           )}
 
-          {/* If quote is DRAFT and HAS RISK: "Send to Customer" is REMOVED/BLOCKED and user MUST submit for review! */}
+          {/* If quote is DRAFT and HAS RISK: Send to Customer is BLOCKED with hover tooltip and user MUST submit for review! */}
           {quote?.status === 'DRAFT' && requiresReview && (
             <div className="flex items-center gap-2">
-              <div
-                className="px-3.5 py-2 rounded-xl text-xs font-medium bg-rose-500/10 text-rose-400 border border-rose-500/20 flex items-center gap-1.5"
-                title="Send to client is blocked until approved"
-              >
-                <Lock className="w-3.5 h-3.5 text-rose-400" />
-                <span>Send Blocked (Review Required)</span>
+              <div className="relative group inline-block">
+                <button
+                  type="button"
+                  disabled={true}
+                  className="px-5 py-2.5 rounded-xl text-xs font-bold bg-[#141414] text-zinc-500 border border-[#262626] flex items-center gap-2 cursor-not-allowed opacity-60 select-none"
+                  title="This quotation requires approval before sending to customer. Please submit for approval first."
+                >
+                  <Lock className="w-3.5 h-3.5 text-zinc-500" />
+                  <span>Send to Customer</span>
+                </button>
+                <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-2.5 rounded-xl bg-[#111111] border border-amber-500/40 text-amber-300 text-[11px] font-medium shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-50 text-center leading-snug">
+                  Approval required: Quotation breaches risk thresholds. Submit for approval before sending.
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-[#111111]" />
+                </div>
               </div>
+
               <button
                 type="button"
                 disabled={isUpdating || lines.length === 0}
@@ -528,15 +546,33 @@ export function QuotationBuilderPage() {
                 <span>Client Counter-Offer Active</span>
               </div>
               {requiresReview ? (
-                <button
-                  type="button"
-                  disabled={isUpdating || lines.length === 0}
-                  onClick={handleSubmitApproval}
-                  className="px-4 py-2 rounded-xl text-xs font-bold bg-amber-400 hover:bg-amber-300 text-black transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-amber-500/20 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                >
-                  <ShieldCheck className="w-3.5 h-3.5 text-black" />
-                  <span>{reviewActionLabel}</span>
-                </button>
+                <>
+                  <div className="relative group inline-block">
+                    <button
+                      type="button"
+                      disabled={true}
+                      className="px-4 py-2 rounded-xl text-xs font-bold bg-[#141414] text-zinc-500 border border-[#262626] flex items-center gap-1.5 cursor-not-allowed opacity-60 select-none"
+                      title="This quotation requires approval before sending to customer. Please submit for approval first."
+                    >
+                      <Lock className="w-3.5 h-3.5 text-zinc-500" />
+                      <span>Send to Customer</span>
+                    </button>
+                    <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-2.5 rounded-xl bg-[#111111] border border-amber-500/40 text-amber-300 text-[11px] font-medium shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-50 text-center leading-snug">
+                      Approval required: Quotation breaches risk thresholds. Submit for approval before sending.
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-[#111111]" />
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled={isUpdating || lines.length === 0}
+                    onClick={handleSubmitApproval}
+                    className="px-4 py-2 rounded-xl text-xs font-bold bg-amber-400 hover:bg-amber-300 text-black transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-amber-500/20 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5 text-black" />
+                    <span>{reviewActionLabel}</span>
+                  </button>
+                </>
               ) : (
                 <button
                   type="button"
@@ -1046,7 +1082,7 @@ export function QuotationBuilderPage() {
 
             {/* Primary Action Button */}
             <div className="pt-2 space-y-2">
-              {(quote?.status === 'APPROVED' || quote?.status === 'DRAFT') && (
+              {quote?.status === 'APPROVED' ? (
                 <button
                   type="button"
                   disabled={isUpdating}
@@ -1056,19 +1092,61 @@ export function QuotationBuilderPage() {
                   <Send className="w-3.5 h-3.5 text-black" />
                   <span>Send to Customer</span>
                 </button>
-              )}
+              ) : quote?.status === 'DRAFT' || quote?.status === 'UNDER_NEGOTIATION' ? (
+                requiresReview ? (
+                  <>
+                    <div className="relative group w-full">
+                      <button
+                        type="button"
+                        disabled={true}
+                        className="w-full py-2.5 px-4 rounded-xl bg-[#141414] text-zinc-500 border border-[#262626] font-semibold text-xs tracking-wide transition-all text-center focus:outline-none cursor-not-allowed opacity-60 flex items-center justify-center gap-2 select-none"
+                        title="This quotation requires approval before sending to customer. Please submit for approval first."
+                      >
+                        <Lock className="w-3.5 h-3.5 text-zinc-500" />
+                        <span>Send to Customer (Locked)</span>
+                      </button>
+                      <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-2.5 rounded-xl bg-[#111111] border border-amber-500/40 text-amber-300 text-[11px] font-medium shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-50 text-center leading-snug">
+                        Approval required: Quotation breaches risk thresholds. Submit for approval before sending.
+                        <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-[#111111]" />
+                      </div>
+                    </div>
 
-              {quote?.status === 'DRAFT' && lines.length > 0 && (
-                <button
-                  type="button"
-                  disabled={isUpdating}
-                  onClick={handleSubmitApproval}
-                  className="w-full py-2.5 px-4 rounded-xl bg-[#1A1A1A] hover:bg-[#242424] text-white border border-[#2E2E2E] hover:border-zinc-400 font-semibold text-xs tracking-wide transition-all text-center focus:outline-none cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Submit for Review</span>
-                </button>
-              )}
+                    <button
+                      type="button"
+                      disabled={isUpdating || lines.length === 0}
+                      onClick={handleSubmitApproval}
+                      className="w-full py-2.5 px-4 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-semibold text-xs tracking-wide shadow-lg shadow-amber-500/20 transition-all text-center focus:outline-none cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      <ShieldCheck className="w-3.5 h-3.5 text-black" />
+                      <span>{reviewActionLabel}</span>
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      disabled={isUpdating || lines.length === 0}
+                      onClick={handleSendToCustomer}
+                      className="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-zinc-200 text-black font-semibold text-xs tracking-wide shadow-lg transition-all text-center focus:outline-none cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      <Send className="w-3.5 h-3.5 text-black" />
+                      <span>Send to Customer</span>
+                    </button>
+
+                    {lines.length > 0 && (
+                      <button
+                        type="button"
+                        disabled={isUpdating}
+                        onClick={handleSubmitApproval}
+                        className="w-full py-2.5 px-4 rounded-xl bg-[#1A1A1A] hover:bg-[#242424] text-white border border-[#2E2E2E] hover:border-zinc-400 font-semibold text-xs tracking-wide transition-all text-center focus:outline-none cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
+                      >
+                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Submit for Review</span>
+                      </button>
+                    )}
+                  </>
+                )
+              ) : null}
 
               {(quote?.status === 'PENDING_MANAGER_APPROVAL' ||
                 quote?.status === 'PENDING_FINANCE_APPROVAL') && (
